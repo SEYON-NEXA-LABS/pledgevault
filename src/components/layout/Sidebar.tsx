@@ -12,13 +12,23 @@ import {
   LogOut,
   ChevronLeft,
   Menu,
+  BarChart3,
+  User,
 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { supabase } from '@/lib/supabase/client';
+import { authStore } from '@/lib/authStore';
 
 const navItems = [
   { href: '/', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/loans', label: 'Loans', icon: HandCoins },
   { href: '/customers', label: 'Customers', icon: Users },
-  { href: '/settings', label: 'Settings', icon: Settings },
+  { href: '/reports', label: 'Reports', icon: BarChart3 },
+];
+
+const configItems = [
+  { href: '/settings', label: 'General Settings', icon: Settings },
+  { href: '/settings/team', label: 'Team & Access', icon: Shield },
 ];
 
 interface SidebarProps {
@@ -28,7 +38,14 @@ interface SidebarProps {
 }
 
 export default function Sidebar({ isOpen, onToggle, overdueCount = 0 }: SidebarProps) {
+  const router = useRouter();
   const pathname = usePathname();
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    router.push('/login');
+    router.refresh();
+  };
 
   const isActive = (href: string) => {
     if (href === '/') return pathname === '/';
@@ -97,16 +114,40 @@ export default function Sidebar({ isOpen, onToggle, overdueCount = 0 }: SidebarP
           ))}
         </nav>
 
+        {authStore.isAdmin() && (
+          <>
+            <div className="sidebar-section" style={{ marginTop: '20px' }}>
+              <span className="sidebar-section-title">Configuration</span>
+            </div>
+            <nav className="sidebar-nav">
+              {configItems.map((item) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={`sidebar-link ${isActive(item.href) ? 'active' : ''}`}
+                >
+                  <item.icon size={20} />
+                  <span>{item.label}</span>
+                </Link>
+              ))}
+            </nav>
+          </>
+        )}
+
         {/* Footer */}
         <div className="sidebar-footer">
-          <div className="sidebar-footer-user">
-            <div className="sidebar-avatar">SG</div>
-            <div className="sidebar-user-info">
-              <div className="name">Sri Ganesh</div>
-              <div className="role">Shop Owner</div>
+            <div className="sidebar-avatar">
+              <User size={18} />
             </div>
+            <div className="sidebar-user-info">
+              <div className="name">{authStore.get().userName || 'User'}</div>
+              <div className="role">{authStore.get().role === 'admin' ? 'Admin' : 'Branch Staff'}</div>
+            </div>
+            <button className="logout-btn" onClick={handleSignOut} title="Sign Out">
+              <LogOut size={18} />
+            </button>
           </div>
-        </div>
+
       </aside>
     </>
   );

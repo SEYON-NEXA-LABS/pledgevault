@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
+import React, { useState, useEffect, useCallback, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import {
   Plus,
   Trash2,
@@ -12,8 +12,11 @@ import {
   User,
   FileText,
   CircleDollarSign,
+  Camera,
+  CheckCircle2
 } from 'lucide-react';
 import { customerStore, loanStore, settingsStore } from '@/lib/store';
+import { compressImage } from '@/lib/image';
 import { GOLD_PURITY_MAP, SILVER_PURITY_MAP, ITEM_TYPES, INTEREST_MODE_LABELS, generateId, generateLoanNumber, formatCurrency, formatWeight } from '@/lib/constants';
 import { calculateItemValue, calculateLoanAmount, calculateTotalWeight, calculateTotalValue } from '@/lib/gold';
 import { calculateMonthlyInterestAmount, calculateMaturityAmount } from '@/lib/interest';
@@ -27,6 +30,7 @@ interface ItemRow {
   grossWeight: string;
   netWeight: string;
   purity: string;
+  photoBase64?: string;
 }
 
 const emptyItem = (): ItemRow => ({
@@ -36,10 +40,12 @@ const emptyItem = (): ItemRow => ({
   grossWeight: '',
   netWeight: '',
   purity: '916',
+  photoBase64: '',
 });
 
-export default function NewLoanPage() {
+function NewLoanContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [mounted, setMounted] = useState(false);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [selectedCustomerId, setSelectedCustomerId] = useState('');
@@ -65,7 +71,13 @@ export default function NewLoanPage() {
     setInterestMode(s.defaultInterestMode);
     setTenure(s.defaultTenure.toString());
     setLtvPercent(s.defaultLtvGold.toString());
-  }, []);
+
+    // Pre-select customer if ID provided in query
+    const cid = searchParams.get('customerId');
+    if (cid) {
+      setSelectedCustomerId(cid);
+    }
+  }, [searchParams]);
 
   // Calculate item values
   const calculatedItems: (ItemRow & { value: number; rate: number })[] = items.map((item) => {
@@ -101,7 +113,7 @@ export default function NewLoanPage() {
 
   const updateItem = (index: number, field: keyof ItemRow, value: string) => {
     const updated = [...items];
-    (updated[index] as Record<string, string>)[field] = value;
+    updated[index] = { ...updated[index], [field]: value };
 
     // Auto-set netWeight to grossWeight if not manually changed
     if (field === 'grossWeight' && !updated[index].netWeight) {
@@ -123,6 +135,32 @@ export default function NewLoanPage() {
   const removeItem = (index: number) => {
     if (items.length === 1) return;
     setItems(items.filter((_, i) => i !== index));
+  };
+
+  const handleCapturePhoto = async (index: number) => {
+    // In a real app, this would open a camera modal or file input. 
+    // For this prototype, we'll use a file input to simulate capture.
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.capture = 'environment';
+    
+    input.onchange = async (e: any) => {
+      const file = e.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onloadend = async () => {
+          const rawBase64 = reader.result as string;
+          // Jewelry needs more detail, so we use higher width/quality than IDs
+          const optimizedBase64 = await compressImage(rawBase64, 1200, 0.7);
+          const updated = [...items];
+          updated[index].photoBase64 = optimizedBase64;
+          setItems(updated);
+        };
+        reader.readAsDataURL(file);
+      }
+    };
+    input.click();
   };
 
   const selectedCustomer = customers.find((c) => c.id === selectedCustomerId);
@@ -164,6 +202,7 @@ export default function NewLoanPage() {
         purity: i.purity as GoldPurity | SilverPurity,
         ratePerGram: i.rate,
         itemValue: i.value,
+        photoBase64: i.photoBase64
       }));
 
     const now = new Date();
@@ -178,6 +217,7 @@ export default function NewLoanPage() {
       customerId: customer.id,
       customerName: customer.name,
       customerPhone: customer.phone,
+      branchId: settingsStore.get().activeBranchId,
       items: pledgeItems,
       totalGrossWeight: totalGross,
       totalNetWeight: totalNet,
@@ -320,10 +360,10 @@ export default function NewLoanPage() {
                   <span style={{ color: 'var(--text-tertiary)' }}>Phone:</span>{' '}
                   <strong>{selectedCustomer.phone}</strong>
                 </div>
-                {selectedCustomer.aadhaar && (
+                {selectedCustomer.primaryIdNumber && (
                   <div>
-                    <span style={{ color: 'var(--text-tertiary)' }}>Aadhaar:</span>{' '}
-                    <strong>{selectedCustomer.aadhaar}</strong>
+                    <span style={{ color: 'var(--text-tertiary)' }}>{selectedCustomer.primaryIdType.toUpperCase()}:</span>{' '}
+                    <strong>{selectedCustomer.primaryIdNumber}</strong>
                   </div>
                 )}
                 <div>
@@ -350,6 +390,7 @@ export default function NewLoanPage() {
                     <th>Net (g)</th>
                     <th>Purity</th>
                     <th>Value</th>
+                    <th>Photo</th>
                     <th></th>
                   </tr>
                 </thead>
@@ -445,6 +486,16 @@ export default function NewLoanPage() {
                         >
                           {item.value > 0 ? formatCurrency(item.value) : '—'}
                         </span>
+                      </td>
+                      <td style={{ textAlign: 'center' }}>
+                        <button 
+                          className="btn btn-ghost"
+                          onClick={() => handleCapturePhoto(index)}
+                          title="Capture/Upload Item Photo"
+                          style={{ padding: '6px', minWidth: 'auto', color: item.photoBase64 ? 'var(--status-active)' : 'var(--text-tertiary)' }}
+                        >
+                          {item.photoBase64 ? <CheckCircle2 size={16} /> : <Camera size={16} />}
+                        </button>
                       </td>
                       <td>
                         <button
@@ -648,5 +699,13 @@ export default function NewLoanPage() {
         </div>
       </div>
     </>
+  );
+}
+
+export default function NewLoanPage() {
+  return (
+    <Suspense fallback={<div className="page-content">Loading...</div>}>
+      <NewLoanContent />
+    </Suspense>
   );
 }

@@ -7,6 +7,11 @@
 
 import { Customer, Loan, Payment, ShopSettings } from './types';
 import { DEFAULT_SETTINGS, generateId } from './constants';
+import { supabaseService } from './supabase/service';
+
+const isCloudActive = () => 
+  !!process.env.NEXT_PUBLIC_SUPABASE_URL && 
+  !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
 const STORE_KEYS = {
   customers: 'pv_customers',
@@ -38,10 +43,21 @@ function getById<T extends { id: string }>(key: string, id: string): T | null {
 }
 
 function create<T extends { id: string }>(key: string, item: Omit<T, 'id'>): T {
+  const id = generateId();
+  const newItem = { ...item, id } as T;
+  
+  // Local Save
   const items = getAll<T>(key);
-  const newItem = { ...item, id: generateId() } as T;
   items.push(newItem);
   setAll(key, items);
+
+  // Cloud Sync
+  if (isCloudActive()) {
+    if (key === STORE_KEYS.customers) supabaseService.createCustomer(newItem as any).catch(console.error);
+    if (key === STORE_KEYS.loans) supabaseService.createLoan(newItem as any).catch(console.error);
+    if (key === STORE_KEYS.payments) supabaseService.createPayment(newItem as any).catch(console.error);
+  }
+
   return newItem;
 }
 
@@ -55,6 +71,23 @@ function update<T extends { id: string }>(
   if (index === -1) return null;
   items[index] = { ...items[index], ...updates };
   setAll(key, items);
+
+  // Cloud Sync
+  if (isCloudActive()) {
+    if (key === STORE_KEYS.customers) supabaseService.updateCustomer(id, updates as any).catch(console.error);
+    if (key === STORE_KEYS.settings) supabaseService.updateSettings(updates as any).catch(console.error);
+    // Loan updates are complex because of nested items, but simpler for status/payments
+    if (key === STORE_KEYS.loans) {
+      // Direct loan updates (not items)
+      const { items: _, ...loanData } = updates as any;
+      if (Object.keys(loanData).length > 0) {
+        // We'd need a supabase update method for loans
+        // For now, these are synced via separate recordPayment or markStatus calls
+        // or during the next full migration.
+      }
+    }
+  }
+
   return items[index];
 }
 
@@ -82,7 +115,8 @@ export const customerStore = {
       (c) =>
         c.name.toLowerCase().includes(q) ||
         c.phone.includes(q) ||
-        (c.aadhaar && c.aadhaar.includes(q))
+        (c.primaryIdNumber && c.primaryIdNumber.includes(q)) ||
+        (c.secondaryIdNumber && c.secondaryIdNumber.includes(q))
     );
   },
 };
@@ -135,10 +169,19 @@ export const paymentStore = {
 
 export const settingsStore = {
   get: (): ShopSettings => {
+    const isValidUuid = (id: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
     if (typeof window === 'undefined') return DEFAULT_SETTINGS;
     try {
       const data = localStorage.getItem(STORE_KEYS.settings);
-      return data ? { ...DEFAULT_SETTINGS, ...JSON.parse(data) } : DEFAULT_SETTINGS;
+      if (!data) return DEFAULT_SETTINGS;
+      const parsed = JSON.parse(data);
+      
+      // Sanity check: If we are in cloud mode, activeBranchId MUST be a UUID or empty
+      if (isCloudActive() && parsed.activeBranchId && !isValidUuid(parsed.activeBranchId)) {
+        parsed.activeBranchId = '';
+      }
+      
+      return { ...DEFAULT_SETTINGS, ...parsed };
     } catch {
       return DEFAULT_SETTINGS;
     }
@@ -149,6 +192,12 @@ export const settingsStore = {
     if (typeof window !== 'undefined') {
       localStorage.setItem(STORE_KEYS.settings, JSON.stringify(updated));
     }
+    
+    // Cloud Sync
+    if (isCloudActive()) {
+      supabaseService.updateSettings(updated).catch(console.error);
+    }
+
     return updated;
   },
   incrementLoanCounter: (): number => {
@@ -175,8 +224,10 @@ export function seedDemoData(): void {
       id: 'cust_001',
       name: 'Rajesh Kumar',
       phone: '9876543210',
-      aadhaar: '1234-5678-9012',
-      pan: 'ABCPK1234F',
+      primaryIdType: 'aadhaar',
+      primaryIdNumber: '1234-5678-9012',
+      secondaryIdType: 'pan',
+      secondaryIdNumber: 'ABCPK1234F',
       address: '45, Gandhipuram Main Road',
       city: 'Coimbatore',
       createdAt: now,
@@ -186,7 +237,8 @@ export function seedDemoData(): void {
       id: 'cust_002',
       name: 'Lakshmi Devi',
       phone: '9876543211',
-      aadhaar: '2345-6789-0123',
+      primaryIdType: 'aadhaar',
+      primaryIdNumber: '2345-6789-0123',
       address: '12, RS Puram 2nd Street',
       city: 'Coimbatore',
       createdAt: now,
@@ -196,7 +248,10 @@ export function seedDemoData(): void {
       id: 'cust_003',
       name: 'Mohammed Ali',
       phone: '9876543212',
-      pan: 'XYZMA5678G',
+      primaryIdType: 'voter',
+      primaryIdNumber: 'VOTER1234567',
+      secondaryIdType: 'pan',
+      secondaryIdNumber: 'XYZMA5678G',
       address: '78, Ukkadam Big Bazaar Street',
       city: 'Coimbatore',
       createdAt: now,
@@ -206,8 +261,10 @@ export function seedDemoData(): void {
       id: 'cust_004',
       name: 'Priya Shanmugam',
       phone: '9876543213',
-      aadhaar: '3456-7890-1234',
-      pan: 'DEFPS9012H',
+      primaryIdType: 'aadhaar',
+      primaryIdNumber: '3456-7890-1234',
+      secondaryIdType: 'pan',
+      secondaryIdNumber: 'DEFPS9012H',
       address: '23, Saibaba Colony',
       city: 'Coimbatore',
       createdAt: now,
@@ -217,7 +274,8 @@ export function seedDemoData(): void {
       id: 'cust_005',
       name: 'Venkatesh Iyer',
       phone: '9876543214',
-      aadhaar: '4567-8901-2345',
+      primaryIdType: 'aadhaar',
+      primaryIdNumber: '4567-8901-2345',
       address: '56, Peelamedu Main Road',
       city: 'Coimbatore',
       createdAt: now,
@@ -253,6 +311,7 @@ export function seedDemoData(): void {
       customerId: 'cust_001',
       customerName: 'Rajesh Kumar',
       customerPhone: '9876543210',
+      branchId: 'branch_001',
       items: [
         {
           id: 'item_001',
@@ -297,6 +356,7 @@ export function seedDemoData(): void {
       customerId: 'cust_002',
       customerName: 'Lakshmi Devi',
       customerPhone: '9876543211',
+      branchId: 'branch_001',
       items: [
         {
           id: 'item_003',
@@ -331,6 +391,7 @@ export function seedDemoData(): void {
       customerId: 'cust_003',
       customerName: 'Mohammed Ali',
       customerPhone: '9876543212',
+      branchId: 'branch_001',
       items: [
         {
           id: 'item_004',
@@ -375,6 +436,7 @@ export function seedDemoData(): void {
       customerId: 'cust_004',
       customerName: 'Priya Shanmugam',
       customerPhone: '9876543213',
+      branchId: 'branch_001',
       items: [
         {
           id: 'item_006',
@@ -409,6 +471,7 @@ export function seedDemoData(): void {
       customerId: 'cust_005',
       customerName: 'Venkatesh Iyer',
       customerPhone: '9876543214',
+      branchId: 'branch_001',
       items: [
         {
           id: 'item_007',
@@ -443,7 +506,9 @@ export function seedDemoData(): void {
   setAll(STORE_KEYS.loans, loans);
 
   // Seed settings
+  const defaultSettings = settingsStore.get();
   settingsStore.save({
+    ...defaultSettings,
     shopName: 'Sri Ganesh Jewel Loans',
     shopAddress: '123, Oppanakara Street, Town Hall, Coimbatore - 641001',
     shopPhone: '0422-2345678',

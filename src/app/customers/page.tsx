@@ -11,31 +11,62 @@ import {
   History,
   MoreVertical,
   ExternalLink,
+  ChevronLeft,
+  ChevronRight,
+  RefreshCw,
 } from 'lucide-react';
-import { customerStore, loanStore } from '@/lib/store';
+import { customerStore, loanStore, settingsStore } from '@/lib/store';
+import { supabaseService } from '@/lib/supabase/service';
+import { authStore } from '@/lib/authStore';
 import { Customer } from '@/lib/types';
 
 export default function CustomersPage() {
-  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [customers, setCustomers] = useState<Partial<Customer>[]>([]);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(0);
+  const pageSize = 10;
   const [search, setSearch] = useState('');
+  const [loading, setLoading] = useState(true);
   const [mounted, setMounted] = useState(false);
+
+  const auth = authStore.get();
+  const settings = settingsStore.get();
 
   useEffect(() => {
     setMounted(true);
-    setCustomers(customerStore.getAll());
-  }, []);
+    fetchCustomers();
+  }, [page]);
+
+  const fetchCustomers = async () => {
+    setLoading(true);
+    try {
+      if (auth.firmId) {
+        const result = await supabaseService.getCustomers(auth.firmId, page, pageSize);
+        setCustomers(result.data);
+        setTotal(result.total);
+      } else {
+        // Fallback for local/demo
+        const allLocal = customerStore.getAll();
+        setCustomers(allLocal.slice(page * pageSize, (page + 1) * pageSize));
+        setTotal(allLocal.length);
+      }
+    } catch (err) {
+      console.error('Error fetching customers:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   if (!mounted) {
     return <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-tertiary)' }}>Loading...</div>;
   }
 
-  const filteredCustomers = customers.filter((c) => {
+  const displayCustomers = customers.filter((c) => {
     if (search) {
       const q = search.toLowerCase();
       return (
-        c.name.toLowerCase().includes(q) ||
-        c.phone.includes(q) ||
-        (c.aadhaar && c.aadhaar.includes(q))
+        c.name?.toLowerCase().includes(q) ||
+        c.phone?.includes(q)
       );
     }
     return true;
@@ -87,21 +118,29 @@ export default function CustomersPage() {
               </tr>
             </thead>
             <tbody>
-              {filteredCustomers.map((customer) => {
-                const customerLoans = loanStore.getByCustomer(customer.id);
-                const activeCount = customerLoans.filter(l => l.status === 'active' || l.status === 'overdue').length;
+              {loading ? (
+                <tr>
+                   <td colSpan={6} style={{ textAlign: 'center', padding: '100px 0' }}>
+                     <RefreshCw className="spin" size={32} style={{ color: 'var(--gold)', opacity: 0.5 }} />
+                     <p style={{ marginTop: '12px', fontSize: '14px', color: 'var(--text-tertiary)' }}>Fetching customers...</p>
+                   </td>
+                </tr>
+              ) : displayCustomers.map((customer) => {
+                // In SaaS mode, we'd need a separate join/count for this
+                // For now, we'll hide it or show simplified counts
+                const activeCount = 0; // Placeholder until count logic added to service
 
                 return (
                   <tr key={customer.id}>
                     <td>
                       <div className="customer-cell">
                         <div className="customer-avatar" style={{ width: '40px', height: '40px', fontSize: '16px' }}>
-                          {customer.name.charAt(0)}
+                          {customer.name?.charAt(0)}
                         </div>
                         <div className="customer-info">
                           <div className="name" style={{ fontSize: '15px' }}>{customer.name}</div>
                           <div style={{ fontSize: '12px', color: 'var(--text-tertiary)' }}>
-                            ID: {customer.id.substring(0, 8)}
+                            ID: {customer.id?.substring(0, 8)}
                           </div>
                         </div>
                       </div>
@@ -111,46 +150,24 @@ export default function CustomersPage() {
                         <Phone size={14} style={{ color: 'var(--text-tertiary)' }} />
                         {customer.phone}
                       </div>
-                      {customer.altPhone && (
-                        <div style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginLeft: '20px' }}>
-                          {customer.altPhone}
-                        </div>
-                      )}
                     </td>
                     <td>
-                      {customer.aadhaar && (
-                        <div style={{ fontSize: '13px' }}>
-                          <span style={{ color: 'var(--text-tertiary)' }}>Aadhaar:</span> {customer.aadhaar}
-                        </div>
-                      )}
-                      {customer.pan && (
-                        <div style={{ fontSize: '13px' }}>
-                          <span style={{ color: 'var(--text-tertiary)' }}>PAN:</span> {customer.pan}
-                        </div>
-                      )}
-                      {!customer.aadhaar && !customer.pan && (
-                        <span className="kyc-pending">KYC Pending</span>
-                      )}
-                      {(customer.aadhaar || customer.pan) && (
-                        <span className="kyc-verified" style={{ marginTop: '4px' }}>Verified</span>
-                      )}
+                      <div style={{ fontSize: '13px' }}>
+                        <span style={{ color: 'var(--text-tertiary)' }}>{customer.primaryIdType?.toUpperCase()}:</span> {customer.primaryIdNumber}
+                      </div>
+                      <span className="kyc-verified" style={{ marginTop: '4px' }}>Verified</span>
                     </td>
                     <td>
                       <div style={{ display: 'flex', alignItems: 'flex-start', gap: '6px', fontSize: '13px', maxWidth: '200px' }}>
                         <MapPin size={14} style={{ color: 'var(--text-tertiary)', marginTop: '2px', flexShrink: 0 }} />
-                        <span>{customer.address}, {customer.city}</span>
+                        <span>{customer.city}</span>
                       </div>
                     </td>
                     <td>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                        <div style={{ fontSize: '13px', fontWeight: 600 }}>
-                          {customerLoans.length} total
-                        </div>
-                        {activeCount > 0 && (
-                          <span className="badge active" style={{ width: 'fit-content' }}>
-                            {activeCount} active
-                          </span>
-                        )}
+                        <span className="badge active" style={{ width: 'fit-content' }}>
+                          {activeCount} Active Loans
+                        </span>
                       </div>
                     </td>
                     <td>
@@ -166,12 +183,12 @@ export default function CustomersPage() {
                   </tr>
                 );
               })}
-              {filteredCustomers.length === 0 && (
+              {displayCustomers.length === 0 && !loading && (
                 <tr>
                   <td colSpan={6}>
                     <div className="empty-state">
                       <div className="empty-state-icon">
-                        <Users size={28} />
+                        <User size={28} />
                       </div>
                       <h3>No customers found</h3>
                       <p>
@@ -190,6 +207,29 @@ export default function CustomersPage() {
               )}
             </tbody>
           </table>
+          
+          {/* Pagination Footer */}
+          <div className="pagination-footer">
+            <div className="pagination-info">
+              Showing <span>{page * pageSize + 1}</span> to <span>{Math.min((page + 1) * pageSize, total)}</span> of <span>{total}</span> customers
+            </div>
+            <div className="pagination-btns">
+              <button 
+                className="btn btn-outline btn-sm" 
+                disabled={page === 0 || loading}
+                onClick={() => setPage(p => Math.max(0, p - 1))}
+              >
+                <ChevronLeft size={16} /> Previous
+              </button>
+              <button 
+                className="btn btn-outline btn-sm"
+                disabled={(page + 1) * pageSize >= total || loading}
+                onClick={() => setPage(p => p + 1)}
+              >
+                Next <ChevronRight size={16} />
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </>

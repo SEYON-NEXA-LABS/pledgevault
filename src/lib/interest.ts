@@ -108,3 +108,51 @@ export function calculateMaturityAmount(
   });
   return principal + interest;
 }
+
+/**
+ * Calculate elapsed months between start date and current date.
+ * Typically used to calculate interest "from the day the loan started".
+ */
+export function calculateElapsedMonths(startDate: string, endDate: string = new Date().toISOString()): number {
+  const start = new Date(startDate);
+  const end = new Date(endDate);
+  
+  // Calculate difference in months
+  const yearDiff = end.getFullYear() - start.getFullYear();
+  const monthDiff = end.getMonth() - start.getMonth();
+  const dayDiff = end.getDate() - start.getDate();
+  
+  let totalMonths = yearDiff * 12 + monthDiff;
+  
+  // If even a single day of the next month has started, many shops count it as a full month.
+  // We'll calculate a decimal representation for precision, or round up based on shop preference.
+  // For most users, decimal is best for transparency.
+  
+  if (dayDiff > 0) {
+    totalMonths += (dayDiff / 30); // Approximate days as part of month
+  }
+  
+  return Math.max(0, totalMonths);
+}
+
+/**
+ * Calculate accrued interest from start date to today.
+ */
+export function calculateAccruedInterestFromDates(
+  startDate: string,
+  mode: InterestMode,
+  params: {
+    principal: number;
+    monthlyRate: number;
+    currentDate?: string;
+    totalPaid?: number;
+    weightGrams?: number;
+    ratePerGramPerMonth?: number;
+  }
+): number {
+  const elapsedMonths = calculateElapsedMonths(startDate, params.currentDate);
+  return calculateInterest(mode, {
+    ...params,
+    months: elapsedMonths
+  });
+}

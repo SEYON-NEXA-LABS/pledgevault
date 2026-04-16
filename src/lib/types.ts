@@ -1,6 +1,12 @@
-// ============================================
 // PledgeVault — TypeScript Types
 // ============================================
+
+export interface Branch {
+  id: string;
+  name: string;
+  location: string;
+  code: string; // e.g., 'CBE01'
+}
 
 export type MetalType = 'gold' | 'silver';
 
@@ -30,11 +36,17 @@ export interface Customer {
   name: string;
   phone: string;
   altPhone?: string;
-  aadhaar?: string;
-  pan?: string;
   address: string;
   city: string;
-  photoBase64?: string;
+  // Primary ID (Mandatory)
+  primaryIdType: string;
+  primaryIdNumber: string;
+  primaryIdPhoto?: string;
+  // Secondary ID (Optional)
+  secondaryIdType?: string;
+  secondaryIdNumber?: string;
+  secondaryIdPhoto?: string;
+  selfiePhoto?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -50,6 +62,7 @@ export interface PledgeItem {
   purity: GoldPurity | SilverPurity;
   ratePerGram: number; // rate used at time of pledge
   itemValue: number; // calculated: netWeight × purityFactor × ratePerGram
+  photoBase64?: string;
 }
 
 // ---- Loan ----
@@ -59,6 +72,7 @@ export interface Loan {
   customerId: string;
   customerName: string; // denormalized for quick display
   customerPhone: string;
+  branchId: string;
   items: PledgeItem[];
   totalGrossWeight: number;
   totalNetWeight: number;
@@ -105,6 +119,8 @@ export interface ShopSettings {
   defaultTenure: number; // months
   loanNumberPrefix: string;
   loanNumberCounter: number;
+  activeBranchId: string;
+  branches: Branch[];
 }
 
 // ---- Dashboard Stats ----

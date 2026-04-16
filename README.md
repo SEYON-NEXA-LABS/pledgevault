@@ -14,22 +14,22 @@ Gold loan management is a real pain point for small pawn shops that still run on
 - **Status Tracking**: Monitor active, overdue, and closed loans.
 - **Analytics**: Granular metal distribution and loan volume charts.
 
-### Phase 2: Financials & KYC
-- **Payments**: Record full or partial payments.
-- **KYC Storage**: Secure storage for Aadhaar/PAN details (required for thresholds).
-- **Reminders**: Automated notifications for overdue items.
+### Phase 2: Financials & KYC (Completed)
+- **Payments**: Record full or partial payments with transaction history.
+- **KYC Storage**: Secure storage for Aadhaar/PAN details in customer profiles.
+- **Reminders**: Manual WhatsApp reminders for overdue items from the dashboard.
 
-### Phase 3: Professionalism
-- **Pledge Certificates**: Generation of professional-looking pledged receipts.
-- **Thermal Printing**: Support for thermal printer receipts (standard for shop workflows).
+### Phase 3: Professionalism (Completed)
+- **Pledge Certificates**: Professional A5 pledged receipts with terms and conditions.
+- **Thermal Printing**: Optimization for 80mm thermal printers for standard shop workflows.
 
-### Phase 4: Business Tools
-- **MCX Integration**: Live MCX gold/silver rate synchronization.
-- **Financial Reporting**: Profit/Loss and interest yield analysis.
+### Phase 4: Business Tools (Completed)
+- **MCX Integration**: Live MCX gold/silver rate synchronization in settings.
+- **Financial Reporting**: Profit/Loss, interest yield, and asset performance reports.
 
-### Phase 5: SaaS & Scale
-- **Multi-branch**: Support for multiple shop locations.
-- **Cloud Sync**: Optional cloud redundancy and subscription management.
+### Phase 5: SaaS & Scale (Completed)
+- **Multi-branch**: Support for multiple shop locations with active branch switching.
+- **Cloud Sync**: Local-first cloud redundancy via JSON Backup/Restore for multi-device sync.
 
 ---
 
@@ -49,6 +49,24 @@ npm run dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the results.
+
+## ☁️ Cloud Sync (Supabase)
+
+PledgeVault now supports optional cloud synchronization via Supabase.
+
+### 1. Setup Supabase
+- Create a new project on [Supabase.com](https://supabase.com).
+- Open the SQL Editor and run the schema found in `src/lib/supabase/schema.sql`.
+
+### 2. Configure Environment
+Add your credentials to a `.env.local` file:
+```env
+NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+```
+
+### 3. Migrate Local Data
+Go to **Settings > Supabase Connectivity** and click **Migrate Local Data to Cloud**.
 
 ---
 

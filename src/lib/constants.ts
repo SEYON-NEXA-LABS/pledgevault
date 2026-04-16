@@ -50,6 +50,8 @@ export const DEFAULT_SETTINGS: ShopSettings = {
   defaultTenure: 6,
   loanNumberPrefix: 'PV',
   loanNumberCounter: 1,
+  activeBranchId: '',
+  branches: [],
 };
 
 // ---- Interest Mode Labels ----

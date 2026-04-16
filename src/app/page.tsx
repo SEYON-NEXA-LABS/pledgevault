@@ -11,6 +11,7 @@ import {
   Eye,
   ArrowRight,
   CircleDollarSign,
+  MessageSquare,
 } from 'lucide-react';
 import {
   BarChart,
@@ -26,29 +27,87 @@ import {
   Legend,
 } from 'recharts';
 import StatCard from '@/components/layout/StatCard';
+import DailyCalendarCard from '@/components/dashboard/DailyCalendarCard';
 import { loanStore, customerStore, settingsStore } from '@/lib/store';
+import { supabaseService } from '@/lib/supabase/service';
+import { authStore } from '@/lib/authStore';
+import { supabase } from '@/lib/supabase/client';
 import { formatCurrency, formatWeight, formatDate, getDaysOverdue, GOLD_PURITY_MAP, SILVER_PURITY_MAP } from '@/lib/constants';
 import { Loan, GoldPurity, SilverPurity } from '@/lib/types';
 
-const PIE_COLORS = [
-  '#D4A843', // 22K Gold
-  '#E8C973', // 24K Gold
-  '#B8922F', // 18K Gold
-  '#B0B8C1', // Sterling Silver
-  '#D4DAE0', // Fine Silver
-  '#8A939E', // Coin Silver
-  '#1A3C34', // Dark Teal
-  '#6F767E', // Gray
-];
+// Color by metal name — gold types get gold shades, silver types get silver shades
+const METAL_COLORS: Record<string, string> = {
+  '24K Gold': '#E8C973',
+  '22K Gold': '#D4A843',
+  '18K Gold': '#B8922F',
+  '14K Gold': '#9A7A25',
+  'Sterling': '#B0B8C1',
+  'Fine': '#D4DAE0',
+  'Coin': '#8A939E',
+  'Silver': '#B0B8C1',
+  'Gold': '#D4A843',
+};
+const FALLBACK_COLORS = ['#1A3C34', '#6F767E', '#4A6670', '#3D5A50'];
+
+function getMetalColor(name: string, index: number): string {
+  // Try exact match first, then partial
+  if (METAL_COLORS[name]) return METAL_COLORS[name];
+  for (const [key, color] of Object.entries(METAL_COLORS)) {
+    if (name.toLowerCase().includes(key.toLowerCase())) return color;
+  }
+  return FALLBACK_COLORS[index % FALLBACK_COLORS.length];
+}
 
 export default function DashboardPage() {
   const [loans, setLoans] = useState<Loan[]>([]);
+  const [customers, setCustomers] = useState<any[]>([]);
+  const [cloudStats, setCloudStats] = useState<any>(null);
+  const [viewMode, setViewMode] = useState<'branch' | 'firm'>('branch');
   const [mounted, setMounted] = useState(false);
+
+  const auth = authStore.get();
+  const settings = settingsStore.get();
+  const activeBranchId = settings.activeBranchId;
+
+  // Set default view mode based on role
+  useEffect(() => {
+    if (auth.role === 'admin') setViewMode('firm');
+  }, [auth.role]);
 
   useEffect(() => {
     setMounted(true);
-    setLoans(loanStore.getAll());
-  }, []);
+
+    // Fetch loans for the current firm/branch
+    const fetchDashboardData = async () => {
+      try {
+        if (auth.firmId) {
+          const isValidUuid = (id: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+          const { data } = await supabaseService.getLoans(
+            auth.firmId,
+            viewMode === 'branch' && isValidUuid(activeBranchId) ? activeBranchId : undefined,
+            0,
+            100 // Get enough for dashboard highlights
+          );
+          setLoans(data as Loan[]);
+
+          // Get RPC stats
+          const stats = await supabaseService.getDashboardStats();
+          setCloudStats(stats);
+
+          const { data: custData } = await supabaseService.getCustomers(auth.firmId, 0, 1000);
+          setCustomers(custData || []);
+        } else {
+          // Local Fallback
+          setLoans(loanStore.getAll());
+          setCustomers(customerStore.getAll());
+        }
+      } catch (err) {
+        console.error('Failed to fetch dashboard data:', err);
+      }
+    };
+
+    fetchDashboardData();
+  }, [viewMode, activeBranchId, auth.firmId]);
 
   if (!mounted) {
     return (
@@ -58,21 +117,28 @@ export default function DashboardPage() {
     );
   }
 
-  const activeLoans = loans.filter((l) => l.status === 'active' || l.status === 'overdue');
-  const overdueLoans = loans.filter((l) => l.status === 'overdue');
-  const customers = customerStore.getAll();
-  const settings = settingsStore.get();
+  const isBranchView = viewMode === 'branch';
+  const branchLoans = loans.filter(l => !isBranchView || !activeBranchId || l.branchId === activeBranchId);
+  const activeLoans = branchLoans.filter((l) => l.status === 'active' || l.status === 'overdue');
+  const overdueLoans = branchLoans.filter((l) => l.status === 'overdue');
 
-  const totalActiveLoanValue = activeLoans.reduce((sum, l) => sum + l.loanAmount, 0);
-  const totalGoldWeight = activeLoans.reduce((sum, l) => {
-    return sum + l.items.filter((i) => i.metalType === 'gold').reduce((s, i) => s + i.netWeight, 0);
-  }, 0);
-  const totalSilverWeight = activeLoans.reduce((sum, l) => {
-    return sum + l.items.filter((i) => i.metalType === 'silver').reduce((s, i) => s + i.netWeight, 0);
-  }, 0);
-  const monthlyInterest = activeLoans.reduce((sum, l) => {
-    return sum + l.loanAmount * (l.interestRate / 100);
-  }, 0);
+  const currentBranch = settings.branches.find(b => b.id === activeBranchId);
+
+  // Stats calculation
+  const totalActiveLoanCount = isBranchView ? activeLoans.length : (cloudStats?.total_active_loans ?? activeLoans.length);
+  const totalActiveLoanValue = isBranchView
+    ? activeLoans.reduce((sum, l) => sum + l.loanAmount, 0)
+    : (cloudStats?.total_active_loan_value ?? activeLoans.reduce((sum, l) => sum + l.loanAmount, 0));
+
+  const totalGoldWeight = isBranchView
+    ? activeLoans.reduce((sum, l) => sum + l.items.filter((i) => i.metalType === 'gold').reduce((s, i) => s + i.netWeight, 0), 0)
+    : (cloudStats?.total_gold_weight ?? 0);
+
+  const totalSilverWeight = isBranchView
+    ? activeLoans.reduce((sum, l) => sum + l.items.filter((i) => i.metalType === 'silver').reduce((s, i) => s + i.netWeight, 0), 0)
+    : (cloudStats?.total_silver_weight ?? 0);
+
+  const monthlyInterest = activeLoans.reduce((sum, l) => sum + l.loanAmount * (l.interestRate / 100), 0);
 
   // Chart data
   const recentLoans = [...loans]
@@ -80,26 +146,26 @@ export default function DashboardPage() {
     .slice(0, 5);
 
   const monthlyData = getMonthlyData(loans);
-  
+
   // Granular metal data by purity
   const metalDistributionMap: Record<string, number> = {};
-  activeLoans.forEach(loan => {
-    loan.items.forEach(item => {
+  activeLoans?.forEach(loan => {
+    loan.items?.forEach(item => {
       let label = '';
       if (item.metalType === 'gold') {
         label = GOLD_PURITY_MAP[item.purity as GoldPurity]?.karat + ' Gold' || 'Gold';
       } else {
         label = SILVER_PURITY_MAP[item.purity as SilverPurity]?.label.split(' / ')[0] || 'Silver';
       }
-      
+
       metalDistributionMap[label] = (metalDistributionMap[label] || 0) + item.netWeight;
     });
   });
 
   const metalData = Object.entries(metalDistributionMap)
-    .map(([name, value]) => ({ 
-      name, 
-      value: Math.round(value * 100) / 100 
+    .map(([name, value]) => ({
+      name,
+      value: Math.round(value * 100) / 100
     }))
     .filter((d) => d.value > 0)
     .sort((a, b) => b.value - a.value);
@@ -109,9 +175,27 @@ export default function DashboardPage() {
       <div className="page-header">
         <div className="page-header-left">
           <h2>Dashboard</h2>
-          <p className="subtitle">
-            Welcome back! Here&apos;s your shop overview for today.
-          </p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <p className="subtitle">
+              {currentBranch ? `Managing ${currentBranch.name}` : 'Here\'s your shop overview.'}
+            </p>
+            {auth.role === 'admin' && (
+              <div className="view-toggle">
+                <button
+                  className={`toggle-btn ${viewMode === 'branch' ? 'active' : ''}`}
+                  onClick={() => setViewMode('branch')}
+                >
+                  Branch
+                </button>
+                <button
+                  className={`toggle-btn ${viewMode === 'firm' ? 'active' : ''}`}
+                  onClick={() => setViewMode('firm')}
+                >
+                  Firm
+                </button>
+              </div>
+            )}
+          </div>
         </div>
         <div className="page-header-right">
           <Link href="/loans/new" className="btn btn-gold" id="new-loan-btn">
@@ -125,15 +209,11 @@ export default function DashboardPage() {
       <div className="stats-grid">
         <StatCard
           title="Active Loans"
-          value={activeLoans.length.toString()}
-          subtitle={formatCurrency(totalActiveLoanValue) + ' total'}
+          value={totalActiveLoanCount.toString()}
+          subtitle={formatCurrency(totalActiveLoanValue) + (isBranchView ? ' (Branch)' : ' (All Branches)')}
           icon={HandCoins}
           accent="gold"
-          change={`${loans.filter((l) => {
-            const d = new Date(l.createdAt);
-            const now = new Date();
-            return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
-          }).length} this month`}
+          change={`${activeLoans.length} total`}
           changeType="positive"
         />
         <StatCard
@@ -225,10 +305,10 @@ export default function DashboardPage() {
                       dataKey="value"
                       label={({ name, value }) => `${name}: ${value}g`}
                     >
-                      {metalData.map((_, index) => (
+                      {metalData.map((entry, index) => (
                         <Cell
                           key={`cell-${index}`}
-                          fill={PIE_COLORS[index % PIE_COLORS.length]}
+                          fill={getMetalColor(entry.name, index)}
                         />
                       ))}
                     </Pie>
@@ -246,8 +326,8 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Recent Loans & Overdue */}
-      <div className="content-grid">
+      {/* Recent Loans, Overdue & Daily Calendar */}
+      <div className="content-grid" style={{ gridTemplateColumns: '1fr 1fr 1fr' }}>
         <div className="card" style={{ animationDelay: '0.3s' }}>
           <div className="card-header">
             <h3>Recent Loans</h3>
@@ -276,7 +356,7 @@ export default function DashboardPage() {
                     <td>
                       <div className="customer-cell">
                         <div className="customer-avatar">
-                          {loan.customerName.charAt(0)}
+                          {(loan.customerName ?? loan.customerName ?? '?').charAt(0)}
                         </div>
                         <div className="customer-info">
                           <div className="name">{loan.customerName}</div>
@@ -289,7 +369,7 @@ export default function DashboardPage() {
                     </td>
                     <td>
                       <span className={`badge ${loan.status}`}>
-                        {loan.status.charAt(0).toUpperCase() + loan.status.slice(1)}
+                        {(loan.status || 'active').charAt(0).toUpperCase() + (loan.status || 'active').slice(1)}
                       </span>
                     </td>
                   </tr>
@@ -314,15 +394,26 @@ export default function DashboardPage() {
           <div className="card-body">
             {overdueLoans.length > 0 ? (
               overdueLoans.map((loan) => (
-                <div key={loan.id} className="overdue-item">
-                  <div className="overdue-dot" />
-                  <div className="overdue-info">
-                    <div className="loan-id">{loan.loanNumber}</div>
-                    <div className="customer-name">{loan.customerName}</div>
+                <div key={loan.id} className="overdue-item" style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px', background: 'var(--bg-input)', borderRadius: 'var(--radius-md)', marginBottom: '8px' }}>
+                  <div className="overdue-dot" style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--status-overdue)', flexShrink: 0 }} />
+                  <div className="overdue-info" style={{ flex: 1 }}>
+                    <div className="loan-id" style={{ fontWeight: 700, fontSize: '13px' }}>{loan.loanNumber}</div>
+                    <div className="customer-name" style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>{loan.customerName}</div>
                   </div>
-                  <div className="overdue-days">
-                    {getDaysOverdue(loan.dueDate)} days overdue
+                  <div className="overdue-days" style={{ fontSize: '11px', color: 'var(--status-overdue)', fontWeight: 600 }}>
+                    {getDaysOverdue(loan.dueDate)}d
                   </div>
+                  <button
+                    onClick={() => {
+                      const message = `PV Reminder: Dear ${loan.customerName}, your pledge ${loan.loanNumber} is overdue by ${getDaysOverdue(loan.dueDate)} days. Balance: ${formatCurrency(loan.loanAmount + (loan.interestAccrued || 0) - (loan.amountPaid || 0))}. Please visit our shop to renew or close.`;
+                      window.open(`https://wa.me/91${loan.customerPhone}?text=${encodeURIComponent(message)}`, '_blank');
+                    }}
+                    title="Send WhatsApp Reminder"
+                    className="btn btn-sm btn-outline"
+                    style={{ padding: '4px 8px' }}
+                  >
+                    <MessageSquare size={14} />
+                  </button>
                 </div>
               ))
             ) : (
@@ -334,6 +425,9 @@ export default function DashboardPage() {
             )}
           </div>
         </div>
+
+        {/* Daily Calendar */}
+        <DailyCalendarCard />
       </div>
     </>
   );
@@ -350,8 +444,10 @@ function getMonthlyData(loans: Loan[]) {
     months[key] = 0;
   }
 
-  loans.forEach((loan) => {
-    const d = new Date(loan.createdAt);
+  loans?.forEach((loan) => {
+    const dateStr = (loan as any).created_at || (loan as any).createdAt;
+    if (!dateStr) return;
+    const d = new Date(dateStr);
     const key = d.toLocaleDateString('en-IN', { month: 'short' });
     if (key in months) {
       months[key]++;
