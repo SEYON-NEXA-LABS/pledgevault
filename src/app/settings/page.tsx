@@ -9,19 +9,11 @@ import {
   AlertCircle,
   Building,
   Coins,
-  Lock,
   RefreshCw,
   GitBranch,
-  Cloud,
-  Download,
-  Upload,
-  Plus,
-  Database,
-  Globe,
-  ArrowUp,
-  Info
+  Plus
 } from 'lucide-react';
-import { settingsStore, customerStore, loanStore, paymentStore } from '@/lib/store';
+import { settingsStore } from '@/lib/store';
 import { supabaseService } from '@/lib/supabase/service';
 import { supabase } from '@/lib/supabase/client';
 import { ShopSettings } from '@/lib/types';
@@ -32,16 +24,10 @@ export default function SettingsPage() {
   const [mounted, setMounted] = useState(false);
   const [saved, setSaved] = useState(false);
   const [syncing, setSyncing] = useState(false);
-  const [migrating, setMigrating] = useState(false);
-  const [isCloudConfigured, setIsCloudConfigured] = useState(false);
 
   useEffect(() => {
     setMounted(true);
     setSettings(settingsStore.get());
-    
-    // Check if cloud is configured
-    const hasConfig = !!process.env.NEXT_PUBLIC_SUPABASE_URL && !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-    setIsCloudConfigured(hasConfig);
   }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -101,79 +87,7 @@ export default function SettingsPage() {
     setTimeout(() => setSaved(false), 3000);
   };
 
-  const handleExportData = () => {
-    const data = {
-      customers: localStorage.getItem('pv_customers'),
-      loans: localStorage.getItem('pv_loans'),
-      payments: localStorage.getItem('pv_payments'),
-      settings: localStorage.getItem('pv_settings'),
-    };
-    
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `pledgevault_backup_${new Date().toISOString().split('T')[0]}.json`;
-    a.click();
-  };
 
-  const handleImportData = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      try {
-        const data = JSON.parse(event.target?.result as string);
-        if (data.customers) localStorage.setItem('pv_customers', data.customers);
-        if (data.loans) localStorage.setItem('pv_loans', data.loans);
-        if (data.payments) localStorage.setItem('pv_payments', data.payments);
-        if (data.settings) localStorage.setItem('pv_settings', data.settings);
-        alert('Data imported successfully! The page will now reload.');
-        window.location.reload();
-      } catch (err) {
-        alert('Failed to import data. Please check the file format.');
-      }
-    };
-    reader.readAsText(file);
-  };
-
-  const handleMigrateToCloud = async () => {
-    if (!confirm('This will upload all your local customers, loans, and payments to Supabase. Continue?')) return;
-    
-    setMigrating(true);
-    try {
-      const localCustomers = customerStore.getAll();
-      const localLoans = loanStore.getAll();
-      const localPayments = paymentStore.getAll();
-      const localSettings = settingsStore.get();
-
-      // Migrate Settings
-      await supabaseService.updateSettings(localSettings);
-
-      // Migrate Customers
-      for (const c of localCustomers) {
-        await supabaseService.createCustomer(c);
-      }
-
-      // Migrate Loans & Items
-      for (const l of localLoans) {
-        await supabaseService.createLoan(l);
-      }
-
-      // Migrate Payments
-      for (const p of localPayments) {
-        await supabaseService.createPayment(p);
-      }
-
-      alert('Migration successful! All data has been uploaded to the cloud.');
-    } catch (err) {
-      console.error(err);
-      alert('Migration failed. Check console for details.');
-    } finally {
-      setMigrating(false);
-    }
-  };
 
   if (!mounted) {
     return <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-tertiary)' }}>Loading...</div>;
@@ -415,130 +329,10 @@ export default function SettingsPage() {
             </div>
           </div>
         </div>
-
-        {/* Data & Cloud Redundancy */}
-        <div className="card">
-          <div className="card-header">
-            <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Cloud size={18} style={{ color: 'var(--gold)' }} />
-              Cloud & Redundancy
-            </h3>
-          </div>
-          <div className="card-body">
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-              <button className="btn btn-outline" onClick={handleExportData} style={{ flexDirection: 'column', padding: '20px', height: 'auto', gap: '12px' }}>
-                <Download size={24} />
-                <div style={{ textAlign: 'center' }}>
-                  <div style={{ fontSize: '14px', fontWeight: 700 }}>Backup Data</div>
-                  <div style={{ fontSize: '11px', fontWeight: 400, opacity: 0.7 }}>Export to JSON</div>
-                </div>
-              </button>
-              <label className="btn btn-outline" style={{ flexDirection: 'column', padding: '20px', height: 'auto', gap: '12px', cursor: 'pointer' }}>
-                <input type="file" accept=".json" onChange={handleImportData} style={{ display: 'none' }} />
-                <Upload size={24} />
-                <div style={{ textAlign: 'center' }}>
-                  <div style={{ fontSize: '14px', fontWeight: 700 }}>Restore Data</div>
-                  <div style={{ fontSize: '11px', fontWeight: 400, opacity: 0.7 }}>Import from JSON</div>
-                </div>
-              </label>
-            </div>
-            <div
-              style={{
-                background: 'rgba(212, 168, 67, 0.1)',
-                padding: '12px',
-                borderRadius: 'var(--radius-md)',
-                fontSize: '12px',
-                color: 'var(--gold-dark)',
-                marginTop: '16px',
-                display: 'flex',
-                gap: '8px',
-              }}
-            >
-              <Info size={16} style={{ flexShrink: 0 }} />
-              Pro Sync is coming soon. Use local backup/restore for multi-device sync today.
-            </div>
-          </div>
-        </div>
-
-        {/* Supabase Connectivity */}
-        <div className="card">
-          <div className="card-header">
-            <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Database size={18} style={{ color: isCloudConfigured ? 'var(--status-active)' : 'var(--text-tertiary)' }} />
-              Supabase Connectivity
-            </h3>
-            <span className={`badge ${isCloudConfigured ? 'active' : 'pending'}`}>
-              {isCloudConfigured ? 'Configured' : 'Not Configured'}
-            </span>
-          </div>
-          <div className="card-body">
-            {!isCloudConfigured ? (
-              <div 
-                style={{ 
-                  background: 'rgba(220, 53, 69, 0.05)', 
-                  padding: '16px', 
-                  borderRadius: 'var(--radius-md)', 
-                  border: '1px solid rgba(220, 53, 110, 0.1)',
-                  fontSize: '13px'
-                }}
-              >
-                <div style={{ display: 'flex', gap: '8px', marginBottom: '10px', color: 'var(--status-overdue)', fontWeight: 700 }}>
-                  <AlertCircle size={18} /> Environment Variables Missing
-                </div>
-                <p style={{ color: 'var(--text-secondary)', lineHeight: 1.5 }}>
-                  To enable cloud sync, add the following to your <code>.env.local</code> file:
-                </p>
-                <pre style={{ 
-                  background: '#000', 
-                  color: '#0f0', 
-                  padding: '12px', 
-                  borderRadius: '6px', 
-                  marginTop: '10px',
-                  fontSize: '11px',
-                  overflowX: 'auto'
-                }}>
-{`NEXT_PUBLIC_SUPABASE_URL=your_url
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your_key`}
-                </pre>
-              </div>
-            ) : (
-              <div>
-                <div style={{ display: 'flex', alignItems: 'center', justifyItems: 'center', gap: '12px', marginBottom: '20px' }}>
-                  <div style={{ 
-                    width: '48px', 
-                    height: '48px', 
-                    borderRadius: '50%', 
-                    background: 'var(--status-active-bg)', 
-                    color: 'var(--status-active)', 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    justifyContent: 'center' 
-                  }}>
-                    <Globe size={24} />
-                  </div>
-                  <div>
-                    <div style={{ fontWeight: 700 }}>Cloud Sync Active</div>
-                    <div style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>Connected to Supabase PostgreSQL</div>
-                  </div>
-                </div>
-                
-                <button 
-                  className={`btn btn-primary ${migrating ? 'loading' : ''}`} 
-                  onClick={handleMigrateToCloud}
-                  disabled={migrating}
-                  style={{ width: '100%', gap: '12px', padding: '16px' }}
-                >
-                  <ArrowUp size={18} />
-                  {migrating ? 'Migrating Data...' : 'Migrate Local Data to Cloud'}
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
       </div>
 
       <div style={{ marginTop: '20px', textAlign: 'center', fontSize: '13px', color: 'var(--text-tertiary)' }}>
-        PledgeVault v1.0.0 • All data is stored locally in your browser.
+        PledgeVault v1.0.0 • Secure Cloud Storage Active
       </div>
     </>
   );
