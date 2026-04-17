@@ -63,7 +63,7 @@ export default function TeamSettingsPage() {
       // Fetch branches
       const { data: branchData } = await supabase
         .from('branches')
-        .select('*')
+        .select('id, name')
         .eq('firm_id', myProfile.firm_id);
       setBranches(branchData || []);
 
@@ -71,7 +71,7 @@ export default function TeamSettingsPage() {
       const { data } = await supabase
         .from('profiles')
         .select(`
-          *,
+          id, full_name, email, role, default_branch_id, created_at,
           branches:default_branch_id (name)
         `)
         .eq('firm_id', myProfile.firm_id)

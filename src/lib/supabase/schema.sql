@@ -243,9 +243,20 @@ BEGIN
        SELECT COALESCE(SUM(net_weight), 0) FROM loan_items li 
        JOIN loans l ON li.loan_id = l.id 
        WHERE li.metal_type = 'silver' AND l.status IN ('active', 'overdue') AND l.firm_id = f_id
-    )
+    ),
+    'total_customers', (SELECT COUNT(*) FROM public.customers WHERE firm_id = f_id),
+    'recent_loans', (
+       SELECT json_agg(t) FROM (
+         SELECT id, loan_number, customer_name, customer_phone, loan_amount, status, created_at
+         FROM public.loans 
+         WHERE firm_id = f_id 
+         ORDER BY created_at DESC 
+         LIMIT 5
+       ) t
+    ),
+    'overdue_count', COUNT(*) FILTER (WHERE status = 'overdue')
   ) INTO result
-  FROM loans WHERE firm_id = f_id;
+  FROM public.loans WHERE firm_id = f_id;
   
   RETURN result;
 END;

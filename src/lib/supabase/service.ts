@@ -51,11 +51,11 @@ export const supabaseService = {
   async getCustomerWithDetails(id: string) {
     const { data, error } = await supabase
       .from('customers')
-      .select('*')
+      .select('id, firm_id, name, phone, email, address, city, state, pincode, id_type, id_number, photo_url, notes, created_at, created_by')
       .eq('id', id)
       .single();
     if (error) throw error;
-    return data as Customer;
+    return toCamel(data) as Customer;
   },
 
   async createCustomer(customer: Omit<Customer, 'id'>) {
@@ -112,7 +112,7 @@ export const supabaseService = {
   async getLoanWithDetails(id: string) {
     const { data, error } = await supabase
       .from('loans')
-      .select('*, items:loan_items(*)')
+      .select('*, items:loan_items(id, item_name, metal_type, purity, weight, appraisal_value)')
       .eq('id', id)
       .single();
     if (error) throw error;
@@ -153,12 +153,12 @@ export const supabaseService = {
 
   // ---- Payments ----
   async getPayments(loanId?: string) {
-    let query = supabase.from('payments').select('*');
+    let query = supabase.from('payments').select('id, loan_id, branch_id, amount, payment_date, payment_type, notes, created_at, created_by');
     if (loanId) query = query.eq('loan_id', loanId);
     
     const { data, error } = await query.order('payment_date', { ascending: false });
     if (error) throw error;
-    return data as Payment[];
+    return toCamel(data) as Payment[];
   },
 
   async createPayment(payment: Omit<Payment, 'id'>) {
@@ -176,7 +176,7 @@ export const supabaseService = {
   async getSettings() {
     const { data, error } = await supabase
       .from('shop_settings')
-      .select('*')
+      .select('shop_name, shop_address, shop_phone, license_number, gold_rate_24k, silver_rate_999, default_ltv_gold, default_ltv_silver, default_interest_rate, default_interest_mode, default_tenure, loan_number_prefix, loan_number_counter, active_branch_id')
       .single();
     if (error) return null;
     
@@ -232,7 +232,7 @@ export const supabaseService = {
   async getBranches(firmId: string) {
     const { data, error } = await supabase
       .from('branches')
-      .select('*')
+      .select('id, firm_id, name, code, location, is_active')
       .eq('firm_id', firmId)
       .order('name');
     if (error) throw error;
@@ -271,11 +271,9 @@ export const supabaseService = {
       totalActiveLoanValue: data?.total_active_loan_value || 0,
       totalGoldWeight: data?.total_gold_weight || 0,
       totalSilverWeight: data?.total_silver_weight || 0,
-      overdueLoans: data?.overdue_loans || 0,
-      monthlyInterestEarned: data?.monthly_interest_earned || 0,
+      overdueCount: data?.overdue_count || 0,
       totalCustomers: data?.total_customers || 0,
-      recentLoans: data?.recent_loans || [],
-      overdueList: data?.overdue_list || [],
+      recentLoans: toCamel(data?.recent_loans || []) as Loan[],
       loansByMonth: (data?.loans_by_month || []).map((m: any) => ({
         month: m.month,
         count: m.count || 0,
@@ -285,7 +283,7 @@ export const supabaseService = {
         type: d.type,
         weight: d.weight || 0
       })),
-    } as DashboardStats;
+    } as any; // Using any for local mapping
   },
 
   // ---- Subscriptions & Billing ----
@@ -312,7 +310,7 @@ export const supabaseService = {
   async getFirmSubscriptions(firmId: string) {
     const { data, error } = await supabase
       .from('subscriptions')
-      .select('*')
+      .select('id, firm_id, plan_id, status, start_date, end_date, created_at')
       .eq('firm_id', firmId)
       .order('created_at', { ascending: false });
     if (error) throw error;
@@ -322,7 +320,7 @@ export const supabaseService = {
   async getActiveSubscription(firmId: string) {
     const { data, error } = await supabase
       .from('subscriptions')
-      .select('*')
+      .select('id, firm_id, plan_id, status, start_date, end_date')
       .eq('firm_id', firmId)
       .eq('status', 'active')
       .order('end_date', { ascending: false })
@@ -336,10 +334,10 @@ export const supabaseService = {
     const { data, error } = await supabase
       .from('firms')
       .select(`
-        *,
+        id, name, plan, created_at,
         branches(count),
         profiles(count),
-        subscriptions(*)
+        subscriptions(id, plan_id, status, start_date, end_date, amount, interval)
       `)
       .order('created_at', { ascending: false });
     

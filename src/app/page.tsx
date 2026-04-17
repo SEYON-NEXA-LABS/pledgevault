@@ -77,36 +77,17 @@ export default function DashboardPage() {
   useEffect(() => {
     setMounted(true);
 
-    // Fetch loans for the current firm/branch
+    // Fetch consolidated dashboard data
     const fetchDashboardData = async () => {
       try {
         if (auth.firmId) {
-          const isValidUuid = (id: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
-          const isFirmContext = activeBranchId === 'firm';
-          
-          const { data } = await supabaseService.getLoans(
-            auth.firmId,
-            !isFirmContext && isValidUuid(activeBranchId) ? activeBranchId : undefined,
-            0,
-            100 // Get enough for dashboard highlights
-          );
-          setLoans(data as Loan[]);
-
-          // Get RPC stats
+          // Get Optimized RPC stats (Includes recent loans, counts, and metrics)
           const stats = await supabaseService.getDashboardStats();
           setCloudStats(stats);
-
-          const sub = await supabaseService.getActiveSubscription(auth.firmId!);
-          if (sub) {
-            const isExpired = new Date(sub.endDate) < new Date();
-          }
-
-          const { data: custData } = await supabaseService.getCustomers(auth.firmId, 0, 1000);
-          setCustomers(custData || []);
-        } else {
-          // Local Fallback
-          setLoans(loanStore.getAll());
-          setCustomers(customerStore.getAll());
+          
+          // Use stats for initial states
+          setLoans(stats.recentLoans || []);
+          // We no longer fetch 1000 customers for a simple count!
         }
       } catch (err) {
         console.error('Failed to fetch dashboard data:', err);
@@ -132,18 +113,18 @@ export default function DashboardPage() {
   const currentBranch = settings.branches.find(b => b.id === activeBranchId);
 
   // Stats calculation
-  const totalActiveLoanCount = isBranchView ? activeLoans.length : (cloudStats?.total_active_loans ?? activeLoans.length);
+  const totalActiveLoanCount = isBranchView ? activeLoans.length : (cloudStats?.totalActiveLoans ?? activeLoans.length);
   const totalActiveLoanValue = isBranchView
     ? activeLoans.reduce((sum, l) => sum + l.loanAmount, 0)
-    : (cloudStats?.total_active_loan_value ?? activeLoans.reduce((sum, l) => sum + l.loanAmount, 0));
+    : (cloudStats?.totalActiveLoanValue ?? activeLoans.reduce((sum, l) => sum + l.loanAmount, 0));
 
   const totalGoldWeight = isBranchView
     ? activeLoans.reduce((sum, l) => sum + l.items.filter((i) => i.metalType === 'gold').reduce((s, i) => s + i.netWeight, 0), 0)
-    : (cloudStats?.total_gold_weight ?? 0);
+    : (cloudStats?.totalGoldWeight ?? 0);
 
   const totalSilverWeight = isBranchView
     ? activeLoans.reduce((sum, l) => sum + l.items.filter((i) => i.metalType === 'silver').reduce((s, i) => s + i.netWeight, 0), 0)
-    : (cloudStats?.total_silver_weight ?? 0);
+    : (cloudStats?.totalSilverWeight ?? 0);
 
   const monthlyInterest = activeLoans.reduce((sum, l) => sum + l.loanAmount * (l.interestRate / 100), 0);
 
@@ -231,7 +212,7 @@ export default function DashboardPage() {
           subtitle={`From ${activeLoans.length} active loans`}
           icon={TrendingUp}
           accent="green"
-          change={`${customers.length} customers`}
+          change={`${cloudStats?.totalCustomers || 0} customers`}
           changeType="positive"
         />
       </div>
