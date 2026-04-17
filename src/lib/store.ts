@@ -9,9 +9,9 @@ import { Customer, Loan, Payment, ShopSettings } from './types';
 import { DEFAULT_SETTINGS, generateId } from './constants';
 import { supabaseService } from './supabase/service';
 
-const isCloudActive = () => 
-  !!process.env.NEXT_PUBLIC_SUPABASE_URL && 
-  !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+const isCloudActive = () =>
+  !!process.env.NEXT_PUBLIC_SUPABASE_URL &&
+  !!process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
 
 const STORE_KEYS = {
   customers: 'pv_customers',
@@ -45,7 +45,7 @@ function getById<T extends { id: string }>(key: string, id: string): T | null {
 function create<T extends { id: string }>(key: string, item: Omit<T, 'id'>): T {
   const id = generateId();
   const newItem = { ...item, id } as T;
-  
+
   // Local Save
   const items = getAll<T>(key);
   items.push(newItem);
@@ -175,12 +175,12 @@ export const settingsStore = {
       const data = localStorage.getItem(STORE_KEYS.settings);
       if (!data) return DEFAULT_SETTINGS;
       const parsed = JSON.parse(data);
-      
+
       // Sanity check: If we are in cloud mode, activeBranchId MUST be a UUID or empty
       if (isCloudActive() && parsed.activeBranchId && !isValidUuid(parsed.activeBranchId)) {
         parsed.activeBranchId = '';
       }
-      
+
       return { ...DEFAULT_SETTINGS, ...parsed };
     } catch {
       return DEFAULT_SETTINGS;
@@ -192,7 +192,7 @@ export const settingsStore = {
     if (typeof window !== 'undefined') {
       localStorage.setItem(STORE_KEYS.settings, JSON.stringify(updated));
     }
-    
+
     // Cloud Sync
     if (isCloudActive()) {
       supabaseService.updateSettings(updated).catch(console.error);

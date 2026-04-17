@@ -62,7 +62,7 @@ PledgeVault now supports optional cloud synchronization via Supabase.
 Add your credentials to a `.env.local` file:
 ```env
 NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=your-anon-key
 ```
 
 ### 3. Migrate Local Data
