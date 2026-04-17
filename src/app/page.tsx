@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { redirect } from 'next/navigation';
 import {
   HandCoins,
   Scale,
@@ -62,7 +63,6 @@ export default function DashboardPage() {
   const [loans, setLoans] = useState<Loan[]>([]);
   const [customers, setCustomers] = useState<any[]>([]);
   const [cloudStats, setCloudStats] = useState<any>(null);
-  const [viewMode, setViewMode] = useState<'branch' | 'firm'>('branch');
   const [mounted, setMounted] = useState(false);
 
   const auth = authStore.get();
@@ -71,7 +71,7 @@ export default function DashboardPage() {
 
   // Set default view mode based on role
   useEffect(() => {
-    if (auth.role === 'admin') setViewMode('firm');
+    if (authStore.isSuperadmin()) return redirect('/superadmin');
   }, [auth.role]);
 
   useEffect(() => {
@@ -82,9 +82,11 @@ export default function DashboardPage() {
       try {
         if (auth.firmId) {
           const isValidUuid = (id: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+          const isFirmContext = activeBranchId === 'firm';
+          
           const { data } = await supabaseService.getLoans(
             auth.firmId,
-            viewMode === 'branch' && isValidUuid(activeBranchId) ? activeBranchId : undefined,
+            !isFirmContext && isValidUuid(activeBranchId) ? activeBranchId : undefined,
             0,
             100 // Get enough for dashboard highlights
           );
@@ -93,6 +95,11 @@ export default function DashboardPage() {
           // Get RPC stats
           const stats = await supabaseService.getDashboardStats();
           setCloudStats(stats);
+
+          const sub = await supabaseService.getActiveSubscription(auth.firmId!);
+          if (sub) {
+            const isExpired = new Date(sub.endDate) < new Date();
+          }
 
           const { data: custData } = await supabaseService.getCustomers(auth.firmId, 0, 1000);
           setCustomers(custData || []);
@@ -107,7 +114,7 @@ export default function DashboardPage() {
     };
 
     fetchDashboardData();
-  }, [viewMode, activeBranchId, auth.firmId]);
+  }, [activeBranchId, auth.firmId]);
 
   if (!mounted) {
     return (
@@ -117,7 +124,7 @@ export default function DashboardPage() {
     );
   }
 
-  const isBranchView = viewMode === 'branch';
+  const isBranchView = activeBranchId !== 'firm';
   const branchLoans = loans.filter(l => !isBranchView || !activeBranchId || l.branchId === activeBranchId);
   const activeLoans = branchLoans.filter((l) => l.status === 'active' || l.status === 'overdue');
   const overdueLoans = branchLoans.filter((l) => l.status === 'overdue');
@@ -177,24 +184,8 @@ export default function DashboardPage() {
           <h2>Dashboard</h2>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <p className="subtitle">
-              {currentBranch ? `Managing ${currentBranch.name}` : 'Here\'s your shop overview.'}
+              {!isBranchView ? 'Viewing global firm performance.' : (currentBranch ? `Managing ${currentBranch.name}` : 'Here\'s your shop overview.')}
             </p>
-            {auth.role === 'admin' && (
-              <div className="view-toggle">
-                <button
-                  className={`toggle-btn ${viewMode === 'branch' ? 'active' : ''}`}
-                  onClick={() => setViewMode('branch')}
-                >
-                  Branch
-                </button>
-                <button
-                  className={`toggle-btn ${viewMode === 'firm' ? 'active' : ''}`}
-                  onClick={() => setViewMode('firm')}
-                >
-                  Firm
-                </button>
-              </div>
-            )}
           </div>
         </div>
         <div className="page-header-right">
@@ -210,7 +201,7 @@ export default function DashboardPage() {
         <StatCard
           title="Active Loans"
           value={totalActiveLoanCount.toString()}
-          subtitle={formatCurrency(totalActiveLoanValue) + (isBranchView ? ' (Branch)' : ' (All Branches)')}
+          subtitle={formatCurrency(totalActiveLoanValue) + (!isBranchView ? ' (All Branches)' : ' (Branch)')}
           icon={HandCoins}
           accent="gold"
           change={`${activeLoans.length} total`}

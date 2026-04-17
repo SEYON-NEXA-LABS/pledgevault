@@ -33,6 +33,19 @@ export async function onboardFirmAction(formData: any) {
       .single();
 
     if (firmError) throw firmError;
+    
+    // 2.5 Create default "Main Branch"
+    const { data: mainBranch, error: branchError } = await adminClient
+      .from('branches')
+      .insert([{
+        firm_id: firm.id,
+        name: 'Main Branch',
+        code: 'MAIN'
+      }])
+      .select()
+      .single();
+
+    if (branchError) throw branchError;
 
     // 3. Create the Primary Admin User (No logout!)
     const { data: newUser, error: authError } = await adminClient.auth.admin.createUser({
@@ -50,8 +63,9 @@ export async function onboardFirmAction(formData: any) {
       .insert([{
         id: newUser.user.id,
         firm_id: firm.id,
+        default_branch_id: mainBranch.id,
         full_name: fullName,
-        role: 'admin'
+        role: 'manager'
       }]);
 
     if (profileError) throw profileError;
@@ -75,6 +89,7 @@ export async function onboardFirmAction(formData: any) {
           .insert([{
             id: nStaff.user.id,
             firm_id: firm.id,
+            default_branch_id: mainBranch.id,
             full_name: staff.fullName,
             role: 'staff'
           }]);
@@ -87,10 +102,31 @@ export async function onboardFirmAction(formData: any) {
       .insert([{
         firm_id: firm.id,
         shop_address: 'Initial Address',
-        shop_phone: 'Initial Phone'
+        shop_phone: 'Initial Phone',
+        active_branch_id: mainBranch.id
       }]);
 
     if (settingsError) throw settingsError;
+
+    // 7. Initialize 14-Day Elite Trial
+    const trialEndDate = new Date();
+    trialEndDate.setDate(trialEndDate.getDate() + 14);
+
+    const { error: trialError } = await adminClient
+      .from('subscriptions')
+      .insert([{
+        firm_id: firm.id,
+        plan_id: 'elite',
+        interval: 'monthly',
+        amount: 0,
+        currency: 'INR',
+        payment_method: 'trial',
+        status: 'active',
+        start_date: new Date().toISOString(),
+        end_date: trialEndDate.toISOString(),
+      }]);
+
+    if (trialError) throw trialError;
 
     revalidatePath('/superadmin');
     return { success: true, firmId: firm.id };

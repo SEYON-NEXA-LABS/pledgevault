@@ -10,6 +10,8 @@ import {
   ArrowLeft,
   Gem,
   User,
+  AlertCircle,
+  Building2,
   FileText,
   CircleDollarSign,
   Camera,
@@ -20,7 +22,10 @@ import { compressImage } from '@/lib/image';
 import { GOLD_PURITY_MAP, SILVER_PURITY_MAP, ITEM_TYPES, INTEREST_MODE_LABELS, generateId, generateLoanNumber, formatCurrency, formatWeight } from '@/lib/constants';
 import { calculateItemValue, calculateLoanAmount, calculateTotalWeight, calculateTotalValue } from '@/lib/gold';
 import { calculateMonthlyInterestAmount, calculateMaturityAmount } from '@/lib/interest';
-import { Customer, PledgeItem, MetalType, InterestMode, GoldPurity, SilverPurity } from '@/lib/types';
+import { Customer, PledgeItem, MetalType, InterestMode, GoldPurity, SilverPurity, Subscription, PlanTier } from '@/lib/types';
+import { canCreateLoan } from '@/lib/plans';
+import { supabaseService } from '@/lib/supabase/service';
+import { authStore } from '@/lib/authStore';
 import Link from 'next/link';
 
 interface ItemRow {
@@ -60,6 +65,10 @@ function NewLoanContent() {
   const [loanAmountOverride, setLoanAmountOverride] = useState('');
   const [remarks, setRemarks] = useState('');
   const [saving, setSaving] = useState(false);
+  const [subscription, setSubscription] = useState<Subscription | null>(null);
+  const [loanCount, setLoanCount] = useState(0);
+  const [enforcement, setEnforcement] = useState<{ allowed: boolean; reason?: string }>({ allowed: true });
+  const [selectedBranchId, setSelectedBranchId] = useState('');
 
   const settings = typeof window !== 'undefined' ? settingsStore.get() : null;
 
@@ -77,7 +86,36 @@ function NewLoanContent() {
     if (cid) {
       setSelectedCustomerId(cid);
     }
+    
+    // Fetch enforcement data
+    fetchEnforcementData();
   }, [searchParams]);
+
+  const fetchEnforcementData = async () => {
+    const auth = authStore.get();
+    if (!auth.firmId) return;
+
+    try {
+      // 1. Get active sub for end_date
+      const sub = await supabaseService.getActiveSubscription(auth.firmId);
+      setSubscription(sub);
+      if (sub) {
+        const isExpired = new Date(sub.endDate) < new Date();
+      }
+
+      // 2. Get current active loan count
+      const count = await supabaseService.getActiveLoanCount(auth.firmId);
+      setLoanCount(count);
+
+      // 3. Check enforcement
+      // Note: role and sub both affect whether a loan can be created
+      const planTier: PlanTier = (auth as any).plan === 'elite' ? 'elite' : 'pro'; 
+      const check = canCreateLoan(count, planTier, sub?.endDate);
+      setEnforcement(check);
+    } catch (err) {
+      console.error('Enforcement check failed:', err);
+    }
+  };
 
   // Calculate item values
   const calculatedItems: (ItemRow & { value: number; rate: number })[] = items.map((item) => {
@@ -173,6 +211,10 @@ function NewLoanContent() {
     : customers;
 
   const handleSave = () => {
+    if (!enforcement.allowed) {
+      alert(`Access Restricted: ${enforcement.reason === 'expired' ? 'Subscription Expired' : 'Plan Limit Exceeded'}`);
+      return;
+    }
     if (!selectedCustomerId) {
       alert('Please select a customer');
       return;
@@ -212,12 +254,20 @@ function NewLoanContent() {
     const totalGross = pledgeItems.reduce((s, i) => s + i.grossWeight, 0);
     const totalNet = pledgeItems.reduce((s, i) => s + i.netWeight, 0);
 
+    const s = settingsStore.get();
+    const branchToUse = s.activeBranchId === 'firm' ? selectedBranchId : s.activeBranchId;
+
+    if (!branchToUse) {
+      alert('Please select a branch for this record');
+      return;
+    }
+    
     loanStore.create({
       loanNumber,
-      customerId: customer.id,
+      customerId: selectedCustomerId,
       customerName: customer.name,
       customerPhone: customer.phone,
-      branchId: settingsStore.get().activeBranchId,
+      branchId: branchToUse,
       items: pledgeItems,
       totalGrossWeight: totalGross,
       totalNetWeight: totalNet,
@@ -255,6 +305,26 @@ function NewLoanContent() {
           <h2>Create New Loan</h2>
           <p className="subtitle">Enter pledge details and calculate loan amount</p>
         </div>
+
+        {!enforcement.allowed && (
+          <div className="enforcement-banner animate-pulse">
+            <AlertCircle size={20} />
+            <div>
+              <div style={{ fontWeight: 700 }}>
+                {enforcement.reason === 'expired' ? 'Subscription Expired' : 'Plan Limit Reached'}
+              </div>
+              <div style={{ fontSize: '13px', opacity: 0.9 }}>
+                {enforcement.reason === 'expired' 
+                  ? 'Your subscription and grace period have expired. Please renew to continue.' 
+                  : `You have reached the limit of ${loanCount} loans for your current plan.`
+                }
+              </div>
+            </div>
+            <Link href="/settings" className="btn btn-sm btn-white" style={{ marginLeft: 'auto' }}>
+              Upgrade Now
+            </Link>
+          </div>
+        )}
       </div>
 
       <div className="loan-create-layout">
@@ -265,6 +335,28 @@ function NewLoanContent() {
             <div className="form-card-title">
               <User size={20} /> Customer Details
             </div>
+
+            {settings?.activeBranchId === 'firm' && (
+              <div className="form-group" style={{ marginBottom: '24px', padding: '16px', background: 'var(--bg-gold-light)', borderRadius: 'var(--radius-md)', border: '1px solid var(--gold-light)', animation: 'fadeIn 0.3s ease' }}>
+                <label className="form-label" style={{ fontWeight: 700, color: 'var(--sidebar-bg)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Building2 size={16} /> Select Primary Branch
+                </label>
+                <p style={{ fontSize: '13px', color: 'var(--text-tertiary)', marginBottom: '12px' }}>
+                  You are currently in Global View. Please select which branch will hold this pledge record.
+                </p>
+                <select 
+                  className="form-input" 
+                  required 
+                  value={selectedBranchId}
+                  onChange={e => setSelectedBranchId(e.target.value)}
+                >
+                  <option value="">Choose a branch...</option>
+                  {settings?.branches.map(b => (
+                    <option key={b.id} value={b.id}>{b.name}</option>
+                  ))}
+                </select>
+              </div>
+            )}
 
             <div className="form-group" style={{ position: 'relative' }}>
               <label className="form-label">Select Customer</label>
@@ -622,7 +714,7 @@ function NewLoanContent() {
             <button
               className="btn btn-gold btn-lg"
               onClick={handleSave}
-              disabled={saving}
+              disabled={saving || !enforcement.allowed}
               id="save-loan-btn"
             >
               <Save size={18} />
@@ -698,6 +790,35 @@ function NewLoanContent() {
           </div>
         </div>
       </div>
+
+      <style jsx>{`
+        .enforcement-banner {
+          background: #dc3545;
+          color: #fff;
+          padding: 16px 24px;
+          border-radius: 12px;
+          margin-top: 20px;
+          display: flex;
+          align-items: center;
+          gap: 16px;
+          border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .btn-white {
+          background: #fff;
+          color: #dc3545;
+          border: none;
+        }
+
+        @keyframes pulse {
+          0% { box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.4); }
+          70% { box-shadow: 0 0 0 10px rgba(220, 53, 69, 0); }
+          100% { box-shadow: 0 0 0 0 rgba(220, 53, 69, 0); }
+        }
+        .animate-pulse {
+          animation: pulse 2s infinite;
+        }
+      `}</style>
     </>
   );
 }

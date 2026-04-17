@@ -4,7 +4,7 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 
-export async function addStaffMemberAction(staffData: { fullName: string, email: string, password: string }) {
+export async function addStaffMemberAction(staffData: { fullName: string, email: string, password: string, branchId?: string, role: 'staff' | 'manager' }) {
   const supabase = await createClient();
   const adminClient = createAdminClient();
 
@@ -18,8 +18,8 @@ export async function addStaffMemberAction(staffData: { fullName: string, email:
     .eq('id', user.id)
     .single();
 
-  if (!profile || profile.role !== 'admin') {
-    throw new Error('Unauthorized: Only firm admins can manage the team.');
+  if (!profile || profile.role !== 'manager') {
+    throw new Error('Unauthorized: Only firm managers can manage the team.');
   }
 
   try {
@@ -39,8 +39,9 @@ export async function addStaffMemberAction(staffData: { fullName: string, email:
       .insert([{
         id: newUser.user.id,
         firm_id: profile.firm_id,
+        default_branch_id: staffData.branchId || null,
         full_name: staffData.fullName,
-        role: 'staff'
+        role: staffData.role
       }]);
 
     if (profileError) throw profileError;
@@ -65,15 +66,15 @@ export async function removeStaffMemberAction(staffId: string) {
     .eq('id', user.id)
     .single();
 
-  if (!profile || profile.role !== 'admin') {
+  if (!profile || profile.role !== 'manager') {
     throw new Error('Unauthorized');
   }
 
   try {
-    // Verify the target staff belongs to the SAME firm
+    // 1. Verify target belongs to SAME firm
     const { data: targetProfile } = await adminClient
       .from('profiles')
-      .select('firm_id')
+      .select('firm_id, role')
       .eq('id', staffId)
       .single();
 
@@ -81,7 +82,20 @@ export async function removeStaffMemberAction(staffId: string) {
       throw new Error('User not found in your firm.');
     }
 
-    // Delete the user from Auth (and profile will cascade)
+    // 2. MANDATORY MANAGER RULE: Prevent deleting the last manager
+    if (targetProfile.role === 'manager') {
+      const { count } = await adminClient
+        .from('profiles')
+        .select('*', { count: 'exact', head: true })
+        .eq('firm_id', profile.firm_id)
+        .eq('role', 'manager');
+      
+      if ((count || 0) <= 1) {
+        throw new Error('Cannot remove the last manager. Every firm must have at least one manager.');
+      }
+    }
+
+    // 3. Delete from Auth
     const { error } = await adminClient.auth.admin.deleteUser(staffId);
     if (error) throw error;
 

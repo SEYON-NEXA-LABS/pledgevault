@@ -3,6 +3,7 @@
 
 export interface Branch {
   id: string;
+  firmId: string;
   name: string;
   location: string;
   code: string; // e.g., 'CBE01'
@@ -97,6 +98,7 @@ export interface Loan {
 export interface Payment {
   id: string;
   loanId: string;
+  branchId?: string; // branch where payment was collected
   amount: number;
   type: 'interest' | 'principal' | 'full_closure' | 'partial';
   paymentDate: string;
@@ -136,4 +138,46 @@ export interface DashboardStats {
   overdueList: Loan[];
   loansByMonth: { month: string; count: number; value: number }[];
   metalDistribution: { type: string; weight: number }[];
+}
+// ---- Subscription ----
+export type PlanTier = 'free' | 'starter' | 'pro' | 'elite';
+export type SubscriptionInterval = 'monthly' | 'yearly';
+
+export interface PlanFeature {
+  text: string;
+  included: boolean;
+}
+
+export interface SubscriptionPlan {
+  id: PlanTier;
+  name: string;
+  description: string;
+  monthlyPrice: number;
+  yearlyPrice: number;
+  features: PlanFeature[];
+}
+
+export type PaymentMethod = 'upi' | 'card' | 'netbanking' | 'cash' | 'trial';
+export type SubscriptionStatus = 'active' | 'expired' | 'cancelled';
+
+export interface Subscription {
+  id: string;
+  firmId: string;
+  planId: PlanTier;
+  interval: SubscriptionInterval;
+  amount: number;
+  currency: string;
+  paymentMethod: PaymentMethod;
+  status: SubscriptionStatus;
+  startDate: string;
+  endDate: string;
+  razorpayPaymentId?: string;
+  razorpayOrderId?: string;
+  createdAt: string;
+}
+
+export interface PlanLimits {
+  maxLoans: number;
+  maxBranches: number;
+  maxUsers: number;
 }

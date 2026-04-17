@@ -1,6 +1,6 @@
 'use client';
 
-export type UserRole = 'admin' | 'staff';
+export type UserRole = 'superadmin' | 'manager' | 'staff';
 
 interface AuthState {
   userId: string | null;
@@ -46,6 +46,7 @@ export const authStore = {
     }
   },
 
-  isAdmin: () => authStore.get().role === 'admin',
+  isSuperadmin: () => authStore.get().role === 'superadmin',
+  isManager: () => authStore.get().role === 'manager',
   isStaff: () => authStore.get().role === 'staff',
 };

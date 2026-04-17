@@ -112,3 +112,74 @@ export function getDaysOverdue(dueDate: string): number {
   const diff = Math.floor((today.getTime() - due.getTime()) / (1000 * 60 * 60 * 24));
   return Math.max(0, diff);
 }
+
+// ---- Subscription Config ----
+export const GRACE_PERIOD_DAYS = 7;
+
+export const PLAN_LIMITS: Record<string, { maxLoans: number; maxBranches: number; maxUsers: number }> = {
+  free: { maxLoans: 10, maxBranches: 1, maxUsers: 1 },
+  starter: { maxLoans: 100, maxBranches: 1, maxUsers: 2 },
+  pro: { maxLoans: Infinity, maxBranches: 3, maxUsers: 10 },
+  elite: { maxLoans: Infinity, maxBranches: Infinity, maxUsers: Infinity },
+};
+
+// ---- Subscription Plans ----
+export const SUBSCRIPTION_PLANS: any[] = [
+  {
+    id: 'free',
+    name: 'Free Trial',
+    description: 'Perfect for getting started with PledgeVault.',
+    monthlyPrice: 0,
+    yearlyPrice: 0,
+    features: [
+      { text: '1 Branch', included: true },
+      { text: '1 Staff User', included: true },
+      { text: 'Up to 10 Active Loans', included: true },
+      { text: 'Basic Reports', included: true },
+      { text: 'SMS Alerts', included: false },
+    ],
+  },
+  {
+    id: 'starter',
+    name: 'Starter',
+    description: 'For solo pawn shops and small businesses.',
+    monthlyPrice: 999,
+    yearlyPrice: 9990,
+    features: [
+      { text: '1 Branch', included: true },
+      { text: '2 Staff Users', included: true },
+      { text: 'Up to 100 Active Loans', included: true },
+      { text: 'Standard Reports', included: true },
+      { text: 'SMS Alerts', included: false },
+    ],
+  },
+  {
+    id: 'pro',
+    name: 'Pro',
+    description: 'Advanced tools for growing shops.',
+    monthlyPrice: 2499,
+    yearlyPrice: 24990,
+    features: [
+      { text: '3 Branches', included: true },
+      { text: '10 Staff Users', included: true },
+      { text: 'Unlimited Loans', included: true },
+      { text: 'Advanced Analytics', included: true },
+      { text: 'SMS Notifications', included: true },
+    ],
+  },
+  {
+    id: 'elite',
+    name: 'Elite',
+    description: 'Total control for jewelry chains.',
+    monthlyPrice: 4999,
+    yearlyPrice: 49990,
+    features: [
+      { text: 'Unlimited Branches', included: true },
+      { text: 'Unlimited Users', included: true },
+      { text: 'Priority Support', included: true },
+      { text: 'Custom Branding', included: true },
+      { text: 'Full Audit Logs', included: true },
+    ],
+  },
+];
+

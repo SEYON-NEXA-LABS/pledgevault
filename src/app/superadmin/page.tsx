@@ -18,7 +18,9 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase/client';
-import { formatCurrency, formatWeight, formatDate } from '@/lib/constants';
+import { supabaseService } from '@/lib/supabase/service';
+import { formatCurrency, formatWeight, formatDate, SUBSCRIPTION_PLANS } from '@/lib/constants';
+import { PlanTier, SubscriptionInterval } from '@/lib/types';
 
 export default function SuperadminDashboard() {
   const [stats, setStats] = useState<any>(null);
@@ -38,15 +40,16 @@ export default function SuperadminDashboard() {
           *,
           profiles(count)
         `)
-        .order('created_at', { ascending: false })
-        .limit(10);
+        .order('created_at', { ascending: false });
       
       setFirms(firmsData || []);
+
       setLoading(false);
     }
 
     fetchData();
   }, []);
+
 
   if (loading) {
     return <div className="loading-state">Initializing Admin Suite...</div>;
@@ -56,10 +59,16 @@ export default function SuperadminDashboard() {
     <div className="admin-page">
       <div className="admin-header">
         <div className="header-info">
-          <div className="admin-badge"><ShieldCheck size={14} /> Platform Overseer</div>
+          <div className="admin-badge"><ShieldCheck size={14} /> Superadmin</div>
           <h1>System Overview</h1>
         </div>
         <div className="header-actions">
+          <Link href="/superadmin/integrity" className="btn btn-ghost" style={{ marginRight: '12px' }}>
+            <Activity size={18} /> Integrity Check
+          </Link>
+          <Link href="/superadmin/subscriptions" className="btn btn-outline" style={{ marginRight: '12px' }}>
+            <Zap size={18} /> Manage Subscriptions
+          </Link>
           <Link href="/superadmin/onboarding" className="btn btn-gold">
             <Plus size={18} /> Onboard New Firm
           </Link>
@@ -109,7 +118,7 @@ export default function SuperadminDashboard() {
               <h3>Registered Firms</h3>
               <div className="search-box">
                 <Search size={16} />
-                <input placeholder="Search businesses..." />
+                <input placeholder="Search platform..." />
               </div>
             </div>
             
@@ -119,8 +128,8 @@ export default function SuperadminDashboard() {
                   <tr>
                     <th>Business Name</th>
                     <th>Plan</th>
-                    <th>Subscribed On</th>
-                    <th>Status</th>
+                    <th>Total Users</th>
+                    <th>Onboarded</th>
                     <th></th>
                   </tr>
                 </thead>
@@ -139,10 +148,8 @@ export default function SuperadminDashboard() {
                       <td>
                         <span className={`plan-badge ${firm.plan}`}>{firm.plan.toUpperCase()}</span>
                       </td>
+                      <td style={{ fontWeight: 600 }}>{firm.profiles?.[0]?.count || 1} Users</td>
                       <td className="date-cell">{formatDate(firm.created_at)}</td>
-                      <td>
-                        <span className="status-dot"></span> Active
-                      </td>
                       <td>
                         <button className="action-btn"><MoreVertical size={18} /></button>
                       </td>
@@ -209,6 +216,122 @@ export default function SuperadminDashboard() {
           background: #f8f8f5;
           min-height: 100vh;
           font-family: 'Inter', sans-serif;
+        }
+
+        .tab-switcher {
+          display: flex;
+          gap: 24px;
+        }
+
+        .tab-switcher button {
+          background: transparent;
+          border: none;
+          padding: 8px 0;
+          font-size: 16px;
+          font-weight: 700;
+          color: #9A9FA5;
+          cursor: pointer;
+          position: relative;
+        }
+
+        .tab-switcher button.active {
+          color: #1A3C34;
+        }
+
+        .tab-switcher button.active::after {
+          content: '';
+          position: absolute;
+          bottom: 0;
+          left: 0;
+          width: 100%;
+          height: 2px;
+          background: var(--gold);
+        }
+
+        .method-tag {
+          font-size: 11px;
+          background: #F4F4F2;
+          padding: 2px 8px;
+          border-radius: 4px;
+          font-weight: 700;
+          color: #1A3C34;
+        }
+
+        /* Modal Styles */
+        .modal-overlay {
+          position: fixed;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          background: rgba(0,0,0,0.5);
+          backdrop-filter: blur(4px);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 1000;
+        }
+
+        .modal-card {
+          background: #fff;
+          width: 500px;
+          padding: 32px;
+          border-radius: 24px;
+          box-shadow: 0 20px 50px rgba(0,0,0,0.1);
+        }
+
+        .modal-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 24px;
+        }
+
+        .modal-header h2 {
+          margin: 0;
+          font-size: 20px;
+          color: #1A3C34;
+        }
+
+        .modal-header button {
+          background: transparent;
+          border: none;
+          font-size: 24px;
+          cursor: pointer;
+        }
+
+        .modal-grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 16px;
+        }
+
+        .modal-input {
+          width: 100%;
+          background: #F4F4F2;
+          border: 1px solid #E8E8E3;
+          padding: 12px;
+          border-radius: 10px;
+          margin-top: 8px;
+          outline: none;
+        }
+
+        .form-group {
+          margin-bottom: 20px;
+        }
+
+        .form-group label {
+          font-size: 12px;
+          font-weight: 700;
+          color: #9A9FA5;
+          text-transform: uppercase;
+        }
+
+        .modal-footer {
+          display: flex;
+          justify-content: flex-end;
+          gap: 12px;
+          margin-top: 12px;
         }
 
         .admin-header {
@@ -398,8 +521,10 @@ export default function SuperadminDashboard() {
         }
 
         .plan-badge.free { background: #F4F4F2; color: #6F767E; }
+        .plan-badge.starter { background: rgba(52, 224, 161, 0.1); color: #1A3C34; }
         .plan-badge.pro { background: rgba(212, 168, 67, 0.1); color: var(--gold-dark); }
-        .plan-badge.enterprise { background: #1A3C34; color: #fff; }
+        .plan-badge.elite { background: #1A3C34; color: #fff; }
+        .plan-badge.enterprise { background: #1A3C34; color: #fff; } /* Fallback for legacy */
 
         .date-cell {
           color: #6F767E;
@@ -539,6 +664,122 @@ export default function SuperadminDashboard() {
           border: none;
           color: #9A9FA5;
           cursor: pointer;
+        }
+
+        .tab-switcher {
+          display: flex;
+          gap: 24px;
+        }
+
+        .tab-switcher button {
+          background: transparent;
+          border: none;
+          padding: 8px 0;
+          font-size: 16px;
+          font-weight: 700;
+          color: #9A9FA5;
+          cursor: pointer;
+          position: relative;
+        }
+
+        .tab-switcher button.active {
+          color: #1A3C34;
+        }
+
+        .tab-switcher button.active::after {
+          content: '';
+          position: absolute;
+          bottom: 0;
+          left: 0;
+          width: 100%;
+          height: 2px;
+          background: var(--gold);
+        }
+
+        .method-tag {
+          font-size: 11px;
+          background: #F4F4F2;
+          padding: 2px 8px;
+          border-radius: 4px;
+          font-weight: 700;
+          color: #1A3C34;
+        }
+
+        /* Modal Styles */
+        .modal-overlay {
+          position: fixed;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          background: rgba(0,0,0,0.5);
+          backdrop-filter: blur(4px);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 1000;
+        }
+
+        .modal-card {
+          background: #fff;
+          width: 500px;
+          padding: 32px;
+          border-radius: 24px;
+          box-shadow: 0 20px 50px rgba(0,0,0,0.1);
+        }
+
+        .modal-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 24px;
+        }
+
+        .modal-header h2 {
+          margin: 0;
+          font-size: 20px;
+          color: #1A3C34;
+        }
+
+        .modal-header button {
+          background: transparent;
+          border: none;
+          font-size: 24px;
+          cursor: pointer;
+        }
+
+        .modal-grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 16px;
+        }
+
+        .modal-input {
+          width: 100%;
+          background: #F4F4F2;
+          border: 1px solid #E8E8E3;
+          padding: 12px;
+          border-radius: 10px;
+          margin-top: 8px;
+          outline: none;
+        }
+
+        .form-group {
+          margin-bottom: 20px;
+        }
+
+        .form-group label {
+          font-size: 12px;
+          font-weight: 700;
+          color: #9A9FA5;
+          text-transform: uppercase;
+        }
+
+        .modal-footer {
+          display: flex;
+          justify-content: flex-end;
+          gap: 12px;
+          margin-top: 12px;
         }
       `}</style>
     </div>

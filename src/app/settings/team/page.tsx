@@ -12,33 +12,74 @@ import {
   X,
   Loader2,
   CheckCircle2,
-  AlertCircle
+  AlertCircle,
+  Building2
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase/client';
 import { addStaffMemberAction, removeStaffMemberAction } from './actions';
 import { formatDate } from '@/lib/constants';
+import { authStore } from '@/lib/authStore';
+import { useRouter } from 'next/navigation';
 
 export default function TeamSettingsPage() {
+  const router = useRouter();
   const [team, setTeam] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  
+  useEffect(() => {
+    // Security Guard: Only Managers and Superadmins allowed
+    const auth = authStore.get();
+    if (auth.isAuthenticated && auth.role === 'staff') {
+      router.push('/');
+    }
+  }, []);
   const [showModal, setShowModal] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [branches, setBranches] = useState<any[]>([]);
 
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
-    password: ''
+    password: '',
+    branchId: '',
+    role: 'staff' as 'staff' | 'manager'
   });
 
   const fetchTeam = async () => {
     setLoading(true);
-    const { data } = await supabase
+
+    const { data: profileData } = await supabase.auth.getUser();
+    if (!profileData.user) return;
+
+    // Get current user's profile to get firm_id
+    const { data: myProfile } = await supabase
       .from('profiles')
-      .select('*')
-      .order('role', { ascending: true }); // Admin first
+      .select('firm_id')
+      .eq('id', profileData.user.id)
+      .single();
+
+    if (myProfile) {
+      // Fetch branches
+      const { data: branchData } = await supabase
+        .from('branches')
+        .select('*')
+        .eq('firm_id', myProfile.firm_id);
+      setBranches(branchData || []);
+
+      // Fetch team with branch names
+      const { data } = await supabase
+        .from('profiles')
+        .select(`
+          *,
+          branches:default_branch_id (name)
+        `)
+        .eq('firm_id', myProfile.firm_id)
+        .order('role', { ascending: false });
+      
+      setTeam(data || []);
+    }
     
-    setTeam(data || []);
     setLoading(false);
   };
 
@@ -54,7 +95,7 @@ export default function TeamSettingsPage() {
     const result = await addStaffMemberAction(formData);
     if (result.success) {
       setShowModal(false);
-      setFormData({ fullName: '', email: '', password: '' });
+      setFormData({ fullName: '', email: '', password: '', branchId: '', role: 'staff' });
       fetchTeam();
     } else {
       setError(result.error);
@@ -96,8 +137,8 @@ export default function TeamSettingsPage() {
                   {member.full_name[0]}
                 </div>
                 <div className={`role-badge ${member.role}`}>
-                  {member.role === 'admin' ? <Shield size={12} /> : <User size={12} />}
-                  {member.role.toUpperCase()}
+                   {member.role === 'manager' ? <Shield size={12} /> : <User size={12} />}
+                   {member.role.toUpperCase()}
                 </div>
               </div>
               
@@ -106,16 +147,19 @@ export default function TeamSettingsPage() {
                 <div className="member-email">
                   <Mail size={14} /> {member.email || 'No email provided'}
                 </div>
+                <div className="member-branch" style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <Building2 size={12} /> {member.branches?.name || 'All Branches'}
+                </div>
                 <div className="member-date">Joined {formatDate(member.created_at)}</div>
               </div>
 
               <div className="member-footer">
-                {member.role !== 'admin' && (
+                {member.role !== 'manager' && (
                   <button className="remove-btn" onClick={() => handleRemove(member.id, member.full_name)}>
                     <Trash2 size={16} /> Remove Member
                   </button>
                 )}
-                {member.role === 'admin' && <span className="admin-notice">Primary Account</span>}
+                {member.role === 'manager' && <span className="admin-notice">Primary Manager</span>}
               </div>
             </div>
           ))
@@ -127,7 +171,8 @@ export default function TeamSettingsPage() {
         <div className="modal-overlay">
           <div className="modal-content">
             <div className="modal-header">
-              <h3>Add New Staff Member</h3>
+              <h3>Add Team Member</h3>
+              <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-tertiary)' }}>Create a new account with specific permissions</p>
               <button className="close-btn" onClick={() => setShowModal(false)}><X size={20} /></button>
             </div>
             
@@ -167,6 +212,34 @@ export default function TeamSettingsPage() {
                   value={formData.password}
                   onChange={e => setFormData({...formData, password: e.target.value})}
                 />
+              </div>
+
+              <div className="form-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                <div className="form-group">
+                  <label>Role</label>
+                  <select 
+                    className="form-input"
+                    value={formData.role}
+                    onChange={e => setFormData({...formData, role: e.target.value as any})}
+                  >
+                    <option value="staff">Staff Member</option>
+                    <option value="manager">Firm Manager</option>
+                  </select>
+                </div>
+
+                <div className="form-group">
+                  <label>Default Branch</label>
+                  <select 
+                    className="form-input"
+                    value={formData.branchId}
+                    onChange={e => setFormData({...formData, branchId: e.target.value})}
+                  >
+                    <option value="">All Branches</option>
+                    {branches.map(b => (
+                      <option key={b.id} value={b.id}>{b.name}</option>
+                    ))}
+                  </select>
+                </div>
               </div>
 
               <div className="modal-footer">
@@ -257,7 +330,7 @@ export default function TeamSettingsPage() {
           gap: 6px;
         }
 
-        .role-badge.admin { background: #1A3C34; color: var(--gold); }
+        .role-badge.manager { background: #1A3C34; color: var(--gold); }
         .role-badge.staff { background: #F4F4F2; color: #6F767E; }
 
         .member-info h3 {

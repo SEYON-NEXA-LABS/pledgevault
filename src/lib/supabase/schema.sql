@@ -14,8 +14,9 @@ CREATE TABLE firms (
 CREATE TABLE profiles (
   id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   firm_id UUID REFERENCES firms(id) ON DELETE CASCADE,
+  default_branch_id UUID, -- Optional: assigned by manager
   full_name TEXT,
-  role TEXT NOT NULL CHECK (role IN ('superadmin', 'admin', 'staff')),
+  role TEXT NOT NULL CHECK (role IN ('superadmin', 'manager', 'staff')),
   created_at TIMESTAMPTZ DEFAULT now(),
   updated_at TIMESTAMPTZ DEFAULT now()
 );
@@ -51,6 +52,7 @@ CREATE TABLE customers (
   city TEXT NOT NULL,
   state TEXT,
   pincode TEXT,
+  created_by UUID REFERENCES profiles(id),
   created_at TIMESTAMPTZ DEFAULT now(),
   updated_at TIMESTAMPTZ DEFAULT now()
  );
@@ -79,6 +81,7 @@ CREATE TABLE loans (
   amount_paid NUMERIC DEFAULT 0,
   closed_date TIMESTAMPTZ,
   remarks TEXT,
+  created_by UUID REFERENCES profiles(id),
   created_at TIMESTAMPTZ DEFAULT now(),
   updated_at TIMESTAMPTZ DEFAULT now(),
   UNIQUE(firm_id, loan_number) -- Loan number unique within a firm
@@ -98,6 +101,7 @@ CREATE TABLE loan_items (
   rate_per_gram NUMERIC NOT NULL,
   item_value NUMERIC NOT NULL,
   photo_base64 TEXT, -- Item proof 
+  created_by UUID REFERENCES profiles(id),
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
@@ -106,10 +110,12 @@ CREATE TABLE payments (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   firm_id UUID REFERENCES firms(id) ON DELETE CASCADE,
   loan_id UUID REFERENCES loans(id) ON DELETE CASCADE,
+  branch_id UUID REFERENCES branches(id), -- Where the payment was received
   amount NUMERIC NOT NULL,
   type TEXT NOT NULL,
   payment_date TIMESTAMPTZ NOT NULL,
   remarks TEXT,
+  created_by UUID REFERENCES profiles(id),
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
@@ -130,6 +136,23 @@ CREATE TABLE shop_settings (
   loan_number_counter INTEGER DEFAULT 1,
   active_branch_id UUID REFERENCES branches(id),
   updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- 9. Subscriptions Table (Billing History)
+CREATE TABLE subscriptions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  firm_id UUID REFERENCES firms(id) ON DELETE CASCADE,
+  plan_id TEXT NOT NULL, -- 'free', 'starter', 'pro', 'elite'
+  interval TEXT NOT NULL, -- 'monthly', 'yearly'
+  amount NUMERIC NOT NULL,
+  currency TEXT DEFAULT 'INR',
+  payment_method TEXT NOT NULL, -- 'upi', 'card', 'netbanking', 'cash', 'trial'
+  status TEXT DEFAULT 'active', -- 'active', 'expired', 'cancelled'
+  start_date TIMESTAMPTZ DEFAULT now(),
+  end_date TIMESTAMPTZ NOT NULL,
+  razorpay_payment_id TEXT,
+  razorpay_order_id TEXT,
+  created_at TIMESTAMPTZ DEFAULT now()
 );
 
 -- ============================================
@@ -164,6 +187,7 @@ ALTER TABLE loans ENABLE ROW LEVEL SECURITY;
 ALTER TABLE loan_items ENABLE ROW LEVEL SECURITY;
 ALTER TABLE payments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE shop_settings ENABLE ROW LEVEL SECURITY;
+ALTER TABLE subscriptions ENABLE ROW LEVEL SECURITY;
 
 -- Dynamic Policy: Users can only interact with rows belonging to their firm
 -- Admin & Superadmin role-based access integrated through get_auth_role()
@@ -191,6 +215,9 @@ CREATE POLICY "Payment Isolation" ON payments FOR ALL USING (firm_id = get_auth_
 
 DROP POLICY IF EXISTS "Settings Isolation" ON shop_settings;
 CREATE POLICY "Settings Isolation" ON shop_settings FOR ALL USING (firm_id = get_auth_firm() OR get_auth_role() = 'superadmin');
+
+DROP POLICY IF EXISTS "Subscription Isolation" ON subscriptions;
+CREATE POLICY "Subscription Isolation" ON subscriptions FOR ALL USING (firm_id = get_auth_firm() OR get_auth_role() = 'superadmin');
 
 -- Role based access (example): Only admins can delete loans
 -- CREATE POLICY "Admin Delete" ON loans FOR DELETE USING (get_my_firm() = firm_id AND (SELECT role FROM profiles WHERE id = auth.uid()) = 'admin');
@@ -244,6 +271,77 @@ BEGIN
     'active_users', (SELECT COUNT(*) FROM profiles)
   ) INTO result;
   
+  RETURN result;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- 11. System Integrity Diagnostic Function
+CREATE OR REPLACE FUNCTION check_db_integrity()
+RETURNS JSON AS $$
+DECLARE
+  tables_status JSON;
+  columns_status JSON;
+  functions_status JSON;
+  rls_status JSON;
+  result JSON;
+BEGIN
+  -- Only allowed for superadmins
+  IF (SELECT role FROM public.profiles WHERE id = auth.uid()) != 'superadmin' THEN
+    RAISE EXCEPTION 'Unauthorized: Superadmin access required';
+  END IF;
+
+  -- Check Tables
+  SELECT json_agg(json_build_object(
+    'table_name', table_name,
+    'exists', true
+  )) INTO tables_status
+  FROM information_schema.tables 
+  WHERE table_schema = 'public' 
+  AND table_name IN ('firms', 'profiles', 'branches', 'customers', 'loans', 'loan_items', 'payments', 'shop_settings', 'subscriptions');
+
+  -- Check Critical Columns (The ones added during refinements)
+  SELECT json_agg(json_build_object(
+    'table_name', table_name,
+    'column_name', column_name,
+    'exists', true
+  )) INTO columns_status
+  FROM information_schema.columns
+  WHERE table_schema = 'public'
+  AND (
+    (table_name = 'profiles' AND column_name = 'default_branch_id') OR
+    (table_name = 'payments' AND column_name = 'branch_id') OR
+    (table_name = 'loans' AND column_name = 'created_by') OR
+    (table_name = 'payments' AND column_name = 'created_by') OR
+    (table_name = 'customers' AND column_name = 'created_by')
+  );
+
+  -- Check Security (RLS)
+  SELECT json_agg(json_build_object(
+    'table_name', tablename,
+    'rls_enabled', rowsecurity
+  )) INTO rls_status
+  FROM pg_tables
+  JOIN pg_class ON pg_tables.tablename = pg_class.relname
+  WHERE schemaname = 'public'
+  AND tablename IN ('loans', 'payments', 'customers', 'profiles');
+
+  -- Check Functions
+  SELECT json_agg(json_build_object(
+    'function_name', routine_name,
+    'exists', true
+  )) INTO functions_status
+  FROM information_schema.routines
+  WHERE routine_schema = 'public'
+  AND routine_name IN ('get_firm_stats', 'get_superadmin_stats', 'check_db_integrity');
+
+  SELECT json_build_object(
+    'tables', COALESCE(tables_status, '[]'::json),
+    'columns', COALESCE(columns_status, '[]'::json),
+    'security', COALESCE(rls_status, '[]'::json),
+    'functions', COALESCE(functions_status, '[]'::json),
+    'timestamp', now()
+  ) INTO result;
+
   RETURN result;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;

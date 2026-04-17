@@ -13,7 +13,12 @@ import {
   ChevronLeft,
   Menu,
   BarChart3,
+  Building2,
   User,
+  CreditCard,
+  ShieldCheck,
+  Zap,
+  Activity,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase/client';
@@ -28,6 +33,7 @@ const navItems = [
 
 const configItems = [
   { href: '/settings', label: 'General Settings', icon: Settings },
+  { href: '/settings?tab=subscription', label: 'Subscriptions', icon: CreditCard },
   { href: '/settings/team', label: 'Team & Access', icon: Shield },
 ];
 
@@ -94,27 +100,32 @@ export default function Sidebar({ isOpen, onToggle, overdueCount = 0 }: SidebarP
           </button>
         </div>
 
-        {/* Navigation */}
-        <div className="sidebar-section">
-          <span className="sidebar-section-title">Main Menu</span>
-        </div>
-        <nav className="sidebar-nav">
-          {navItems.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={`sidebar-link ${isActive(item.href) ? 'active' : ''}`}
-            >
-              <item.icon size={20} />
-              <span>{item.label}</span>
-              {item.href === '/loans' && overdueCount > 0 && (
-                <span className="badge">{overdueCount}</span>
-              )}
-            </Link>
-          ))}
-        </nav>
+        {/* Main Navigation (Staff & Filtered Admins) */}
+        {!authStore.isSuperadmin() && (
+          <>
+            <div className="sidebar-section">
+              <span className="sidebar-section-title">Main Menu</span>
+            </div>
+            <nav className="sidebar-nav">
+              {navItems.map((item) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={`sidebar-link ${isActive(item.href) ? 'active' : ''}`}
+                >
+                  <item.icon size={20} />
+                  <span>{item.label}</span>
+                  {item.href === '/loans' && overdueCount > 0 && (
+                    <span className="badge">{overdueCount}</span>
+                  )}
+                </Link>
+              ))}
+            </nav>
+          </>
+        )}
 
-        {authStore.isAdmin() && (
+        {/* Firm Configuration (Manager & Superadmin) */}
+        {(authStore.isManager() || authStore.isSuperadmin()) && (
           <>
             <div className="sidebar-section" style={{ marginTop: '20px' }}>
               <span className="sidebar-section-title">Configuration</span>
@@ -134,14 +145,59 @@ export default function Sidebar({ isOpen, onToggle, overdueCount = 0 }: SidebarP
           </>
         )}
 
+        {/* Platform Administration (Superadmin only) */}
+        {authStore.isSuperadmin() && (
+          <>
+            <div className="sidebar-section" style={{ marginTop: '20px' }}>
+              <span className="sidebar-section-title">Superadmin Console</span>
+            </div>
+            <nav className="sidebar-nav">
+              <Link
+                href="/superadmin"
+                className={`sidebar-link ${pathname === '/superadmin' ? 'active' : ''}`}
+              >
+                <ShieldCheck size={20} />
+                <span>System Overview</span>
+              </Link>
+              <Link
+                href="/superadmin/firms"
+                className={`sidebar-link ${pathname.startsWith('/superadmin/firms') ? 'active' : ''}`}
+              >
+                <Building2 size={20} />
+                <span>Firm Management</span>
+              </Link>
+              <Link
+                href="/superadmin/subscriptions"
+                className={`sidebar-link ${pathname.startsWith('/superadmin/subscriptions') ? 'active' : ''}`}
+              >
+                <Zap size={20} />
+                <span>Manage Subscriptions</span>
+              </Link>
+              <Link
+                href="/superadmin/integrity"
+                className={`sidebar-link ${pathname.startsWith('/superadmin/integrity') ? 'active' : ''}`}
+              >
+                <Activity size={20} />
+                <span>Integrity Check</span>
+              </Link>
+            </nav>
+          </>
+        )}
+
         {/* Footer */}
         <div className="sidebar-footer">
+            <div style={{ position: 'absolute', top: '-18px', left: '20px', fontSize: '10px', color: 'rgba(255,255,255,0.3)', letterSpacing: '0.5px' }}>
+              v{process.env.NEXT_PUBLIC_APP_VERSION || '1.0.0'}
+            </div>
             <div className="sidebar-avatar">
               <User size={18} />
             </div>
             <div className="sidebar-user-info">
               <div className="name">{authStore.get().userName || 'User'}</div>
-              <div className="role">{authStore.get().role === 'admin' ? 'Admin' : 'Branch Staff'}</div>
+              <div className="role">
+                {authStore.isSuperadmin() ? 'Superadmin' : 
+                 authStore.isManager() ? 'Manager' : 'Staff Member'}
+              </div>
             </div>
             <button className="logout-btn" onClick={handleSignOut} title="Sign Out">
               <LogOut size={18} />

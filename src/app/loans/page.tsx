@@ -31,7 +31,10 @@ export default function LoansPage() {
   const [page, setPage] = useState(0);
   const pageSize = 10;
   const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState('active');
+  const [dateRange, setDateRange] = useState({ start: '', end: '' });
+  const [amountRange, setAmountRange] = useState({ min: '', max: '' });
+  const [showFilters, setShowFilters] = useState(false);
   const [loading, setLoading] = useState(true);
   const [mounted, setMounted] = useState(false);
 
@@ -42,7 +45,7 @@ export default function LoansPage() {
   useEffect(() => {
     setMounted(true);
     fetchLoans();
-  }, [page, statusFilter, activeBranchId]);
+  }, [page, statusFilter, activeBranchId, dateRange.start, dateRange.end, amountRange.min, amountRange.max]);
 
   const fetchLoans = async () => {
     setLoading(true);
@@ -83,14 +86,23 @@ export default function LoansPage() {
   // Local Search filtering (on top of paginated results for now, 
   // though real search should be server-side)
   const displayLoans = loans.filter((l) => {
+    // 1. Search Query
     if (search) {
       const q = search.toLowerCase();
-      return (
-        l.loanNumber?.toLowerCase().includes(q) ||
+      const matchesSearch = l.loanNumber?.toLowerCase().includes(q) ||
         l.customerName?.toLowerCase().includes(q) ||
-        l.customerPhone?.includes(q)
-      );
+        l.customerPhone?.includes(q);
+      if (!matchesSearch) return false;
     }
+
+    // 2. Amount Range
+    if (amountRange.min && (l.loanAmount || 0) < Number(amountRange.min)) return false;
+    if (amountRange.max && (l.loanAmount || 0) > Number(amountRange.max)) return false;
+
+    // 3. Date Range
+    if (dateRange.start && l.startDate && new Date(l.startDate) < new Date(dateRange.start)) return false;
+    if (dateRange.end && l.startDate && new Date(l.startDate) > new Date(dateRange.end)) return false;
+
     return true;
   });
 
@@ -135,18 +147,81 @@ export default function LoansPage() {
             id="loan-search"
           />
         </div>
-        <div style={{ display: 'flex', gap: '6px' }}>
+        <div style={{ display: 'flex', gap: '8px' }}>
           {STATUS_FILTERS.map((f) => (
             <button
               key={f.value}
               className={`btn btn-sm ${statusFilter === f.value ? 'btn-primary' : 'btn-outline'}`}
-              onClick={() => setStatusFilter(f.value)}
+              onClick={() => {
+                setStatusFilter(f.value);
+                setPage(0); // Reset page on filter change
+              }}
             >
               {f.label}
             </button>
           ))}
+          <button 
+            className={`btn btn-sm ${showFilters ? 'btn-gold' : 'btn-outline'}`}
+            onClick={() => setShowFilters(!showFilters)}
+          >
+            <Filter size={16} /> Filters
+          </button>
         </div>
       </div>
+
+      {showFilters && (
+        <div className="advanced-filters card animate-slide-down">
+          <div className="card-body">
+            <div className="filter-grid">
+              <div className="filter-group">
+                <label>Loan Date Range</label>
+                <div className="range-inputs">
+                  <input 
+                    type="date" 
+                    value={dateRange.start} 
+                    onChange={e => setDateRange({...dateRange, start: e.target.value})} 
+                  />
+                  <span>to</span>
+                  <input 
+                    type="date" 
+                    value={dateRange.end} 
+                    onChange={e => setDateRange({...dateRange, end: e.target.value})} 
+                  />
+                </div>
+              </div>
+              <div className="filter-group">
+                <label>Amount Range (₹)</label>
+                <div className="range-inputs">
+                  <input 
+                    type="number" 
+                    placeholder="Min"
+                    value={amountRange.min} 
+                    onChange={e => setAmountRange({...amountRange, min: e.target.value})} 
+                  />
+                  <input 
+                    type="number" 
+                    placeholder="Max"
+                    value={amountRange.max} 
+                    onChange={e => setAmountRange({...amountRange, max: e.target.value})} 
+                  />
+                </div>
+              </div>
+              <div className="filter-actions">
+                <button 
+                  className="btn btn-sm btn-outline"
+                  onClick={() => {
+                    setDateRange({ start: '', end: '' });
+                    setAmountRange({ min: '', max: '' });
+                    setSearch('');
+                  }}
+                >
+                  Clear All
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Table */}
       <div className="card">
@@ -352,6 +427,56 @@ export default function LoansPage() {
           .pagination-btns {
             display: flex;
             gap: 8px;
+          }
+
+          .advanced-filters {
+            margin-bottom: 24px;
+            border: 1px solid var(--gold-soft);
+          }
+
+          .filter-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 24px;
+            align-items: flex-end;
+          }
+
+          .filter-group label {
+            display: block;
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--text-tertiary);
+            margin-bottom: 8px;
+            text-transform: uppercase;
+          }
+
+          .range-inputs {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+          }
+
+          .range-inputs input {
+            background: var(--bg-input);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 8px 12px;
+            color: var(--text-primary);
+            font-size: 13px;
+            width: 100%;
+          }
+
+          .range-inputs span {
+            color: var(--text-tertiary);
+            font-size: 12px;
+          }
+
+          @keyframes slideDown {
+            from { transform: translateY(-10px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+          }
+          .animate-slide-down {
+            animation: slideDown 0.3s ease-out forwards;
           }
         `}</style>
       </div>

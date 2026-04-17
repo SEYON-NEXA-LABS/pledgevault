@@ -96,6 +96,7 @@ export default function LoanDetailsPage() {
 
     const newPayment = paymentStore.create({
       loanId: loan.id,
+      branchId: settings?.activeBranchId,
       amount,
       type: paymentType,
       remarks: paymentRemarks,

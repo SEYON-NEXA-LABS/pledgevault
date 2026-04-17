@@ -42,7 +42,7 @@ export default function LoginPage() {
       password,
     });
 
-    if (loginError && email !== 'admin@demo.com') {
+    if (loginError && email !== 'manager@demo.com') {
       setError(loginError.message);
       setLoading(false);
     } else {
@@ -59,19 +59,24 @@ export default function LoginPage() {
             isAuthenticated: true
           });
           
-          // FETCH BRANCHES before redirecting or showing modal
-          const branches = await supabaseService.getBranches(profile.firm_id);
-          setAvailableBranches(branches);
-          
           setSuccess(true);
           setLoading(false);
 
           // Give a small delay for the success message to be seen
-          setTimeout(() => {
-            // Logic for branch selection
+          setTimeout(async () => {
+            // ROLE BASED REDIRECTION
+            if (profile.role === 'superadmin') {
+              router.push('/superadmin');
+              router.refresh();
+              return;
+            }
+
+            // Shop Logic
+            const branches = await supabaseService.getBranches(profile.firm_id);
+            setAvailableBranches(branches);
+
             if (!settings.activeBranchId) {
               if (branches.length === 1) {
-                // Auto-select if only one branch
                 handleBranchSelect(branches[0].id);
               } else {
                 setShowBranchSelector(true);
@@ -174,6 +179,9 @@ export default function LoginPage() {
 
         <div className="login-footer">
           Don't have an account? <a href="#">Contact Sales</a>
+          <div style={{ marginTop: '24px', fontSize: '10px', color: 'rgba(0,0,0,0.2)', letterSpacing: '0.5px' }}>
+            v{process.env.NEXT_PUBLIC_APP_VERSION || '1.0.0'}
+          </div>
         </div>
       </div>
 

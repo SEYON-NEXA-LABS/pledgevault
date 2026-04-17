@@ -30,7 +30,7 @@ export default function SuperadminOnboarding() {
     location: 'Coimbatore, TN'
   });
 
-  const [adminData, setAdminData] = useState({
+  const [managerData, setManagerData] = useState({
     email: '',
     password: '',
     fullName: ''
@@ -59,9 +59,9 @@ export default function SuperadminOnboarding() {
     const result = await onboardFirmAction({
       name: firmData.name,
       plan: firmData.plan,
-      email: adminData.email,
-      password: adminData.password,
-      fullName: adminData.fullName,
+      email: managerData.email,
+      password: managerData.password,
+      fullName: managerData.fullName,
       staffMembers: staffMembers
     });
 
@@ -93,7 +93,7 @@ export default function SuperadminOnboarding() {
             <div className={`step-item ${step >= 2 ? 'active' : ''}`}>
               <div className="step-num">{step > 2 ? <CheckCircle size={16} /> : '2'}</div>
               <div>
-                <div className="step-title">Admin Account</div>
+                <div className="step-title">Manager Account</div>
                 <div className="step-desc">Shop owner credentials</div>
               </div>
             </div>
@@ -177,8 +177,8 @@ export default function SuperadminOnboarding() {
                     <UserPlus size={18} />
                     <input 
                       placeholder="Owner / Manager Name" 
-                      value={adminData.fullName}
-                      onChange={e => setAdminData({...adminData, fullName: e.target.value})}
+                      value={managerData.fullName}
+                      onChange={e => setManagerData({...managerData, fullName: e.target.value})}
                     />
                   </div>
                 </div>
@@ -189,8 +189,8 @@ export default function SuperadminOnboarding() {
                     <input 
                       type="email" 
                       placeholder="owner@shop.com" 
-                      value={adminData.email}
-                      onChange={e => setAdminData({...adminData, email: e.target.value})}
+                      value={managerData.email}
+                      onChange={e => setManagerData({...managerData, email: e.target.value})}
                     />
                   </div>
                 </div>
@@ -201,8 +201,8 @@ export default function SuperadminOnboarding() {
                     <input 
                       type="password" 
                       placeholder="Minimum 8 characters" 
-                      value={adminData.password}
-                      onChange={e => setAdminData({...adminData, password: e.target.value})}
+                      value={managerData.password}
+                      onChange={e => setManagerData({...managerData, password: e.target.value})}
                     />
                   </div>
                 </div>
@@ -235,7 +235,7 @@ export default function SuperadminOnboarding() {
                 {staffMembers.length === 0 && (
                   <div className="empty-staff">
                     <Users size={32} />
-                    <p>No staff added yet. All shops must have at least one admin (created in Step 2).</p>
+                    <p>No staff added yet. All shops must have at least one manager (created in Step 2).</p>
                   </div>
                 )}
                 {staffMembers.map((staff, idx) => (
@@ -291,11 +291,11 @@ export default function SuperadminOnboarding() {
               <h2>Onboarding Complete!</h2>
               <p>
                 <strong>{firmData.name}</strong> has been successfully registered. 
-                An invitation has been sent to <strong>{adminData.email}</strong>.
+                An invitation has been sent to <strong>{managerData.email}</strong>.
               </p>
               <div className="info-summary">
                 <div className="info-row"><span>ID</span> <span>FIRM_{Date.now().toString(36).toUpperCase()}</span></div>
-                <div className="info-row"><span>Role</span> <span className="badge active">Firm Admin</span></div>
+                <div className="info-row"><span>Role</span> <span className="badge active">Firm Manager</span></div>
                 <div className="info-row"><span>Staff Onboarded</span> <span>{staffMembers.length} Employees</span></div>
                 <div className="info-row"><span>Status</span> <span className="badge active">Synced</span></div>
               </div>
