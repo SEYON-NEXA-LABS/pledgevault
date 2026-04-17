@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase/client';
 import { 
   Lock, 
@@ -15,7 +15,7 @@ import { useRouter } from 'next/navigation';
 import { settingsStore } from '@/lib/store';
 import { authStore } from '@/lib/authStore';
 import { supabaseService } from '@/lib/supabase/service';
-import { Branch } from '@/lib/types';
+import { Branch, BrandingConfig } from '@/lib/types';
 import BranchSelectorModal from '@/components/auth/BranchSelectorModal';
 
 export default function LoginPage() {
@@ -27,6 +27,25 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [showBranchSelector, setShowBranchSelector] = useState(false);
   const [availableBranches, setAvailableBranches] = useState<Branch[]>([]);
+  const [branding, setBranding] = useState<{name: string, greeting: string} | null>(null);
+
+  useEffect(() => {
+    const fetchBranding = async () => {
+      const params = new URLSearchParams(window.location.search);
+      const shopSlug = params.get('shop');
+      if (shopSlug) {
+        const data = await supabaseService.getFirmBranding(shopSlug);
+        if (data) {
+          setBranding({ name: data.name, greeting: data.branding.loginGreeting });
+          if (data.branding.primaryColor) {
+            document.documentElement.style.setProperty('--primary-brand', data.branding.primaryColor);
+            document.documentElement.style.setProperty('--primary-hover', data.branding.primaryColor + 'e6');
+          }
+        }
+      }
+    };
+    fetchBranding();
+  }, []);
 
   const settings = settingsStore.get();
 
@@ -108,9 +127,9 @@ export default function LoginPage() {
       <div className="login-card">
         <div className="login-header">
           <div className="login-logo">
-            <span style={{ color: 'var(--gold)' }}>🪙</span> PledgeVault
+            <span style={{ color: 'var(--gold)' }}>🪙</span> {branding?.name || 'PledgeVault'}
           </div>
-          <h2>Welcome Back</h2>
+          <h2>{branding?.greeting || 'Welcome Back'}</h2>
           <p>Login to manage your shop's pledges</p>
         </div>
 

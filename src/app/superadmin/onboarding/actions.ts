@@ -22,13 +22,22 @@ export async function onboardFirmAction(formData: any) {
     throw new Error('Only superadmins can onboard new firms');
   }
 
-  const { name, plan, email, password, fullName, staffMembers } = formData;
+  const { name, slug, shortCode, plan, primaryColor, email, password, fullName, staffMembers } = formData;
 
   try {
     // 2. Create the Firm
     const { data: firm, error: firmError } = await adminClient
       .from('firms')
-      .insert([{ name, plan }])
+      .insert([{ 
+        name, 
+        slug, 
+        short_code: shortCode, 
+        plan, 
+        branding_config: { 
+          primary_color: primaryColor || '#107B88', 
+          login_greeting: `Welcome to ${name}` 
+        } 
+      }])
       .select()
       .single();
 

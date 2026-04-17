@@ -7,12 +7,16 @@
 
 /* ---- CSS Custom Properties ---- */
 :root {
-  /* Primary — Dark Teal */
-  --sidebar-bg: #1A3C34;
-  --sidebar-bg-dark: #0F2620;
-  --sidebar-hover: #234D43;
-  --sidebar-active: #2A5E52;
-  --sidebar-text: #A8C5BE;
+  /* Primary — Dynamic Brand */
+  --primary-brand: #107B88; /* Pacific Teal — More vibrant than Dark Teal */
+  --primary-hover: #0D636E;
+
+  /* Sidebar */
+  --sidebar-bg: var(--primary-brand);
+  --sidebar-bg-dark: var(--primary-hover);
+  --sidebar-hover: rgba(255, 255, 255, 0.08);
+  --sidebar-active: rgba(255, 255, 255, 0.12);
+  --sidebar-text: rgba(255, 255, 255, 0.7);
   --sidebar-text-active: #FFFFFF;
 
   /* Gold Accents */
@@ -783,13 +787,13 @@ ul, ol {
 }
 
 .btn-primary {
-  background: var(--sidebar-bg);
+  background: var(--primary-brand);
   color: var(--text-inverse);
-  border-color: var(--sidebar-bg);
+  border-color: var(--primary-brand);
 }
 
 .btn-primary:hover {
-  background: var(--sidebar-bg-dark);
+  background: var(--primary-hover);
   transform: translateY(-1px);
   box-shadow: var(--shadow-md);
 }

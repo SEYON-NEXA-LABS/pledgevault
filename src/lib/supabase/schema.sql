@@ -6,6 +6,10 @@
 CREATE TABLE firms (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name TEXT NOT NULL,
+  slug TEXT UNIQUE, -- for branded login URLs
+  short_code TEXT, -- for loan prefixes (e.g. GDS)
+  branding_config JSONB DEFAULT '{"primary_color": "#107B88", "login_greeting": "Welcome back"}'::jsonb,
+  loan_counter BIGINT DEFAULT 0,
   plan TEXT DEFAULT 'free', -- 'free', 'pro', 'enterprise'
   created_at TIMESTAMPTZ DEFAULT now()
 );
@@ -352,6 +356,20 @@ BEGIN
     'functions', COALESCE(functions_status, '[]'::json),
     'timestamp', now()
   ) INTO result;
+-- 11. Atomic Loan Counter
+CREATE OR REPLACE FUNCTION increment_loan_counter(f_id UUID)
+RETURNS BIGINT AS $$
+DECLARE
+  new_count BIGINT;
+BEGIN
+  UPDATE firms 
+  SET loan_counter = loan_counter + 1 
+  WHERE id = f_id 
+  RETURNING loan_counter INTO new_count;
+  
+  RETURN new_count;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
 
   RETURN result;
 END;

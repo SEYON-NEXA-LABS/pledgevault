@@ -1,5 +1,5 @@
 import { supabase } from './client';
-import { Customer, Loan, Payment, ShopSettings, Branch, DashboardStats, Subscription } from '../types';
+import { Customer, Loan, Payment, ShopSettings, Branch, DashboardStats, Subscription, BrandingConfig } from '../types';
 
 // Simple snake_case to camelCase mapper
 const toCamel = (obj: any): any => {
@@ -125,10 +125,24 @@ export const supabaseService = {
     // Separate items from loan data for insertion
     const { items, ...loanData } = loan as any;
     
-    // 1. Insert Loan
+    // 1. Increment Counter & Get Format Metadata
+    const { data: newCount, error: countError } = await supabase.rpc('increment_loan_counter', { f_id: items[0]?.firm_id || loanData.firm_id });
+    if (countError) throw countError;
+
+    // 2. Generate Structured Loan Number
+    // Format: 2 chars firm, 2 chars branch, 7 chars sequence
+    const firmPrefix = (loanData.firm_id as string).substring(0, 2).toUpperCase();
+    const branchPrefix = (loanData.branch_id as string).substring(0, 2).toUpperCase();
+    const formattedNumber = `${firmPrefix}_${branchPrefix}_${String(newCount).padStart(7, '0')}`;
+
+    // 3. Insert Loan
     const { data: newLoan, error: loanError } = await supabase
       .from('loans')
-      .insert([{ ...loanData, created_by: user?.id }])
+      .insert([{ 
+        ...loanData, 
+        loan_number: formattedNumber, // Override with structured ID
+        created_by: user?.id 
+      }])
       .select()
       .single();
     
@@ -334,7 +348,7 @@ export const supabaseService = {
     const { data, error } = await supabase
       .from('firms')
       .select(`
-        id, name, plan, created_at,
+        id, name, slug, short_code, branding_config, created_at,
         branches(count),
         profiles(count),
         subscriptions(id, plan_id, status, start_date, end_date, amount, interval)
@@ -343,6 +357,47 @@ export const supabaseService = {
     
     if (error) throw error;
     return data;
+  },
+
+  async getFirmBranding(slug: string) {
+    const { data, error } = await supabase
+      .from('firms')
+      .select('name, branding_config')
+      .eq('slug', slug)
+      .single();
+    
+    if (error) return null;
+    return {
+      name: data.name,
+      branding: toCamel(data.branding_config) as BrandingConfig
+    };
+  },
+
+  async updateFirmBranding(firmId: string, branding: Partial<BrandingConfig>) {
+    const dbBranding = toSnake(branding);
+    
+    // Fetch current to merge
+    const { data: current } = await supabase.from('firms').select('branding_config').eq('id', firmId).single();
+    const merged = { ...(current?.branding_config || {}), ...dbBranding };
+
+    const { error } = await supabase
+      .from('firms')
+      .update({ branding_config: merged })
+      .eq('id', firmId);
+    if (error) throw error;
+  },
+
+  async updateFirmMetadata(firmId: string, metadata: { name?: string, slug?: string, shortCode?: string }) {
+    const { name, slug, shortCode } = metadata;
+    const { error } = await supabase
+      .from('firms')
+      .update({ 
+        name, 
+        slug, 
+        short_code: shortCode 
+      })
+      .eq('id', firmId);
+    if (error) throw error;
   },
 
   async extendSubscription(firmId: string, days: number) {

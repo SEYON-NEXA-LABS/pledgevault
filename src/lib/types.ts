@@ -31,6 +31,24 @@ export type ItemType =
   | 'bracelet'
   | 'other';
 
+// ---- Branding ----
+export interface BrandingConfig {
+  primaryColor: string;
+  loginGreeting: string;
+}
+
+// ---- Firm ----
+export interface Firm {
+  id: string;
+  name: string;
+  slug?: string;
+  shortCode?: string;
+  brandingConfig?: BrandingConfig;
+  loanCounter: number;
+  plan: string;
+  createdAt: string;
+}
+
 // ---- Customer ----
 export interface Customer {
   id: string;

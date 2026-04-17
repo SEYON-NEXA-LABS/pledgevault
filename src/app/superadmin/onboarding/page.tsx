@@ -24,10 +24,22 @@ export default function SuperadminOnboarding() {
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const slugify = (text: string) => {
+    return text
+      .toLowerCase()
+      .trim()
+      .replace(/[^\w\s-]/g, '')
+      .replace(/[\s_-]+/g, '-')
+      .replace(/^-+|-+$/g, '');
+  };
+
   const [firmData, setFirmData] = useState({
     name: '',
+    slug: '',
+    shortCode: '',
     plan: 'pro',
-    location: 'Coimbatore, TN'
+    location: 'Coimbatore, TN',
+    primaryColor: '#107B88'
   });
 
   const [managerData, setManagerData] = useState({
@@ -58,7 +70,10 @@ export default function SuperadminOnboarding() {
 
     const result = await onboardFirmAction({
       name: firmData.name,
+      slug: firmData.slug,
+      shortCode: firmData.shortCode,
       plan: firmData.plan,
+      primaryColor: firmData.primaryColor,
       email: managerData.email,
       password: managerData.password,
       fullName: managerData.fullName,
@@ -128,7 +143,15 @@ export default function SuperadminOnboarding() {
                     <input 
                       placeholder="e.g., Sri Ganesh Jewel Loans" 
                       value={firmData.name}
-                      onChange={e => setFirmData({...firmData, name: e.target.value})}
+                      onChange={e => {
+                        const name = e.target.value;
+                        setFirmData({
+                          ...firmData, 
+                          name, 
+                          slug: slugify(name),
+                          shortCode: name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 4)
+                        });
+                      }}
                     />
                   </div>
                 </div>
@@ -143,6 +166,71 @@ export default function SuperadminOnboarding() {
                     />
                   </div>
                 </div>
+                <div className="form-group">
+                  <label>URL Slug (for branding)</label>
+                  <div className="input-box">
+                    <Settings size={18} />
+                    <input 
+                      placeholder="e.g., emerald-gold" 
+                      value={firmData.slug}
+                      onChange={e => setFirmData({...firmData, slug: e.target.value.toLowerCase().replace(/\s+/g, '-')})}
+                    />
+                  </div>
+                </div>
+                <div className="form-group">
+                  <label>Short Code (for Loan ID)</label>
+                  <div className="input-box">
+                    <ShieldCheck size={18} />
+                    <input 
+                      placeholder="e.g., EG (2-4 chars)" 
+                      value={firmData.shortCode}
+                      maxLength={4}
+                      onChange={e => setFirmData({...firmData, shortCode: e.target.value.toUpperCase()})}
+                    />
+                  </div>
+                </div>
+                <div className="form-group" style={{ gridColumn: 'span 2' }}>
+                  <label>Shop Theme / Primary Color</label>
+                  <div style={{ display: 'flex', gap: '12px', marginTop: '8px', flexWrap: 'wrap' }}>
+                    {[
+                      { name: 'Pacific', color: '#107B88' },
+                      { name: 'Emerald', color: '#065f46' },
+                      { name: 'Royal', color: '#7f1d1d' },
+                      { name: 'Navy', color: '#1e3a8a' },
+                      { name: 'Onyx', color: '#111827' }
+                    ].map(theme => (
+                      <div 
+                        key={theme.color}
+                        onClick={() => setFirmData({...firmData, primaryColor: theme.color})}
+                        style={{
+                          width: '40px',
+                          height: '40px',
+                          borderRadius: '10px',
+                          background: theme.color,
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          border: firmData.primaryColor === theme.color ? '3px solid var(--gold)' : '2px solid transparent',
+                          boxShadow: 'var(--shadow-sm)'
+                        }}
+                        title={theme.name}
+                      >
+                        {firmData.primaryColor === theme.color && <CheckCircle size={16} color="white" />}
+                      </div>
+                    ))}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginLeft: '8px' }}>
+                      <input 
+                        type="color" 
+                        value={firmData.primaryColor}
+                        onChange={e => setFirmData({...firmData, primaryColor: e.target.value})}
+                        style={{ width: '32px', height: '32px', border: 'none', background: 'none' }}
+                      />
+                      <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>Custom</span>
+                    </div>
+                  </div>
+                </div>
+
                 <div className="form-group">
                   <label>Subscription Tier</label>
                   <select 

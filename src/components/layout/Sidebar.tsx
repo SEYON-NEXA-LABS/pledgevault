@@ -47,6 +47,32 @@ export default function Sidebar({ isOpen, onToggle, overdueCount = 0 }: SidebarP
   const router = useRouter();
   const pathname = usePathname();
 
+  const auth = authStore.get();
+
+  React.useEffect(() => {
+    const applyBranding = async () => {
+      if (auth.isAuthenticated && auth.firmId) {
+        try {
+          // In a real app, this could be cached in a store
+          const { data: firm } = await supabase
+            .from('firms')
+            .select('branding_config')
+            .eq('id', auth.firmId)
+            .single();
+          
+          if (firm?.branding_config?.primary_color) {
+            document.documentElement.style.setProperty('--primary-brand', firm.branding_config.primary_color);
+            // Derive a hover color (simulated here)
+            document.documentElement.style.setProperty('--primary-hover', firm.branding_config.primary_color + 'e6');
+          }
+        } catch (err) {
+          console.error('Failed to apply branding:', err);
+        }
+      }
+    };
+    applyBranding();
+  }, [auth.isAuthenticated, auth.firmId]);
+
   const handleSignOut = async () => {
     await supabase.auth.signOut();
     router.push('/login');
