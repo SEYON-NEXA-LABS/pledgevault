@@ -147,7 +147,7 @@ export default function FirmManagementPage() {
                 <div className="card-top">
                    <div style={{ display: 'flex', gap: '16px', alignItems: 'flex-start' }}>
                       <div className="firm-initials">
-                        {firm.name.charAt(0)}
+                        {firm.name?.charAt(0) || '?'}
                       </div>
                       <div>
                         <h3 style={{ margin: 0, fontSize: '18px' }}>{firm.name}</h3>
@@ -156,8 +156,8 @@ export default function FirmManagementPage() {
                         </div>
                       </div>
                    </div>
-                   <div className={`plan-badge ${firm.plan}`}>
-                     {firm.plan.toUpperCase()}
+                   <div className={`plan-badge ${firm.plan || 'free'}`}>
+                     {(firm.plan || 'free').toUpperCase()}
                    </div>
                 </div>
 
@@ -172,7 +172,7 @@ export default function FirmManagementPage() {
                    </div>
                    <div className="metric">
                       <ShieldCheck size={14} />
-                      <span>Joined {formatDate(firm.created_at)}</span>
+                      <span className="date-cell">{formatDate(firm.createdAt)}</span>
                    </div>
                 </div>
 
@@ -184,11 +184,7 @@ export default function FirmManagementPage() {
                      className="mini-action" 
                      style={{ background: 'var(--bg-gold-light)', color: 'var(--gold-dark)', borderColor: 'var(--gold-light)' }} 
                      onClick={() => {
-                       setEditingFirm({
-                         ...firm,
-                         shortCode: firm.short_code,
-                         brandingConfig: firm.branding_config
-                       });
+                       setEditingFirm(firm);
                        setShowEditModal(true);
                      }}
                    >

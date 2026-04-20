@@ -243,130 +243,135 @@ export default function SubscriptionTab({ currentPlan, onUpgrade, firmName }: Su
         .billing-toggle {
           display: inline-flex;
           align-items: center;
-          background: var(--bg-input);
+          background: var(--bg-hover);
           padding: 6px;
           border-radius: 40px;
-          border: 1px solid var(--border-color);
+          border: 1px solid var(--border-light);
           position: relative;
         }
 
         .toggle-btn {
-          padding: 8px 24px;
+          padding: 10px 28px;
           border: none;
           background: transparent;
-          color: var(--text-secondary);
-          font-weight: 600;
+          color: var(--text-tertiary);
+          font-weight: 700;
           font-size: 14px;
           border-radius: 30px;
           cursor: pointer;
-          transition: all 0.2s;
+          transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
         }
 
         .toggle-btn.active {
-          background: var(--gold);
-          color: #111;
-          box-shadow: 0 4px 12px rgba(212, 168, 67, 0.2);
+          background: var(--primary-teal-dark);
+          color: #fff;
+          box-shadow: 0 4px 12px rgba(14, 124, 134, 0.25);
         }
 
         .saving-badge {
           position: absolute;
-          right: -100px;
-          background: #34E0A1;
-          color: #111;
-          font-size: 11px;
-          font-weight: 800;
-          padding: 4px 10px;
-          border-radius: 6px;
+          right: -110px;
+          background: var(--accent-peach);
+          color: var(--primary-teal-dark);
+          font-size: 10px;
+          font-weight: 900;
+          padding: 4px 12px;
+          border-radius: 8px;
           text-transform: uppercase;
+          letter-spacing: 0.5px;
         }
 
         .billing-helper {
           font-size: 13px;
           color: var(--text-tertiary);
-          margin-top: 12px;
+          margin-top: 16px;
+          font-weight: 500;
         }
 
         .plans-grid {
           display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+          grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
           gap: 24px;
         }
 
         .plan-card {
-          background: var(--bg-card);
-          border: 1px solid var(--border-color);
-          border-radius: 20px;
-          padding: 32px;
+          background: var(--bg-primary);
+          border: 1px solid var(--border-light);
+          border-radius: 32px;
+          padding: 40px 32px;
           display: flex;
           flex-direction: column;
           position: relative;
-          transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+          transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
         }
 
         .plan-card:hover {
           transform: translateY(-8px);
-          border-color: var(--gold);
+          border-color: var(--primary-brand);
+          box-shadow: 0 20px 40px rgba(0,0,0,0.05);
         }
 
         .plan-card.featured {
-          background: #1A3C34;
-          border-color: var(--gold);
+          background: linear-gradient(135deg, #0E7C86 0%, #1FB7C6 100%);
+          border: none;
           color: #fff;
         }
 
         .plan-card.current {
-          border-color: var(--gold);
-          box-shadow: 0 0 0 2px var(--gold);
+          border: 2px solid var(--primary-brand);
         }
 
         .featured-badge {
           position: absolute;
-          top: -12px;
+          top: -14px;
           left: 50%;
           transform: translateX(-50%);
-          background: var(--gold);
-          color: #111;
-          padding: 4px 12px;
+          background: var(--accent-peach);
+          color: var(--primary-teal-dark);
+          padding: 6px 16px;
           border-radius: 20px;
           font-size: 11px;
-          font-weight: 800;
+          font-weight: 900;
           display: flex;
           align-items: center;
-          gap: 4px;
+          gap: 6px;
           white-space: nowrap;
+          box-shadow: 0 4px 10px rgba(0,0,0,0.1);
         }
 
         .plan-icon-box {
-          width: 50px;
-          height: 50px;
-          background: var(--bg-input);
-          border-radius: 12px;
+          width: 56px;
+          height: 56px;
+          background: var(--bg-hover);
+          border-radius: 16px;
           display: flex;
           align-items: center;
           justify-content: center;
-          margin-bottom: 20px;
-          color: var(--gold);
+          margin-bottom: 24px;
+          color: var(--primary-brand);
         }
 
         .featured .plan-icon-box {
-          background: rgba(212, 168, 67, 0.1);
+          background: rgba(255, 255, 255, 0.15);
+          color: #fff;
         }
 
         .plan-header h3 {
           margin: 0 0 8px 0;
-          font-size: 20px;
-          font-weight: 700;
+          font-size: 22px;
+          font-weight: 800;
+          letter-spacing: -0.5px;
         }
 
         .plan-header p {
-          font-size: 13px;
+          font-size: 14px;
           color: var(--text-tertiary);
           margin-bottom: 24px;
-          line-height: 1.5;
+          line-height: 1.6;
         }
 
         .featured .plan-header p {
-          color: rgba(255,255,255,0.6);
+          color: rgba(255,255,255,0.8);
         }
 
         .plan-price {
@@ -378,57 +383,69 @@ export default function SubscriptionTab({ currentPlan, onUpgrade, firmName }: Su
 
         .currency {
           font-size: 24px;
-          font-weight: 500;
+          font-weight: 600;
           color: var(--text-tertiary);
         }
+
+        .featured .currency { color: rgba(255,255,255,0.6); }
 
         .amount {
-          font-size: 40px;
-          font-weight: 800;
-          letter-spacing: -1px;
+          font-size: 44px;
+          font-weight: 900;
+          letter-spacing: -1.5px;
+          color: var(--text-primary);
         }
 
+        .featured .amount { color: #fff; }
+
         .period {
-          font-size: 14px;
+          font-size: 15px;
           color: var(--text-tertiary);
+          font-weight: 600;
         }
+
+        .featured .period { color: rgba(255,255,255,0.6); }
 
         .btn-upgrade {
           width: 100%;
-          padding: 14px;
-          border-radius: 12px;
-          font-weight: 700;
+          padding: 16px;
+          border-radius: 16px;
+          font-weight: 800;
           font-size: 15px;
           cursor: pointer;
           display: flex;
           align-items: center;
           justify-content: center;
-          gap: 8px;
+          gap: 10px;
           margin-bottom: 32px;
-          transition: all 0.2s;
-          border: 1px solid var(--border-color);
+          transition: all 0.3s;
+          border: 1px solid var(--border-light);
+          background: var(--bg-hover);
+          color: var(--text-primary);
         }
 
-        .btn-upgrade:not(.active) {
-          background: var(--gold);
-          color: #111;
+        .btn-upgrade:not(.active):not(.loading) {
+          background: var(--primary-teal-dark);
+          color: #fff;
           border: none;
         }
 
         .plan-card.featured .btn-upgrade:not(.active) {
-          background: var(--gold);
-          box-shadow: 0 8px 24px rgba(212, 168, 67, 0.3);
+          background: #fff;
+          color: var(--primary-teal-dark);
+          box-shadow: 0 10px 20px rgba(0,0,0,0.1);
         }
 
         .btn-upgrade.active {
-          background: var(--bg-input);
+          background: var(--bg-primary);
           color: var(--text-tertiary);
           cursor: default;
+          border: 1px solid var(--border-light);
         }
 
         .btn-upgrade:hover:not(.active):not(:disabled) {
-          background: #E5C369;
           transform: scale(1.02);
+          opacity: 0.95;
         }
 
         .plan-features {
@@ -437,7 +454,7 @@ export default function SubscriptionTab({ currentPlan, onUpgrade, firmName }: Su
           margin: 0;
           display: flex;
           flex-direction: column;
-          gap: 14px;
+          gap: 16px;
         }
 
         .plan-features li {
@@ -445,31 +462,30 @@ export default function SubscriptionTab({ currentPlan, onUpgrade, firmName }: Su
           display: flex;
           align-items: center;
           gap: 12px;
+          font-weight: 500;
         }
 
         .check-icon {
-          color: var(--gold);
+          color: var(--primary-brand);
           flex-shrink: 0;
         }
 
+        .featured .check-icon { color: var(--accent-peach); }
+
         .excluded {
           color: var(--text-tertiary);
-          opacity: 0.5;
-        }
-
-        .excluded .check-icon {
-          color: var(--text-tertiary);
+          opacity: 0.4;
         }
 
         .billing-footer {
           margin-top: 60px;
-          padding: 24px;
-          background: var(--bg-input);
-          border-radius: 16px;
+          padding: 32px;
+          background: var(--bg-hover);
+          border-radius: 24px;
           display: flex;
           justify-content: space-between;
           align-items: center;
-          border: 1px solid var(--border-color);
+          border: 1px solid var(--border-light);
         }
 
         .footer-info {
@@ -478,6 +494,7 @@ export default function SubscriptionTab({ currentPlan, onUpgrade, firmName }: Su
           gap: 12px;
           font-size: 14px;
           color: var(--text-secondary);
+          font-weight: 600;
         }
 
         .footer-warning {
@@ -485,99 +502,56 @@ export default function SubscriptionTab({ currentPlan, onUpgrade, firmName }: Su
           align-items: center;
           gap: 8px;
           font-size: 12px;
-          color: #dc3545;
-          font-weight: 600;
+          color: #ef4444;
+          font-weight: 700;
+          background: #fee2e2;
+          padding: 6px 14px;
+          border-radius: 10px;
         }
 
-        /* History Table Styles */
         .history-section {
-          margin-top: 60px;
+          margin-top: 64px;
         }
 
         .section-header {
           display: flex;
           justify-content: space-between;
           align-items: center;
-          margin-bottom: 20px;
+          margin-bottom: 24px;
         }
 
-        .btn-refresh {
-          background: transparent;
-          border: none;
-          color: var(--text-tertiary);
-          cursor: pointer;
-        }
+        .section-header h3 { font-size: 20px; font-weight: 800; }
 
         .history-table-wrapper {
-          background: var(--bg-card);
-          border: 1px solid var(--border-color);
-          border-radius: 16px;
+          background: var(--bg-primary);
+          border: 1px solid var(--border-light);
+          border-radius: 24px;
           overflow: hidden;
-        }
-
-        .history-table {
-          width: 100%;
-          border-collapse: collapse;
-          font-size: 14px;
         }
 
         .history-table th {
           text-align: left;
-          padding: 16px;
-          background: var(--bg-input);
+          padding: 18px 24px;
+          background: var(--bg-hover);
           color: var(--text-tertiary);
-          font-weight: 600;
-          font-size: 12px;
+          font-weight: 700;
+          font-size: 11px;
           text-transform: uppercase;
+          letter-spacing: 1px;
         }
 
         .history-table td {
-          padding: 16px;
-          border-bottom: 1px solid var(--border-color);
-        }
-
-        .history-table tr:last-child td {
-          border-bottom: none;
+          padding: 18px 24px;
+          border-bottom: 1px solid var(--border-light);
+          font-size: 14px;
         }
 
         .plan-name {
-          font-weight: 700;
-          color: var(--gold);
+          font-weight: 800;
+          color: var(--primary-brand);
         }
 
-        .pay-method {
-          font-size: 11px;
-          background: var(--bg-input);
-          padding: 2px 8px;
-          border-radius: 4px;
-          color: var(--text-secondary);
-        }
-
-        .status-pill {
-          font-size: 11px;
-          font-weight: 700;
-          text-transform: uppercase;
-          padding: 2px 8px;
-          border-radius: 20px;
-        }
-
-        .status-pill.active { background: rgba(52, 224, 161, 0.1); color: #34E0A1; }
-        .status-pill.expired { background: rgba(220, 53, 69, 0.1); color: #dc3545; }
-
-        .empty-history {
-          text-align: center;
-          padding: 60px !important;
-          color: var(--text-tertiary);
-        }
-
-        .spin {
-          animation: spin 1s linear infinite;
-        }
-
-        @keyframes spin {
-          from { transform: rotate(0deg); }
-          to { transform: rotate(360deg); }
-        }
+        .status-pill.active { background: var(--status-active-bg); color: var(--status-active-text); }
       `}</style>
     </div>
   );

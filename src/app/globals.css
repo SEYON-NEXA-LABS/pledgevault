@@ -7,69 +7,77 @@
 
 /* ---- CSS Custom Properties ---- */
 :root {
-  /* Primary — Dynamic Brand */
-  --primary-brand: #107B88; /* Pacific Teal — More vibrant than Dark Teal */
-  --primary-hover: #0D636E;
+  /* Primary — Vibrant Teal Identity */
+  --primary-brand: #1FB7C6; /* Light Teal */
+  --primary-hover: #0E7C86; /* Deep Teal */
+  --primary-teal: #1FB7C6;
+  --primary-teal-dark: #0E7C86;
 
-  /* Sidebar */
-  --sidebar-bg: var(--primary-brand);
-  --sidebar-bg-dark: var(--primary-hover);
-  --sidebar-hover: rgba(255, 255, 255, 0.08);
-  --sidebar-active: rgba(255, 255, 255, 0.12);
-  --sidebar-text: rgba(255, 255, 255, 0.7);
-  --sidebar-text-active: #FFFFFF;
+  /* Sidebar — Premium Light Identity */
+  --sidebar-bg: #FFFFFF; 
+  --sidebar-bg-dark: #F8FBFA;
+  --sidebar-hover: rgba(31, 183, 198, 0.05);
+  --sidebar-active: rgba(31, 183, 198, 0.08);
+  --sidebar-text: #4A5568;
+  --sidebar-text-active: #0E7C86;
+  --active-bar: #F4C3A1; /* Peach Indicator */
 
-  /* Gold Accents */
-  --gold: #D4A843;
-  --gold-light: #E8C973;
-  --gold-dark: #B8922F;
-  --gold-glow: rgba(212, 168, 67, 0.15);
-  --gold-gradient: linear-gradient(135deg, #D4A843, #E8C973);
+  /* Accents — Peach & Aqua */
+  --accent-peach: #F4C3A1;
+  --accent-aqua: #A7E8E1;
+  --accent-mint: #A7E8E1;
+  
+  /* Legacy Gold (Mapping to new accent) */
+  --gold: #1FB7C6;
+  --gold-light: #A7E8E1;
+  --gold-dark: #0E7C86;
+  --gold-glow: rgba(31, 183, 198, 0.15);
+  --gold-gradient: linear-gradient(135deg, #1FB7C6, #A7E8E1);
 
   /* Silver Accents */
   --silver: #B0B8C1;
   --silver-light: #D4DAE0;
   --silver-dark: #8A939E;
 
-  /* Content Area */
-  --bg-primary: #F5F5F0;
+  /* Content Area — Ambient Background */
+  --bg-primary: #F2F7F6;
   --bg-card: #FFFFFF;
-  --bg-card-hover: #FAFAF7;
-  --bg-input: #F8F8F5;
+  --bg-card-hover: #F8FBFB;
+  --bg-input: #FFFFFF;
 
   /* Text */
   --text-primary: #1A1D1F;
-  --text-secondary: #6F767E;
+  --text-secondary: #606C6E;
   --text-tertiary: #9A9FA5;
   --text-inverse: #FFFFFF;
 
   /* Borders */
-  --border: #E8E8E3;
-  --border-light: #F0F0EB;
-  --border-focus: #D4A843;
+  --border: #E1E9E8;
+  --border-light: #F0F4F4;
+  --border-focus: #1FB7C6;
 
   /* Status Colors */
-  --status-active: #28A745;
-  --status-active-bg: rgba(40, 167, 69, 0.1);
+  --status-active: #1FB7C6; /* Teal for focus */
+  --status-active-bg: rgba(31, 183, 198, 0.1);
   --status-overdue: #DC3545;
   --status-overdue-bg: rgba(220, 53, 69, 0.1);
-  --status-closed: #6C757D;
-  --status-closed-bg: rgba(108, 117, 125, 0.1);
-  --status-pending: #FFC107;
-  --status-pending-bg: rgba(255, 193, 7, 0.1);
+  --status-closed: #9A9FA5;
+  --status-closed-bg: rgba(154, 159, 165, 0.1);
+  --status-pending: #F4C3A1; /* Peach for pending */
+  --status-pending-bg: rgba(244, 195, 161, 0.1);
 
   /* Shadows */
-  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.04);
-  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.06);
-  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.08);
-  --shadow-card: 0 2px 8px rgba(0, 0, 0, 0.04);
-  --shadow-gold: 0 4px 16px rgba(212, 168, 67, 0.2);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.02);
+  --shadow-md: 0 4px 16px rgba(14, 124, 134, 0.06);
+  --shadow-lg: 0 12px 32px rgba(14, 124, 134, 0.08);
+  --shadow-card: 0 2px 8px rgba(0, 0, 0, 0.02);
+  --shadow-brand: 0 4px 16px rgba(31, 183, 198, 0.2);
 
-  /* Radius */
+  /* Radius — Modern Large Rounding */
   --radius-sm: 6px;
-  --radius-md: 10px;
-  --radius-lg: 14px;
-  --radius-xl: 20px;
+  --radius-md: 12px;
+  --radius-lg: 18px;
+  --radius-xl: 24px;
   --radius-full: 9999px;
 
   /* Transitions */
@@ -82,7 +90,7 @@
   --sidebar-collapsed: 72px;
 
   /* Font */
-  --font-primary: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-primary: 'Outfit', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   --font-display: 'Outfit', 'Inter', sans-serif;
 }
 
@@ -174,6 +182,7 @@ ul, ol {
   bottom: 0;
   width: var(--sidebar-width);
   background: var(--sidebar-bg);
+  border-right: 1px solid var(--border);
   display: flex;
   flex-direction: column;
   z-index: 100;
@@ -186,7 +195,7 @@ ul, ol {
   display: flex;
   align-items: center;
   gap: 12px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  border-bottom: 2px solid var(--bg-primary);
 }
 
 .sidebar-logo-icon {
@@ -198,17 +207,17 @@ ul, ol {
   align-items: center;
   justify-content: center;
   font-size: 20px;
-  color: var(--sidebar-bg-dark);
+  color: #FFFFFF;
   flex-shrink: 0;
-  box-shadow: var(--shadow-gold);
+  box-shadow: 0 4px 12px rgba(31, 183, 198, 0.2);
 }
 
 .sidebar-logo-text h1 {
   font-family: var(--font-display);
   font-size: 18px;
-  font-weight: 700;
-  color: var(--text-inverse);
-  letter-spacing: -0.3px;
+  font-weight: 800;
+  color: var(--primary-teal-dark);
+  letter-spacing: -0.5px;
 }
 
 .sidebar-logo-text p {
@@ -224,12 +233,12 @@ ul, ol {
 
 .sidebar-section-title {
   font-size: 10px;
-  font-weight: 600;
+  font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 1.2px;
-  color: rgba(168, 197, 190, 0.5);
+  color: var(--text-tertiary);
   padding: 0 8px;
-  margin-bottom: 4px;
+  margin-bottom: 8px;
 }
 
 .sidebar-nav {
@@ -272,7 +281,7 @@ ul, ol {
   transform: translateY(-50%);
   width: 3px;
   height: 24px;
-  background: var(--gold);
+  background: var(--active-bar, var(--gold));
   border-radius: 0 3px 3px 0;
 }
 
@@ -280,6 +289,52 @@ ul, ol {
   width: 20px;
   height: 20px;
   flex-shrink: 0;
+}
+
+.sidebar-link.group-header {
+  width: 100%;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+}
+
+.sidebar-submenu {
+  margin-top: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-left: 20px;
+  position: relative;
+  border-left: 1px solid var(--border-light);
+  margin-left: 22px;
+}
+
+.sidebar-link.sub-item {
+  padding: 8px 12px;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.sidebar-link.sub-item svg {
+  width: 16px;
+  height: 16px;
+  opacity: 0.6;
+}
+
+.sidebar-link.sub-item.active {
+  color: var(--sidebar-text-active);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.sidebar-link.sub-item.active svg {
+  color: var(--gold);
+  opacity: 1;
+}
+
+.sidebar-link.sub-item.active::before {
+  left: -20px;
+  height: 18px;
 }
 
 .sidebar-link .badge {
@@ -296,7 +351,8 @@ ul, ol {
 
 .sidebar-footer {
   padding: 16px;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  border-top: 1px solid var(--border-light);
+  background: var(--sidebar-bg-dark);
 }
 
 .sidebar-footer-user {
@@ -334,8 +390,8 @@ ul, ol {
 
 .sidebar-user-info .name {
   font-size: 13px;
-  font-weight: 600;
-  color: var(--text-inverse);
+  font-weight: 700;
+  color: var(--text-primary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -343,7 +399,25 @@ ul, ol {
 
 .sidebar-user-info .role {
   font-size: 11px;
-  color: var(--sidebar-text);
+  color: var(--text-tertiary);
+  font-weight: 600;
+}
+
+.logout-btn {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-tertiary);
+  transition: all var(--transition-fast);
+  border-radius: var(--radius-sm);
+  margin-left: 8px;
+}
+
+.logout-btn:hover {
+  background: var(--status-overdue-bg);
+  color: var(--status-overdue);
 }
 
 /* ---- Header ---- */
@@ -508,22 +582,22 @@ ul, ol {
   transform: translateY(-2px);
 }
 
-.stat-card.gold-accent {
-  border-top: 3px solid var(--gold);
+.stat-card.peach-accent {
+  border-top: 3px solid var(--accent-peach);
 }
 
-.stat-card.gold-accent .stat-card-icon {
-  background: var(--gold-glow);
-  color: var(--gold);
+.stat-card.peach-accent .stat-card-icon {
+  background: var(--status-pending-bg);
+  color: #D48443;
 }
 
-.stat-card.green-accent {
-  border-top: 3px solid var(--status-active);
+.stat-card.mint-accent {
+  border-top: 3px solid var(--accent-mint);
 }
 
-.stat-card.green-accent .stat-card-icon {
+.stat-card.mint-accent .stat-card-icon {
   background: var(--status-active-bg);
-  color: var(--status-active);
+  color: var(--primary-hover);
 }
 
 .stat-card.red-accent {
@@ -536,12 +610,12 @@ ul, ol {
 }
 
 .stat-card.teal-accent {
-  border-top: 3px solid #1A3C34;
+  border-top: 3px solid var(--primary-teal-dark);
 }
 
 .stat-card.teal-accent .stat-card-icon {
-  background: rgba(26, 60, 52, 0.1);
-  color: #1A3C34;
+  background: var(--status-active-bg);
+  color: var(--primary-teal-dark);
 }
 
 .stat-card-header {
@@ -885,7 +959,7 @@ ul, ol {
 }
 
 .form-input:focus {
-  border-color: var(--gold);
+  border-color: var(--primary-brand);
   box-shadow: 0 0 0 3px var(--gold-glow);
   background: var(--bg-card);
 }
@@ -911,7 +985,7 @@ ul, ol {
 }
 
 .form-select:focus {
-  border-color: var(--gold);
+  border-color: var(--primary-brand);
   box-shadow: 0 0 0 3px var(--gold-glow);
   outline: none;
 }
@@ -1484,7 +1558,7 @@ ul, ol {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #0D1F1B; /* Dark Teal Base */
+  background: var(--bg-primary); /* Soft Mint Gray */
   padding: 20px;
   position: relative;
   overflow: hidden;
@@ -1493,14 +1567,13 @@ ul, ol {
 .login-card {
   width: 100%;
   max-width: 420px;
-  background: rgba(255, 255, 255, 0.03);
-  backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  border-radius: 24px;
-  padding: 40px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 32px; /* Modern rounding */
+  padding: 48px 40px;
   position: relative;
   z-index: 10;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 30px 60px -12px rgba(14, 124, 134, 0.12);
   animation: slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
@@ -1515,19 +1588,20 @@ ul, ol {
 }
 
 .login-logo {
-  font-family: 'Outfit', sans-serif;
+  font-family: var(--font-display);
   font-weight: 800;
-  font-size: 24px;
-  margin-bottom: 16px;
+  font-size: 26px;
+  margin-bottom: 20px;
   letter-spacing: -0.5px;
-  color: #fff;
+  color: var(--primary-teal-dark);
 }
 
 .login-header h2 {
-  color: #fff;
-  margin: 0 0 8px;
-  font-size: 28px;
-  letter-spacing: -0.5px;
+  color: var(--text-primary);
+  margin: 0 0 12px;
+  font-size: 30px;
+  font-weight: 800;
+  letter-spacing: -0.8px;
 }
 
 .login-header p {
@@ -1578,25 +1652,31 @@ ul, ol {
   transition: color 0.2s;
 }
 
-.form-input {
+.login-container .form-input {
   width: 100%;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 12px;
-  padding: 12px 16px 12px 44px;
-  color: #fff;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 14px 16px 14px 44px;
+  color: var(--text-primary);
   font-size: 15px;
-  transition: all 0.2s;
+  transition: all var(--transition-normal);
 }
 
-.form-input:focus {
+.login-container .form-input:focus {
+  border-color: var(--primary-brand);
+  background: #fff;
+  box-shadow: 0 0 0 4px var(--status-active-bg);
+}
+
+.login-container .form-input:focus {
   background: rgba(255, 255, 255, 0.08);
   border-color: var(--gold);
   outline: none;
   box-shadow: 0 0 0 4px rgba(212, 168, 67, 0.1);
 }
 
-.form-input:focus + .icon {
+.login-container .form-input:focus + .icon {
   color: var(--gold);
 }
 
@@ -1639,7 +1719,7 @@ ul, ol {
 }
 
 .login-footer a {
-  color: var(--gold);
+  color: var(--primary-brand);
   text-decoration: none;
   font-weight: 600;
 }
@@ -1664,7 +1744,7 @@ ul, ol {
 .blob-1 {
   width: 400px;
   height: 400px;
-  background: var(--gold);
+  background: var(--accent-aqua); /* Mint */
   top: -100px;
   right: -100px;
 }
@@ -1672,7 +1752,7 @@ ul, ol {
 .blob-2 {
   width: 300px;
   height: 300px;
-  background: #34E0A1;
+  background: var(--accent-peach); /* Peach */
   bottom: -50px;
   left: -50px;
 }
@@ -1722,7 +1802,7 @@ ul, ol {
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(13, 31, 27, 0.85); /* Dark Teal Overlay */
+  background: rgba(14, 124, 134, 0.85); /* Deep Teal Overlay */
   backdrop-filter: blur(8px);
   display: flex;
   align-items: center;

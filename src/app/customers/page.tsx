@@ -126,10 +126,6 @@ export default function CustomersPage() {
                    </td>
                 </tr>
               ) : displayCustomers.map((customer) => {
-                // In SaaS mode, we'd need a separate join/count for this
-                // For now, we'll hide it or show simplified counts
-                const activeCount = 0; // Placeholder until count logic added to service
-
                 return (
                   <tr key={customer.id}>
                     <td>
@@ -153,7 +149,7 @@ export default function CustomersPage() {
                     </td>
                     <td>
                       <div style={{ fontSize: '13px' }}>
-                        <span style={{ color: 'var(--text-tertiary)' }}>{customer.primaryIdType?.toUpperCase()}:</span> {customer.primaryIdNumber}
+                        <span style={{ color: 'var(--text-tertiary)' }}>{customer.primaryIdType?.toUpperCase() || 'AADHAAR'}:</span> {customer.primaryIdNumber}
                       </div>
                       <span className="kyc-verified" style={{ marginTop: '4px' }}>Verified</span>
                     </td>
@@ -165,8 +161,8 @@ export default function CustomersPage() {
                     </td>
                     <td>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                        <span className="badge active" style={{ width: 'fit-content' }}>
-                          {activeCount} Active Loans
+                        <span className={`badge ${Number(customer.activeLoansCount) > 0 ? 'active' : 'demo'}`} style={{ width: 'fit-content' }}>
+                          {customer.activeLoansCount || 0} Active Loans
                         </span>
                       </div>
                     </td>

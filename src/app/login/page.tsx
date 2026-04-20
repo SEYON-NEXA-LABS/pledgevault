@@ -61,7 +61,7 @@ export default function LoginPage() {
       password,
     });
 
-    if (loginError && email !== 'manager@demo.com') {
+    if (loginError) {
       setError(loginError.message);
       setLoading(false);
     } else {
@@ -73,8 +73,9 @@ export default function LoginPage() {
           authStore.set({
             userId: user.id,
             role: profile.role,
-            firmId: profile.firm_id,
-            userName: profile.full_name,
+            firmId: profile.firmId,
+            userName: profile.fullName,
+            email: user.email,
             isAuthenticated: true
           });
           
@@ -90,19 +91,35 @@ export default function LoginPage() {
               return;
             }
 
-            // Shop Logic
-            const branches = await supabaseService.getBranches(profile.firm_id);
+            // Shop Logic - Determine if we need to show the branch selector
+            const branches = await supabaseService.getBranches(profile.firmId);
             setAvailableBranches(branches);
 
-            if (!settings.activeBranchId) {
-              if (branches.length === 1) {
-                handleBranchSelect(branches[0].id);
-              } else {
-                setShowBranchSelector(true);
-              }
-            } else {
+            // NEW REDIRECTION LOGIC:
+            // 1. Managers default to Global Overview ('firm')
+            if (profile.role === 'manager' || profile.role === 'admin') {
+              settingsStore.save({ activeBranchId: 'firm' });
               router.push('/');
               router.refresh();
+              return;
+            }
+
+            // 2. Staff with a default branch
+            if (profile.role === 'staff' && profile.defaultBranchId) {
+              settingsStore.save({ activeBranchId: profile.defaultBranchId });
+              router.push('/');
+              router.refresh();
+              return;
+            }
+
+            // 3. Fallback: Show selector if more than one branch, or auto-pick the only one
+            if (branches.length === 1) {
+              handleBranchSelect(branches[0].id);
+            } else if (branches.length > 1) {
+              setShowBranchSelector(true);
+            } else {
+              // No branches found - highly unlikely with seed data, but handle cleanly
+              router.push('/');
             }
           }, 800);
         } else {

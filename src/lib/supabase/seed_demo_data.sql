@@ -85,8 +85,8 @@ ON CONFLICT (id) DO NOTHING;
 -- 3. Create Profiles for your Users
 -- Admin User (admin@yourfirm.com)
 INSERT INTO profiles (id, firm_id, full_name, role)
-VALUES ('395be037-8db4-473e-bb5a-9c767023a8e3', 'd290f1ee-6c54-4b01-90e6-d701748f0851', 'Firm Admin', 'admin')
-ON CONFLICT (id) DO UPDATE SET role = 'admin', firm_id = 'd290f1ee-6c54-4b01-90e6-d701748f0851';
+VALUES ('395be037-8db4-473e-bb5a-9c767023a8e3', 'd290f1ee-6c54-4b01-90e6-d701748f0851', 'Firm Admin', 'manager')
+ON CONFLICT (id) DO UPDATE SET role = 'manager', firm_id = 'd290f1ee-6c54-4b01-90e6-d701748f0851';
 
 -- Staff User (staff@yourfirm.com)
 INSERT INTO profiles (id, firm_id, full_name, role)

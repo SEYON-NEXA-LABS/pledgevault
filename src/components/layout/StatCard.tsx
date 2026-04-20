@@ -10,7 +10,7 @@ interface StatCardProps {
   changeType?: 'positive' | 'negative';
   subtitle?: string;
   icon: LucideIcon;
-  accent: 'gold' | 'green' | 'red' | 'teal';
+  accent: 'peach' | 'mint' | 'red' | 'teal';
 }
 
 export default function StatCard({

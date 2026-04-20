@@ -19,6 +19,7 @@ import {
   FileText
 } from 'lucide-react';
 import { customerStore, loanStore } from '@/lib/store';
+import { supabaseService } from '@/lib/supabase/service';
 import { formatCurrency, formatDate, LOAN_STATUS_LABELS } from '@/lib/constants';
 import { Customer, Loan } from '@/lib/types';
 import Link from 'next/link';
@@ -32,14 +33,23 @@ export default function CustomerDetailsPage() {
   const [selectedIdPhoto, setSelectedIdPhoto] = useState<string | null>(null);
 
   useEffect(() => {
-    if (id) {
-      const foundCustomer = customerStore.getById(id as string);
-      if (foundCustomer) {
-        setCustomer(foundCustomer);
-        setLoans(loanStore.getByCustomer(foundCustomer.id));
+    async function fetchCustomerDetails() {
+      if (id) {
+        try {
+          const foundCustomer = await supabaseService.getCustomerWithDetails(id as string);
+          if (foundCustomer) {
+            setCustomer(foundCustomer);
+            const customerLoans = await supabaseService.getLoansByCustomer(foundCustomer.id);
+            setLoans(customerLoans as unknown as Loan[]);
+          }
+        } catch (err) {
+          console.error("Error fetching customer:", err);
+        } finally {
+          setLoading(false);
+        }
       }
-      setLoading(false);
     }
+    fetchCustomerDetails();
   }, [id]);
 
   if (loading) {

@@ -14,6 +14,7 @@ import {
   X
 } from 'lucide-react';
 import { customerStore } from '@/lib/store';
+import { supabaseService } from '@/lib/supabase/service';
 import { compressImage } from '@/lib/image';
 import Link from 'next/link';
 
@@ -34,17 +35,22 @@ export default function NewCustomerPage() {
     city: 'Coimbatore',
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    const now = new Date().toISOString();
-    const newCustomer = customerStore.create({
-      ...formData,
-      createdAt: now,
-      updatedAt: now,
-    });
+    try {
+      const now = new Date().toISOString();
+      const newCustomer = await supabaseService.createCustomer({
+        ...formData,
+        createdAt: now,
+        updatedAt: now,
+      } as any);
 
-    router.push(`/customers/${newCustomer.id}`);
+      router.push(`/customers/${newCustomer.id}`);
+    } catch (err) {
+      console.error(err);
+      alert('Failed to save customer to Supabase');
+    }
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {

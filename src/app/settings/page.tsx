@@ -24,7 +24,8 @@ import {
   ShieldCheck,
   ChevronRight,
   Database,
-  ArrowRight
+  ArrowRight,
+  User
 } from 'lucide-react';
 import { supabaseService } from '@/lib/supabase/service';
 import { settingsStore } from '@/lib/store';
@@ -32,12 +33,16 @@ import { supabase } from '@/lib/supabase/client';
 import { ShopSettings, PlanTier } from '@/lib/types';
 import { DEFAULT_SETTINGS } from '@/lib/constants';
 import SubscriptionTab from '@/components/settings/SubscriptionTab';
+import TeamTab from '@/components/settings/TeamTab';
+import ProfileTab from '@/components/settings/ProfileTab';
+import { authStore } from '@/lib/authStore';
 
-type SettingsTab = 'general' | 'subscription';
+type SettingsTab = 'profile' | 'general' | 'subscription' | 'team';
 
 function SettingsContent() {
   const [settings, setSettings] = useState<ShopSettings>(DEFAULT_SETTINGS);
-  const [activeTab, setActiveTab] = useState<SettingsTab>('general');
+  const [activeTab, setActiveTab] = useState<SettingsTab>('profile');
+  const isManager = authStore.isManager() || authStore.isSuperadmin();
   const [currentPlan, setCurrentPlan] = useState<PlanTier>('free');
   const [firmId, setFirmId] = useState<string | null>(null);
   const [mounted, setMounted] = useState(false);
@@ -47,8 +52,12 @@ function SettingsContent() {
 
   useEffect(() => {
     const tab = searchParams.get('tab') as SettingsTab;
-    if (tab === 'subscription') setActiveTab('subscription');
-  }, [searchParams]);
+    if (tab === 'general' && !isManager) {
+      setActiveTab('profile');
+      return;
+    }
+    setActiveTab(tab || 'profile');
+  }, [searchParams, isManager]);
 
   useEffect(() => {
     setMounted(true);
@@ -57,54 +66,43 @@ function SettingsContent() {
   }, []);
 
   const fetchFirmInfo = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
+    const auth = authStore.get();
+    if (!auth.id || !auth.firmId) return;
 
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('firm_id')
-      .eq('id', user.id)
-      .single();
-
-    if (profile?.firm_id) {
-      setFirmId(profile.firm_id);
-      const { data: firm } = await supabase
-        .from('firms')
-        .select('plan')
-        .eq('id', profile.firm_id)
-        .single();
+    try {
+      setFirmId(auth.firmId);
       
-      if (firm?.plan) {
-        setCurrentPlan(firm.plan as PlanTier);
+      // Fetch Plan info directly from profile or fetch firm if needed
+      const profile = await supabaseService.getUserProfile(auth.id);
+      if (profile?.firms?.plan) {
+        setCurrentPlan(profile.firms.plan as PlanTier);
       }
 
-      // Fetch branches from Supabase
-      const sub = await supabaseService.getActiveSubscription(profile.firm_id);
-      if (sub) {
-        const isExpired = new Date(sub.endDate) < new Date();
+      // Sync local settings with DB
+      const liveSettings = await supabaseService.getSettings();
+      if (liveSettings) {
+        setSettings(liveSettings);
+        settingsStore.save(liveSettings);
       }
-
-      const branchData = await supabaseService.getBranches(profile.firm_id);
-      setSettings(prev => ({
-        ...prev,
-        branches: branchData
-      }));
+    } catch (err) {
+      console.error('Error fetching firm info:', err);
     }
   };
 
   const handleUpgrade = async (newPlan: PlanTier) => {
     if (!firmId) return;
 
-    const { error } = await supabase
-      .from('firms')
-      .update({ plan: newPlan })
-      .eq('id', firmId);
+    try {
+      const { error } = await supabase
+        .from('firms')
+        .update({ plan: newPlan })
+        .eq('id', firmId);
 
-    if (!error) {
-      setCurrentPlan(newPlan);
-      // Optional: Add a success notification or direct redirect
-    } else {
-      console.error('Update plan error:', error);
+      if (!error) {
+        setCurrentPlan(newPlan);
+      }
+    } catch (err) {
+      console.error('Update plan error:', err);
     }
   };
 
@@ -157,10 +155,11 @@ function SettingsContent() {
         location: location || ''
       } as any);
 
-      setSettings(prev => ({
-        ...prev,
-        branches: [...prev.branches, newBranch]
-      }));
+      setSettings(prev => {
+        const updated = { ...prev, branches: [...prev.branches, newBranch] };
+        settingsStore.save(updated);
+        return updated;
+      });
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
     } catch (err: any) {
@@ -177,10 +176,11 @@ function SettingsContent() {
 
     try {
       await supabaseService.deleteBranch(id);
-      setSettings(prev => ({
-        ...prev,
-        branches: prev.branches.filter(b => b.id !== id)
-      }));
+      setSettings(prev => {
+        const updated = { ...prev, branches: prev.branches.filter(b => b.id !== id) };
+        settingsStore.save(updated);
+        return updated;
+      });
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
     } catch (err: any) {
@@ -197,12 +197,12 @@ function SettingsContent() {
       <div className="page-header">
         <div className="page-header-left">
           <h2>Settings</h2>
-          <p className="subtitle">Manage your shop configurations and subscription</p>
+          <p className="subtitle">Manage metrics and shop configurations</p>
         </div>
         {activeTab === 'general' && (
           <div className="page-header-right">
-            <button className="btn btn-gold" onClick={handleSave}>
-              <Save size={18} /> Save Changes
+            <button className="btn btn-teal" onClick={handleSave}>
+              <Save size={18} /> Save Settings
             </button>
           </div>
         )}
@@ -210,17 +210,33 @@ function SettingsContent() {
 
       <div className="tabs-navigation">
         <button 
-          className={`tab-link ${activeTab === 'general' ? 'active' : ''}`}
-          onClick={() => setActiveTab('general')}
+          className={`tab-link ${activeTab === 'profile' ? 'active' : ''}`}
+          onClick={() => setActiveTab('profile')}
         >
-          <SettingsIcon size={18} /> General Settings
+          <User size={18} /> My Profile
         </button>
-        <button 
-          className={`tab-link ${activeTab === 'subscription' ? 'active' : ''}`}
-          onClick={() => setActiveTab('subscription')}
-        >
-          <CreditCard size={18} /> Subscription & Billing
-        </button>
+        {isManager && (
+          <>
+            <button 
+              className={`tab-link ${activeTab === 'general' ? 'active' : ''}`}
+              onClick={() => setActiveTab('general')}
+            >
+              <Building size={18} /> General
+            </button>
+            <button 
+              className={`tab-link ${activeTab === 'subscription' ? 'active' : ''}`}
+              onClick={() => setActiveTab('subscription')}
+            >
+              <CreditCard size={18} /> Subscriptions
+            </button>
+            <button 
+              className={`tab-link ${activeTab === 'team' ? 'active' : ''}`}
+              onClick={() => setActiveTab('team')}
+            >
+              <Users size={18} /> Team & Access
+            </button>
+          </>
+        )}
       </div>
 
       {saved && (
@@ -237,13 +253,17 @@ function SettingsContent() {
         </div>
       )}
 
-      {activeTab === 'general' ? (
+      {activeTab === 'profile' && (
+        <ProfileTab />
+      )}
+
+      {activeTab === 'general' && isManager && (
         <div className="settings-grid">
           {/* Shop Information */}
           <div className="card">
             <div className="card-header">
               <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Building size={18} style={{ color: 'var(--gold)' }} />
+                <Building size={18} style={{ color: 'var(--primary-teal-dark)' }} />
                 Shop Information
               </h3>
             </div>
@@ -270,7 +290,7 @@ function SettingsContent() {
               </div>
               <div className="form-row">
                 <div className="form-group">
-                  <label className="form-label">Phone Label</label>
+                  <label className="form-label">Support Email / Phone</label>
                   <input
                     type="text"
                     name="shopPhone"
@@ -280,7 +300,7 @@ function SettingsContent() {
                   />
                 </div>
                 <div className="form-group">
-                  <label className="form-label">License Number</label>
+                  <label className="form-label">License Key</label>
                   <input
                     type="text"
                     name="licenseNumber"
@@ -297,17 +317,17 @@ function SettingsContent() {
           <div className="card">
             <div className="card-header">
                 <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <Coins size={18} style={{ color: 'var(--gold)' }} />
-                  Today&apos;s Rates (per gram)
+                  <Coins size={18} style={{ color: 'var(--primary-teal-dark)' }} />
+                  Loan Appraisals (MCX)
                 </h3>
                 <button 
-                  className={`btn btn-sm ${syncing ? 'loading' : 'btn-outline'}`}
+                  className={`btn btn-sm ${syncing ? 'loading' : 'btn-outline-teal'}`}
                   onClick={handleSyncRates}
                   disabled={syncing}
                   style={{ fontSize: '12px' }}
                 >
                   <RefreshCw size={14} className={syncing ? 'spin' : ''} />
-                  {syncing ? 'Syncing MCX...' : 'Sync Live Rates'}
+                  {syncing ? 'Syncing...' : 'Sync Live Rates'}
                 </button>
               </div>
             <div className="card-body">
@@ -335,18 +355,19 @@ function SettingsContent() {
               </div>
               <div
                 style={{
-                  background: 'var(--bg-input)',
+                  background: 'var(--bg-hover)',
                   padding: '12px',
-                  borderRadius: 'var(--radius-md)',
+                  borderRadius: '16px',
                   fontSize: '12px',
                   color: 'var(--text-secondary)',
                   marginTop: '10px',
                   display: 'flex',
-                  gap: '8px',
+                  gap: '12px',
+                  border: '1px solid var(--border-light)'
                 }}
               >
-                <AlertCircle size={16} style={{ flexShrink: 0 }} />
-                Updated rates will reflect in all new loans created. Existing loans will keep the rate they were created with.
+                <AlertCircle size={16} style={{ flexShrink: 0, color: 'var(--primary-brand)' }} />
+                Updates will impact only new loans. Active contracts retain original appraisal rates.
               </div>
             </div>
           </div>
@@ -355,14 +376,14 @@ function SettingsContent() {
           <div className="card">
             <div className="card-header">
               <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Shield size={18} style={{ color: 'var(--gold)' }} />
-                Loan Defaults
+                <Shield size={18} style={{ color: 'var(--primary-teal-dark)' }} />
+                Policies & Risk
               </h3>
             </div>
             <div className="card-body">
               <div className="form-row">
                 <div className="form-group">
-                  <label className="form-label">Interest Rate (% / month)</label>
+                  <label className="form-label">Monthly Interest (%)</label>
                   <input
                     type="number"
                     name="defaultInterestRate"
@@ -373,7 +394,7 @@ function SettingsContent() {
                   />
                 </div>
                 <div className="form-group">
-                  <label className="form-label">Default Tenure (months)</label>
+                  <label className="form-label">Standard Tenure (Mos)</label>
                   <input
                     type="number"
                     name="defaultTenure"
@@ -385,7 +406,7 @@ function SettingsContent() {
               </div>
               <div className="form-row">
                 <div className="form-group">
-                  <label className="form-label">Default Gold LTV (%)</label>
+                  <label className="form-label">Max Gold LTV (%)</label>
                   <input
                     type="number"
                     name="defaultLtvGold"
@@ -395,7 +416,7 @@ function SettingsContent() {
                   />
                 </div>
                 <div className="form-group">
-                  <label className="form-label">Default Silver LTV (%)</label>
+                  <label className="form-label">Max Silver LTV (%)</label>
                   <input
                     type="number"
                     name="defaultLtvSilver"
@@ -408,46 +429,49 @@ function SettingsContent() {
             </div>
           </div>
 
+
+
           {/* Multi-Branch Management */}
           <div className="card">
             <div className="card-header">
               <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <GitBranch size={18} style={{ color: 'var(--gold)' }} />
-                Branch Management
+                <GitBranch size={18} style={{ color: 'var(--primary-teal-dark)' }} />
+                Branch Locations
               </h3>
-              <button className="btn btn-sm btn-outline" onClick={handleAddBranch}>
+              <button className="btn btn-sm btn-outline-teal" onClick={handleAddBranch}>
                 <Plus size={14} /> Add Branch
               </button>
             </div>
             <div className="card-body">
-              <div className="form-group">
-                <label className="form-label">Active Branch</label>
+              <div className="form-group" style={{ marginBottom: '24px' }}>
+                <label className="form-label">Global Context (Manager View)</label>
                 <select 
                   name="activeBranchId" 
                   className="form-input" 
                   value={settings.activeBranchId}
                   onChange={handleChange}
                 >
+                  <option value="firm">Whole Firm Overview</option>
                   {settings.branches.map(b => (
-                    <option key={b.id} value={b.id}>{b.name} ({b.code})</option>
+                    <option key={b.id} value={b.id}>{b.name}</option>
                   ))}
                 </select>
               </div>
-              <div style={{ marginTop: '16px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                 {settings.branches.map(b => (
-                  <div key={b.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '10px', background: 'var(--bg-input)', borderRadius: 'var(--radius-sm)', marginBottom: '8px' }}>
+                  <div key={b.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '16px', background: 'var(--bg-primary)', borderRadius: '16px', border: '1px solid var(--border-light)' }}>
                     <div>
-                      <div style={{ fontWeight: 600, fontSize: '13px' }}>{b.name}</div>
-                      <div style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>Code: {b.code} • {b.location}</div>
+                      <div style={{ fontWeight: 700, fontSize: '14px', color: 'var(--text-primary)' }}>{b.name}</div>
+                      <div style={{ fontSize: '12px', color: 'var(--text-tertiary)' }}>{b.code} • {b.location}</div>
                     </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      {settings.activeBranchId === b.id && <span className="badge active">Selected</span>}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                      {settings.activeBranchId === b.id && <span className="badge teal" style={{ background: 'var(--status-active-bg)', color: 'var(--primary-teal-dark)', fontSize: '10px' }}>Active</span>}
                       {settings.branches.length > 1 && (
                         <button 
                           onClick={() => handleDeleteBranch(b.id, b.name)}
-                          style={{ background: 'transparent', border: 'none', color: '#ff4d4f', cursor: 'pointer', padding: '4px' }}
+                          style={{ background: 'transparent', border: 'none', color: '#ff4d4f', cursor: 'pointer', padding: '4px', opacity: 0.7 }}
                         >
-                          <Trash2 size={14} />
+                          <Trash2 size={16} />
                         </button>
                       )}
                     </div>
@@ -457,12 +481,18 @@ function SettingsContent() {
             </div>
           </div>
         </div>
-      ) : (
+      )}
+
+      {activeTab === 'subscription' && (
         <SubscriptionTab 
           currentPlan={currentPlan} 
           onUpgrade={handleUpgrade}
           firmName={settings.shopName}
         />
+      )}
+
+      {activeTab === 'team' && (
+        <TeamTab />
       )}
 
       <div style={{ marginTop: '40px', textAlign: 'center', fontSize: '13px', color: 'var(--text-tertiary)' }}>
@@ -498,7 +528,7 @@ function SettingsContent() {
         }
 
         .tab-link.active {
-          color: var(--gold);
+          color: var(--primary-teal-dark);
         }
 
         .tab-link.active::after {
@@ -507,8 +537,8 @@ function SettingsContent() {
           bottom: -2px;
           left: 0;
           width: 100%;
-          height: 2px;
-          background: var(--gold);
+          height: 3px;
+          background: var(--primary-brand);
           border-radius: 2px;
         }
       `}</style>

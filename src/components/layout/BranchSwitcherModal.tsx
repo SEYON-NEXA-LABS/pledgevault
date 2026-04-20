@@ -11,9 +11,10 @@ interface BranchSwitcherModalProps {
   onClose: () => void;
   branches: Branch[];
   activeBranchId: string;
+  isMandatory?: boolean;
 }
 
-export default function BranchSwitcherModal({ isOpen, onClose, branches, activeBranchId }: BranchSwitcherModalProps) {
+export default function BranchSwitcherModal({ isOpen, onClose, branches, activeBranchId, isMandatory = false }: BranchSwitcherModalProps) {
   if (!isOpen) return null;
 
   const handleSelect = (branchId: string) => {
@@ -24,25 +25,57 @@ export default function BranchSwitcherModal({ isOpen, onClose, branches, activeB
   };
 
   return (
-    <div className="modal-overlay" style={{ zIndex: 1100 }}>
-      <div className="modal-content" style={{ maxWidth: '450px' }}>
-        <div className="modal-header">
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <div className="icon-circle gold">
-              <Building2 size={20} />
-            </div>
-            <div>
-              <h3 style={{ margin: 0 }}>Select Branch</h3>
-              <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-tertiary)' }}>
-                Switch your active operational location
-              </p>
-            </div>
+    <div className="modal-overlay" style={{ zIndex: 1100, backgroundColor: 'rgba(5, 15, 15, 0.85)', backdropFilter: 'blur(8px)' }} onClick={() => !isMandatory && onClose()}>
+      <div className="modal-content" style={{ 
+        maxWidth: '520px', 
+        borderRadius: '40px', 
+        padding: '40px',
+        boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
+        border: '1px solid rgba(255, 255, 255, 0.1)'
+      }} onClick={e => e.stopPropagation()}>
+        
+        {/* Mockup Header: Centered Building Icon & Title */}
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', marginBottom: '32px' }}>
+          <div style={{ 
+            width: '64px', 
+            height: '84px', 
+            borderRadius: '32px', 
+            background: 'var(--status-pending-bg)', 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'center',
+            marginBottom: '20px',
+            color: '#D4A843'
+          }}>
+            <Building2 size={32} />
           </div>
-          <button className="btn-close" onClick={onClose}><X size={20} /></button>
+          
+          <h2 style={{ 
+            fontFamily: 'var(--font-display)', 
+            fontSize: '32px', 
+            fontWeight: 700, 
+            color: 'var(--text-primary)',
+            lineHeight: 1.2,
+            margin: '0 0 12px 0'
+          }}>
+            Select Your Branch
+          </h2>
+          
+          <p style={{ 
+            fontSize: '16px', 
+            color: 'var(--text-secondary)',
+            maxWidth: '300px',
+            margin: '0 auto',
+            lineHeight: 1.5
+          }}>
+            Choose the location you are managing today to access its portfolio.
+          </p>
         </div>
 
-        <div className="modal-body" style={{ maxHeight: '60vh', overflowY: 'auto', padding: '16px' }}>
-          <div className="branch-list" style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+        <div style={{ width: '100%', height: '1px', background: 'var(--border-light)', marginBottom: '24px' }} />
+
+        <div className="modal-body" style={{ maxHeight: '45vh', overflowY: 'auto', paddingRight: '4px' }}>
+          <div className="branch-list" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             {/* Global Firm Option for Managers */}
             {authStore.isManager() && (
               <button
@@ -52,42 +85,39 @@ export default function BranchSwitcherModal({ isOpen, onClose, branches, activeB
                   display: 'flex',
                   alignItems: 'center',
                   gap: '16px',
-                  padding: '16px',
-                  background: activeBranchId === 'firm' ? 'var(--bg-gold-light)' : 'var(--bg-input)',
-                  border: `1px solid ${activeBranchId === 'firm' ? 'var(--gold)' : 'var(--border)'}`,
-                  borderRadius: 'var(--radius-md)',
+                  padding: '18px 24px',
+                  background: activeBranchId === 'firm' ? 'var(--status-active-bg)' : 'var(--bg-primary)',
+                  border: `2px solid ${activeBranchId === 'firm' ? 'var(--primary-brand)' : 'transparent'}`,
+                  borderRadius: '24px',
                   textAlign: 'left',
                   cursor: 'pointer',
                   transition: 'all 0.2s ease',
-                  marginBottom: '10px'
                 }}
               >
                 <div style={{ 
-                  width: '40px', 
-                  height: '40px', 
-                  borderRadius: '10px', 
-                  background: activeBranchId === 'firm' ? 'var(--gold)' : 'var(--sidebar-bg)', 
+                  width: '44px', 
+                  height: '44px', 
+                  borderRadius: '14px', 
+                  background: activeBranchId === 'firm' ? 'var(--primary-brand)' : 'var(--bg-card)', 
                   display: 'flex', 
                   alignItems: 'center', 
                   justifyContent: 'center',
-                  color: 'white'
+                  color: activeBranchId === 'firm' ? 'white' : 'var(--primary-brand)',
+                  boxShadow: 'var(--shadow-sm)'
                 }}>
-                  <LayoutDashboard size={20} />
+                  <LayoutDashboard size={22} />
                 </div>
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontWeight: 700, fontSize: '15px' }}>Global Firm Overview</div>
+                  <div style={{ fontWeight: 700, fontSize: '16px', color: 'var(--text-primary)' }}>Global Firm Overview</div>
                   <div style={{ fontSize: '12px', color: 'var(--text-tertiary)' }}>All branches consolidated view</div>
                 </div>
                 {activeBranchId === 'firm' && (
-                  <div style={{ color: 'var(--gold)' }}>
-                    <Check size={20} />
+                  <div style={{ color: 'var(--primary-brand)' }}>
+                    <Check size={22} />
                   </div>
                 )}
               </button>
             )}
-
-            {/* Branch Divider for Managers */}
-            {authStore.isManager() && <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', marginBottom: '8px', paddingLeft: '4px' }}>Specific Branches</div>}
 
             {branches.map((branch) => (
               <button
@@ -98,34 +128,35 @@ export default function BranchSwitcherModal({ isOpen, onClose, branches, activeB
                   display: 'flex',
                   alignItems: 'center',
                   gap: '16px',
-                  padding: '16px',
-                  background: activeBranchId === branch.id ? 'var(--bg-gold-light)' : 'var(--bg-input)',
-                  border: `1px solid ${activeBranchId === branch.id ? 'var(--gold)' : 'var(--border)'}`,
-                  borderRadius: 'var(--radius-md)',
+                  padding: '18px 24px',
+                  background: activeBranchId === branch.id ? 'var(--status-active-bg)' : 'var(--bg-primary)',
+                  border: `2px solid ${activeBranchId === branch.id ? 'var(--primary-brand)' : 'transparent'}`,
+                  borderRadius: '24px',
                   textAlign: 'left',
                   cursor: 'pointer',
                   transition: 'all 0.2s ease'
                 }}
               >
                 <div style={{ 
-                  width: '40px', 
-                  height: '40px', 
-                  borderRadius: '10px', 
-                  background: activeBranchId === branch.id ? 'var(--gold)' : 'var(--bg-card)', 
+                  width: '44px', 
+                  height: '44px', 
+                  borderRadius: '14px', 
+                  background: activeBranchId === branch.id ? 'var(--primary-brand)' : 'var(--bg-card)', 
                   display: 'flex', 
                   alignItems: 'center', 
                   justifyContent: 'center',
-                  color: activeBranchId === branch.id ? 'white' : 'var(--gold)'
+                  color: activeBranchId === branch.id ? 'white' : 'var(--primary-brand)',
+                  boxShadow: 'var(--shadow-sm)'
                 }}>
-                  <MapPin size={20} />
+                  <MapPin size={22} />
                 </div>
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontWeight: 700, fontSize: '15px' }}>{branch.name}</div>
+                  <div style={{ fontWeight: 700, fontSize: '16px', color: 'var(--text-primary)' }}>{branch.name}</div>
                   <div style={{ fontSize: '12px', color: 'var(--text-tertiary)' }}>{branch.location || 'Local Office'} • {branch.code}</div>
                 </div>
                 {activeBranchId === branch.id && (
-                  <div style={{ color: 'var(--gold)' }}>
-                    <Check size={20} />
+                  <div style={{ color: 'var(--primary-brand)' }}>
+                    <Check size={22} />
                   </div>
                 )}
               </button>
@@ -133,9 +164,24 @@ export default function BranchSwitcherModal({ isOpen, onClose, branches, activeB
           </div>
         </div>
 
-        <div className="modal-footer" style={{ justifyContent: 'center' }}>
-          <p style={{ fontSize: '12px', color: 'var(--text-tertiary)', textAlign: 'center' }}>
-            All operations (New Loans, Payments) will be recorded for the selected branch.
+        <div style={{ width: '100%', height: '1px', background: 'var(--border-light)', margin: '24px 0' }} />
+
+        {/* Mockup Footer */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+          <div style={{ 
+            width: '20px', 
+            height: '20px', 
+            borderRadius: '50%', 
+            border: '2px solid var(--status-active)', 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'center',
+            color: 'var(--status-active)'
+          }}>
+            <Check size={12} strokeWidth={3} />
+          </div>
+          <p style={{ fontSize: '14px', color: 'var(--text-secondary)', fontWeight: 500 }}>
+            You can switch branches later in Settings.
           </p>
         </div>
       </div>

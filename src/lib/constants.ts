@@ -52,6 +52,8 @@ export const DEFAULT_SETTINGS: ShopSettings = {
   loanNumberCounter: 1,
   activeBranchId: '',
   branches: [],
+  allowStaffOverridesInterest: true,
+  allowStaffOverridesLtv: true,
 };
 
 // ---- Interest Mode Labels ----

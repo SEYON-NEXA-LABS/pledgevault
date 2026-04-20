@@ -20,9 +20,10 @@ import {
   Zap,
   Activity,
 } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase/client';
 import { authStore } from '@/lib/authStore';
+import { ChevronDown } from 'lucide-react';
 
 const navItems = [
   { href: '/', label: 'Dashboard', icon: LayoutDashboard },
@@ -31,11 +32,7 @@ const navItems = [
   { href: '/reports', label: 'Reports', icon: BarChart3 },
 ];
 
-const configItems = [
-  { href: '/settings', label: 'General Settings', icon: Settings },
-  { href: '/settings?tab=subscription', label: 'Subscriptions', icon: CreditCard },
-  { href: '/settings/team', label: 'Team & Access', icon: Shield },
-];
+// Removed configGroups constant to calculate dynamically inside Sidebar component
 
 interface SidebarProps {
   isOpen: boolean;
@@ -46,14 +43,53 @@ interface SidebarProps {
 export default function Sidebar({ isOpen, onToggle, overdueCount = 0 }: SidebarProps) {
   const router = useRouter();
   const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const [expandedGroups, setExpandedGroups] = React.useState<string[]>(['settings']);
 
   const auth = authStore.get();
+  const isManager = authStore.isManager() || authStore.isSuperadmin();
+
+  const dynamicConfigGroups = [
+    {
+      id: 'settings',
+      label: 'Configuration',
+      icon: Settings,
+      children: [
+        { href: '/settings', label: 'My Profile', icon: User },
+        ...(isManager ? [
+          { href: '/settings?tab=general', label: 'Shop Settings', icon: Building2 },
+          { href: '/settings?tab=subscription', label: 'Subscriptions', icon: CreditCard },
+          { href: '/settings?tab=team', label: 'Team & Access', icon: Shield },
+        ] : [])
+      ]
+    }
+  ];
+
+  // Auto-expand settings if we are on a settings page
+  React.useEffect(() => {
+    if (pathname.startsWith('/settings')) {
+      if (!expandedGroups.includes('settings')) {
+        setExpandedGroups(prev => [...prev, 'settings']);
+      }
+    }
+  }, [pathname]);
+
+  const toggleGroup = (groupId: string) => {
+    setExpandedGroups(prev => 
+      prev.includes(groupId) ? prev.filter(id => id !== groupId) : [...prev, groupId]
+    );
+  };
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    router.push('/login');
+    router.refresh();
+  };
 
   React.useEffect(() => {
     const applyBranding = async () => {
       if (auth.isAuthenticated && auth.firmId) {
         try {
-          // In a real app, this could be cached in a store
           const { data: firm } = await supabase
             .from('firms')
             .select('branding_config')
@@ -62,7 +98,6 @@ export default function Sidebar({ isOpen, onToggle, overdueCount = 0 }: SidebarP
           
           if (firm?.branding_config?.primary_color) {
             document.documentElement.style.setProperty('--primary-brand', firm.branding_config.primary_color);
-            // Derive a hover color (simulated here)
             document.documentElement.style.setProperty('--primary-hover', firm.branding_config.primary_color + 'e6');
           }
         } catch (err) {
@@ -73,13 +108,20 @@ export default function Sidebar({ isOpen, onToggle, overdueCount = 0 }: SidebarP
     applyBranding();
   }, [auth.isAuthenticated, auth.firmId]);
 
-  const handleSignOut = async () => {
-    await supabase.auth.signOut();
-    router.push('/login');
-    router.refresh();
-  };
-
   const isActive = (href: string) => {
+    // 1. Precise check for Tabs (query params)
+    if (href.includes('?')) {
+      const [path, query] = href.split('?');
+      const [paramKey, paramVal] = query.split('=');
+      return pathname === path && searchParams.get(paramKey) === paramVal;
+    }
+
+    // 2. Exact match for Base Settings to avoid overlap with tabs
+    if (href === '/settings') {
+      return pathname === '/settings' && !searchParams.get('tab');
+    }
+
+    // 3. Fallback to startsWith for other pages (like /loans/...)
     if (href === '/') return pathname === '/';
     return pathname.startsWith(href);
   };
@@ -104,8 +146,12 @@ export default function Sidebar({ isOpen, onToggle, overdueCount = 0 }: SidebarP
       <aside className={`sidebar ${isOpen ? 'open' : ''}`}>
         {/* Logo */}
         <div className="sidebar-logo">
-          <div className="sidebar-logo-icon">
-            <Shield size={22} />
+          <div className="sidebar-logo-icon" style={{ 
+            background: authStore.isSuperadmin() ? 'var(--gold-gradient)' : 
+                        authStore.isManager() ? 'linear-gradient(135deg, var(--primary-brand), var(--accent-peach))' : 'var(--bg-primary)',
+            color: authStore.isManager() || authStore.isSuperadmin() ? '#FFFFFF' : 'var(--primary-teal-dark)'
+          }}>
+            {authStore.isSuperadmin() ? <ShieldCheck size={22} /> : <Shield size={22} />}
           </div>
           <div className="sidebar-logo-text">
             <h1>PledgeVault</h1>
@@ -138,6 +184,9 @@ export default function Sidebar({ isOpen, onToggle, overdueCount = 0 }: SidebarP
                   key={item.href}
                   href={item.href}
                   className={`sidebar-link ${isActive(item.href) ? 'active' : ''}`}
+                  style={{
+                    '--active-bar': 'var(--accent-peach)'
+                  } as React.CSSProperties}
                 >
                   <item.icon size={20} />
                   <span>{item.label}</span>
@@ -150,26 +199,42 @@ export default function Sidebar({ isOpen, onToggle, overdueCount = 0 }: SidebarP
           </>
         )}
 
-        {/* Firm Configuration (Manager & Superadmin) */}
-        {(authStore.isManager() || authStore.isSuperadmin()) && (
-          <>
-            <div className="sidebar-section" style={{ marginTop: '20px' }}>
-              <span className="sidebar-section-title">Configuration</span>
+        {/* Unified Settings & Configuration (Everyone) */}
+        <div className="sidebar-section" style={{ marginTop: '20px' }}>
+          <span className="sidebar-section-title">Account & Shop</span>
+        </div>
+        <nav className="sidebar-nav">
+          {dynamicConfigGroups.map((group) => (
+            <div key={group.id} className="sidebar-group">
+              <button 
+                className={`sidebar-link group-header ${expandedGroups.includes(group.id) ? 'expanded' : ''}`}
+                onClick={() => toggleGroup(group.id)}
+              >
+                <group.icon size={20} />
+                <span>{group.label}</span>
+                <ChevronDown size={14} style={{ marginLeft: 'auto', transform: expandedGroups.includes(group.id) ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
+              </button>
+              
+              {expandedGroups.includes(group.id) && (
+                <div className="sidebar-submenu">
+                  {group.children.map((child) => (
+                    <Link
+                      key={child.href}
+                      href={child.href}
+                      className={`sidebar-link sub-item ${isActive(child.href) ? 'active' : ''}`}
+                      style={{
+                        '--active-bar': 'var(--accent-peach)'
+                      } as React.CSSProperties}
+                    >
+                      <child.icon size={16} />
+                      <span>{child.label}</span>
+                    </Link>
+                  ))}
+                </div>
+              )}
             </div>
-            <nav className="sidebar-nav">
-              {configItems.map((item) => (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={`sidebar-link ${isActive(item.href) ? 'active' : ''}`}
-                >
-                  <item.icon size={20} />
-                  <span>{item.label}</span>
-                </Link>
-              ))}
-            </nav>
-          </>
-        )}
+          ))}
+        </nav>
 
         {/* Platform Administration (Superadmin only) */}
         {authStore.isSuperadmin() && (
@@ -212,22 +277,28 @@ export default function Sidebar({ isOpen, onToggle, overdueCount = 0 }: SidebarP
 
         {/* Footer */}
         <div className="sidebar-footer">
-            <div style={{ position: 'absolute', top: '-18px', left: '20px', fontSize: '10px', color: 'rgba(255,255,255,0.3)', letterSpacing: '0.5px' }}>
-              v{process.env.NEXT_PUBLIC_APP_VERSION || '1.0.0'}
-            </div>
-            <div className="sidebar-avatar">
+            <div className="sidebar-avatar" style={{ 
+              boxShadow: authStore.isSuperadmin() ? '0 0 15px var(--gold-glow)' : 'none',
+              border: authStore.isSuperadmin() ? '1px solid var(--gold)' : 'none'
+            }}>
               <User size={18} />
             </div>
             <div className="sidebar-user-info">
-              <div className="name">{authStore.get().userName || 'User'}</div>
-              <div className="role">
+              <div className="name">{auth.userName || 'User'}</div>
+              <div className="role" style={{ color: 'var(--primary-brand)', fontWeight: 800, fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: '1px' }}>
                 {authStore.isSuperadmin() ? 'Superadmin' : 
-                 authStore.isManager() ? 'Manager' : 'Staff Member'}
+                 authStore.isManager() ? 'Manager' : 'Staff'}
+              </div>
+              <div className="email" style={{ fontSize: '11px', color: 'var(--text-secondary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                {auth.email}
               </div>
             </div>
             <button className="logout-btn" onClick={handleSignOut} title="Sign Out">
               <LogOut size={18} />
             </button>
+            <div style={{ position: 'absolute', bottom: '4px', right: '16px', fontSize: '9px', color: 'rgba(255,255,255,0.2)', letterSpacing: '0.5px' }}>
+              v{process.env.NEXT_PUBLIC_APP_VERSION || '1.0.0'}
+            </div>
           </div>
 
       </aside>

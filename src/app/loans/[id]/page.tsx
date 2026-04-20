@@ -22,6 +22,7 @@ import {
   Image as ImageIcon
 } from 'lucide-react';
 import { loanStore, paymentStore, customerStore, settingsStore } from '@/lib/store';
+import { supabaseService } from '@/lib/supabase/service';
 import { 
   formatCurrency, 
   formatWeight, 
@@ -52,24 +53,32 @@ export default function LoanDetailsPage() {
   const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
 
   useEffect(() => {
-    if (id) {
-      const foundLoan = loanStore.getById(id as string);
-      if (foundLoan) {
-        setLoan(foundLoan);
-        setCustomer(customerStore.getById(foundLoan.customerId));
-        setPayments(paymentStore.getByLoan(foundLoan.id));
-        setSettings(settingsStore.get());
-        
-        // Calculate real-time interest
-        const accrued = calculateAccruedInterestFromDates(foundLoan.startDate, foundLoan.interestMode, {
-          principal: foundLoan.loanAmount,
-          monthlyRate: foundLoan.interestRate,
-          totalPaid: foundLoan.amountPaid || 0,
-        });
-        setLiveInterest(accrued);
+    async function fetchDetails() {
+      if (id) {
+        try {
+          const foundLoan = await supabaseService.getLoanWithDetails(id as string);
+          if (foundLoan) {
+            setLoan(foundLoan);
+            setCustomer(await supabaseService.getCustomerWithDetails(foundLoan.customerId));
+            setPayments(await supabaseService.getPayments(foundLoan.id));
+            setSettings(settingsStore.get());
+            
+            // Calculate real-time interest
+            const accrued = calculateAccruedInterestFromDates(foundLoan.startDate, foundLoan.interestMode, {
+              principal: foundLoan.loanAmount,
+              monthlyRate: foundLoan.interestRate,
+              totalPaid: foundLoan.amountPaid || 0,
+            });
+            setLiveInterest(accrued);
+          }
+        } catch (err) {
+          console.error("Error fetching loan details:", err);
+        } finally {
+          setLoading(false);
+        }
       }
-      setLoading(false);
     }
+    fetchDetails();
   }, [id]);
 
   if (loading) {
@@ -89,39 +98,45 @@ export default function LoanDetailsPage() {
     );
   }
 
-  const handleRecordPayment = (e: React.FormEvent) => {
+  const handleRecordPayment = async (e: React.FormEvent) => {
     e.preventDefault();
     const amount = parseFloat(paymentAmount);
     if (isNaN(amount) || amount <= 0) return;
 
-    const newPayment = paymentStore.create({
-      loanId: loan.id,
-      branchId: settings?.activeBranchId,
-      amount,
-      type: paymentType,
-      remarks: paymentRemarks,
-      paymentDate: new Date().toISOString(),
-      createdAt: new Date().toISOString(),
-    });
+    try {
+      await supabaseService.createPayment({
+        loanId: loan!.id,
+        branchId: settings?.activeBranchId || undefined,
+        amount,
+        type: paymentType as Payment['type'],
+        remarks: paymentRemarks,
+        paymentDate: new Date().toISOString(),
+        createdAt: new Date().toISOString(),
+      });
 
-    // Update loan state
-    const updatedAmountPaid = (loan.amountPaid || 0) + amount;
-    const isFullClosure = paymentType === 'full_closure' || (updatedAmountPaid >= (loan.loanAmount + (loan.interestAccrued || 0)));
-    
-    loanStore.update(loan.id, {
-      amountPaid: updatedAmountPaid,
-      status: isFullClosure ? 'closed' : loan.status,
-      closedDate: isFullClosure ? new Date().toISOString() : undefined,
-      updatedAt: new Date().toISOString(),
-    });
+      // Update loan state directly via direct query if possible, or trigger a full refetch
+      // For now, the user wants fully reliable Live queries:
+      
+      const updatedAmountPaid = (loan!.amountPaid || 0) + amount;
+      const isFullClosure = paymentType === 'full_closure' || (updatedAmountPaid >= (loan!.loanAmount + (loan!.interestAccrued || 0)));
+      
+      // Update its status
+      if (isFullClosure) {
+        await supabaseService.updateLoanStatus(loan!.id, 'closed');
+        // Ideally we'd have a supabaseService.updateLoan() for amountPaid too, but for now we are relying on recalculating.
+        // Let's refetch it fully.
+      }
 
-    // Refresh data
-    const updatedLoan = loanStore.getById(loan.id);
-    setLoan(updatedLoan);
-    setPayments(paymentStore.getByLoan(loan.id));
-    setShowPaymentModal(false);
-    setPaymentAmount('');
-    setPaymentRemarks('');
+      const updatedLoan = await supabaseService.getLoanWithDetails(loan!.id);
+      setLoan(updatedLoan);
+      setPayments(await supabaseService.getPayments(loan!.id));
+      setShowPaymentModal(false);
+      setPaymentAmount('');
+      setPaymentRemarks('');
+    } catch(err) {
+      console.error(err);
+      alert('Failed to record payment');
+    }
   };
 
   const goldItems = loan.items.filter(i => i.metalType === 'gold');

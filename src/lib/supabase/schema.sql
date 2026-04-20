@@ -32,6 +32,7 @@ CREATE TABLE branches (
   name TEXT NOT NULL,
   location TEXT,
   code TEXT NOT NULL,
+  is_active BOOLEAN DEFAULT true,
   created_at TIMESTAMPTZ DEFAULT now(),
   UNIQUE(firm_id, code) -- Code unique within a firm
 );
@@ -55,7 +56,7 @@ CREATE TABLE customers (
   address TEXT NOT NULL,
   city TEXT NOT NULL,
   state TEXT,
-  pincode TEXT,
+  pincode TEXT NOT NULL,
   created_by UUID REFERENCES profiles(id),
   created_at TIMESTAMPTZ DEFAULT now(),
   updated_at TIMESTAMPTZ DEFAULT now()
@@ -236,8 +237,8 @@ BEGIN
   f_id := get_my_firm();
   
   SELECT json_build_object(
-    'total_active_loans', COUNT(*) FILTER (WHERE status IN ('active', 'overdue')),
-    'total_active_loan_value', COALESCE(SUM(loan_amount) FILTER (WHERE status IN ('active', 'overdue')), 0),
+    'total_active_loans', (SELECT COUNT(*) FROM public.loans WHERE firm_id = f_id AND status IN ('active', 'overdue')),
+    'total_active_loan_value', (SELECT COALESCE(SUM(loan_amount), 0) FROM public.loans WHERE firm_id = f_id AND status IN ('active', 'overdue')),
     'total_gold_weight', (
        SELECT COALESCE(SUM(net_weight), 0) FROM loan_items li 
        JOIN loans l ON li.loan_id = l.id 
@@ -250,7 +251,7 @@ BEGIN
     ),
     'total_customers', (SELECT COUNT(*) FROM public.customers WHERE firm_id = f_id),
     'recent_loans', (
-       SELECT json_agg(t) FROM (
+       SELECT COALESCE(json_agg(t), '[]'::json) FROM (
          SELECT id, loan_number, customer_name, customer_phone, loan_amount, status, created_at
          FROM public.loans 
          WHERE firm_id = f_id 
@@ -258,9 +259,8 @@ BEGIN
          LIMIT 5
        ) t
     ),
-    'overdue_count', COUNT(*) FILTER (WHERE status = 'overdue')
-  ) INTO result
-  FROM public.loans WHERE firm_id = f_id;
+    'overdue_count', (SELECT COUNT(*) FROM public.loans WHERE firm_id = f_id AND status = 'overdue')
+  ) INTO result;
   
   RETURN result;
 END;
@@ -327,7 +327,11 @@ BEGIN
     (table_name = 'payments' AND column_name = 'branch_id') OR
     (table_name = 'loans' AND column_name = 'created_by') OR
     (table_name = 'payments' AND column_name = 'created_by') OR
-    (table_name = 'customers' AND column_name = 'created_by')
+    (table_name = 'customers' AND column_name = 'created_by') OR
+    (table_name = 'shop_settings' AND column_name = 'default_interest_mode') OR
+    (table_name = 'shop_settings' AND column_name = 'default_tenure') OR
+    (table_name = 'firms' AND column_name = 'loan_counter') OR
+    (table_name = 'firms' AND column_name = 'plan')
   );
 
   -- Check Security (RLS)
@@ -356,6 +360,28 @@ BEGIN
     'functions', COALESCE(functions_status, '[]'::json),
     'timestamp', now()
   ) INTO result;
+  
+  RETURN result;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- 11b. Schema Column Fetcher (for external verification script)
+CREATE OR REPLACE FUNCTION get_schema_metadata()
+RETURNS TABLE (
+  table_name TEXT,
+  column_name TEXT
+) AS $$
+BEGIN
+  RETURN QUERY
+  SELECT 
+    c.table_name::TEXT, 
+    c.column_name::TEXT
+  FROM information_schema.columns c
+  WHERE c.table_schema = 'public'
+  AND c.table_name NOT IN ('pg_stat_user_tables', 'pg_statio_user_tables');
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
 -- 11. Atomic Loan Counter
 CREATE OR REPLACE FUNCTION increment_loan_counter(f_id UUID)
 RETURNS BIGINT AS $$
@@ -371,6 +397,89 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
-  RETURN result;
+-- 12. Audit Logs (System Activity Tracking)
+CREATE TABLE audit_logs (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  firm_id UUID REFERENCES firms(id) ON DELETE CASCADE,
+  entity_type TEXT NOT NULL, -- 'loan', 'customer', 'firm'
+  entity_id UUID NOT NULL,
+  action TEXT NOT NULL, -- 'created', 'closed', 'updated'
+  actor_id UUID REFERENCES profiles(id),
+  message TEXT NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- 13. Optimized Views for Egress Reduction
+-- This view allows us to fetch customer names AND their active loan counts in ONE query.
+CREATE OR REPLACE VIEW v_customer_summaries AS
+SELECT 
+  c.id,
+  c.firm_id,
+  c.name,
+  c.phone,
+  c.city,
+  c.primary_id_type as "primaryIdType",
+  c.primary_id_number as "primaryIdNumber",
+  c.created_at,
+  COALESCE(count(l.id) FILTER (WHERE l.status IN ('active', 'overdue')), 0) as "activeLoansCount"
+FROM customers c
+LEFT JOIN loans l ON c.id = l.customer_id
+GROUP BY c.id;
+
+-- 14. Activity Tracking Function
+CREATE OR REPLACE FUNCTION log_system_activity(
+  p_firm_id UUID,
+  p_entity_type TEXT,
+  p_entity_id UUID,
+  p_action TEXT,
+  p_message TEXT
+) RETURNS VOID AS $$
+BEGIN
+  INSERT INTO audit_logs (firm_id, entity_type, entity_id, action, actor_id, message)
+  VALUES (p_firm_id, p_entity_type, p_entity_id, p_action, auth.uid(), p_message);
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- 15. Global Activity Feed (Optimized for Superadmin)
+CREATE OR REPLACE FUNCTION get_global_activity_feed(p_limit INTEGER DEFAULT 10)
+RETURNS JSON AS $$
+BEGIN
+  -- Only allowed for superadmins
+  IF (SELECT role FROM profiles WHERE id = auth.uid()) != 'superadmin' THEN
+    RAISE EXCEPTION 'Unauthorized';
+  END IF;
+
+  RETURN (
+    SELECT json_agg(t) FROM (
+      SELECT 
+        a.message,
+        a.created_at as time,
+        f.name as firm_name
+      FROM audit_logs a
+      LEFT JOIN firms f ON a.firm_id = f.id
+      ORDER BY a.created_at DESC
+      LIMIT p_limit
+    ) t
+  );
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- 16. Trigger for Auto-Logging Loan Creation
+CREATE OR REPLACE FUNCTION tr_log_loan_creation()
+RETURNS TRIGGER AS $$
+BEGIN
+  PERFORM log_system_activity(
+    NEW.firm_id, 
+    'loan', 
+    NEW.id, 
+    'created', 
+    'New loan ' || NEW.loan_number || ' generated for ' || NEW.customer_name
+  );
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE TRIGGER on_loan_created
+  AFTER INSERT ON loans
+  FOR EACH ROW
+  EXECUTE FUNCTION tr_log_loan_creation();

@@ -198,16 +198,16 @@ export default function SuperadminSubscriptions() {
                   <tr key={firm.id}>
                     <td>
                       <div className="firm-name">{firm.name}</div>
-                      <div className="firm-id">{firm.id.slice(0,8).toUpperCase()}</div>
+                      <div className="firm-id">{(firm.id || '').slice(0,8).toUpperCase()}</div>
                     </td>
                     <td>
-                      <span className={`plan-badge ${firm.plan}`}>{firm.plan.toUpperCase()}</span>
+                      <span className={`plan-badge ${firm.plan || 'free'}`}>{(firm.plan || 'free').toUpperCase()}</span>
                     </td>
                     <td>
                       {latestSub ? (
                         <div>
-                          <div style={{ fontWeight: 600 }}>{formatCurrency(latestSub.amount)}</div>
-                          <div style={{ fontSize: '11px', color: '#888' }}>{latestSub.paymentMethod.toUpperCase()}</div>
+                          <div style={{ fontWeight: 600 }}>{latestSub.amount > 0 ? formatCurrency(latestSub.amount) : 'Free'}</div>
+                        <div style={{ fontSize: '11px', color: '#888' }}>{(latestSub.paymentMethod || 'N/A').toUpperCase()}</div>
                         </div>
                       ) : '—'}
                     </td>

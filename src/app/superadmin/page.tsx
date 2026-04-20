@@ -14,17 +14,20 @@ import {
   ChevronRight,
   ShieldCheck,
   Zap,
-  Activity
+  Activity,
+  AlertCircle
 } from 'lucide-react';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase/client';
 import { supabaseService } from '@/lib/supabase/service';
 import { formatCurrency, formatWeight, formatDate, SUBSCRIPTION_PLANS } from '@/lib/constants';
 import { PlanTier, SubscriptionInterval } from '@/lib/types';
+import { authStore } from '@/lib/authStore';
 
 export default function SuperadminDashboard() {
   const [stats, setStats] = useState<any>(null);
   const [firms, setFirms] = useState<any[]>([]);
+  const [activity, setActivity] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -33,16 +36,24 @@ export default function SuperadminDashboard() {
       const { data: statsData } = await supabase.rpc('get_superadmin_stats');
       setStats(statsData);
 
-      // 2. Fetch Recent Firms
+      // 2. Fetch Recent Firms (Egress-optimized)
       const { data: firmsData } = await supabase
         .from('firms')
         .select(`
-          *,
+          id, 
+          name, 
+          slug, 
+          plan, 
+          created_at,
           profiles(count)
         `)
         .order('created_at', { ascending: false });
       
       setFirms(firmsData || []);
+      
+      // 3. Fetch Activity Feed
+      const activityData = await supabaseService.getGlobalActivityFeed(5);
+      setActivity(activityData || []);
 
       setLoading(false);
     }
@@ -50,6 +61,18 @@ export default function SuperadminDashboard() {
     fetchData();
   }, []);
 
+
+  const auth = authStore.get();
+  if (auth.role !== 'superadmin') {
+    return (
+      <div className="loading-state" style={{ color: 'var(--status-overdue)', background: 'var(--status-overdue-bg)' }}>
+        <AlertCircle size={48} style={{ marginBottom: '16px' }} />
+        <h2>Access Denied</h2>
+        <p>This workstation is restricted to Platform Administrators only.</p>
+        <Link href="/" className="btn btn-gold" style={{ marginTop: '20px' }}>Return to Dashboard</Link>
+      </div>
+    );
+  }
 
   if (loading) {
     return <div className="loading-state">Initializing Admin Suite...</div>;
@@ -81,24 +104,24 @@ export default function SuperadminDashboard() {
           <div className="stat-icon"><Building2 /></div>
           <div className="stat-body">
             <span className="stat-label">Total Firms</span>
-            <div className="stat-value">{stats?.total_firms || 12}</div>
-            <div className="stat-trend positive"><ArrowUpRight size={14} /> 2 New this week</div>
+            <div className="stat-value">{stats?.total_firms || 0}</div>
+            <div className="stat-trend positive"><ArrowUpRight size={14} /> System-wide</div>
           </div>
         </div>
         <div className="stat-card teal">
           <div className="stat-icon"><HandCoins /></div>
           <div className="stat-body">
             <span className="stat-label">Platform Loan Value</span>
-            <div className="stat-value">{formatCurrency(stats?.total_loan_value || 14580000)}</div>
-            <div className="stat-trend positive"><TrendingUp size={14} /> +4.2% Growth</div>
+            <div className="stat-value">{formatCurrency(stats?.total_loan_value || 0)}</div>
+            <div className="stat-trend positive"><TrendingUp size={14} /> Total Portfolio</div>
           </div>
         </div>
         <div className="stat-card green">
           <div className="stat-icon"><Users /></div>
           <div className="stat-body">
             <span className="stat-label">Total Active Users</span>
-            <div className="stat-value">{stats?.active_users || 48}</div>
-            <div className="stat-trend positive">Across all branches</div>
+            <div className="stat-value">{stats?.active_users || 0}</div>
+            <div className="stat-trend positive">Across all channels</div>
           </div>
         </div>
         <div className="stat-card dark">
@@ -146,7 +169,7 @@ export default function SuperadminDashboard() {
                         </div>
                       </td>
                       <td>
-                        <span className={`plan-badge ${firm.plan}`}>{firm.plan.toUpperCase()}</span>
+                        <span className={`plan-badge ${firm.plan || 'free'}`}>{(firm.plan || 'free').toUpperCase()}</span>
                       </td>
                       <td style={{ fontWeight: 600 }}>{firm.profiles?.[0]?.count || 1} Users</td>
                       <td className="date-cell">{formatDate(firm.created_at)}</td>
@@ -160,7 +183,7 @@ export default function SuperadminDashboard() {
             </div>
             
             <div className="card-footer">
-              <button className="view-all">View All 158 Firms <ChevronRight size={18} /></button>
+              <button className="view-all">View All {stats?.total_firms || 0} Firms <ChevronRight size={18} /></button>
             </div>
           </div>
         </div>
@@ -173,13 +196,13 @@ export default function SuperadminDashboard() {
             <div className="insight-list">
               <div className="insight-item">
                 <div className="insight-label">Gold Custody</div>
-                <div className="insight-value">{formatWeight(stats?.total_gold_weight || 1245.8)}</div>
-                <div className="insight-progress"><div className="progress-bar gold" style={{ width: '85%' }}></div></div>
+                <div className="insight-value">{formatWeight(stats?.total_gold_weight || 0)}</div>
+                <div className="insight-progress"><div className="progress-bar gold" style={{ width: '100%' }}></div></div>
               </div>
               <div className="insight-item">
                 <div className="insight-label">Silver Custody</div>
-                <div className="insight-value">{formatWeight(stats?.total_silver_weight || 8450.2)}</div>
-                <div className="insight-progress"><div className="progress-bar silver" style={{ width: '62%' }}></div></div>
+                <div className="insight-value">{formatWeight(stats?.total_silver_weight || 0)}</div>
+                <div className="insight-progress"><div className="progress-bar silver" style={{ width: '100%' }}></div></div>
               </div>
             </div>
           </div>
@@ -190,21 +213,19 @@ export default function SuperadminDashboard() {
               <Activity size={18} color="var(--gold)" />
             </div>
             <div className="activity-list">
-              <div className="activity-item">
-                <div className="activity-dot"></div>
-                <div className="activity-text"><strong>RMS Gold</strong> created 14 new pledges in peelamedu branch.</div>
-                <div className="activity-time">2 mins ago</div>
-              </div>
-              <div className="activity-item">
-                <div className="activity-dot"></div>
-                <div className="activity-text">New firm <strong>Siva & Co</strong> successfully onboarded.</div>
-                <div className="activity-time">1 hour ago</div>
-              </div>
-              <div className="activity-item">
-                <div className="activity-dot"></div>
-                <div className="activity-text">Daily collection report generated for <strong>Main Branch</strong>.</div>
-                <div className="activity-time">4 hours ago</div>
-              </div>
+              {activity.length > 0 ? activity.map((act, i) => (
+                <div key={i} className="activity-item">
+                  <div className="activity-dot"></div>
+                  <div className="activity-text">
+                    <strong style={{ color: 'var(--gold-dark)' }}>{act.firm_name || 'System'}</strong>: {act.message}
+                  </div>
+                  <div className="activity-time">{formatDate(act.time)}</div>
+                </div>
+              )) : (
+                <div className="empty-state" style={{ padding: '0', textAlign: 'left' }}>
+                  <p style={{ fontSize: '12px' }}>No recent activity recorded.</p>
+                </div>
+              )}
             </div>
           </div>
         </div>

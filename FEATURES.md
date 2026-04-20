@@ -39,9 +39,13 @@ Tools for managed growth and system-wide visibility:
 Tools for pawn shop managers and their employees:
 
 - **Global Operational Context**: A master switcher in the header allows managers to toggle between managing a specific branch and viewing a **Firm-wide Consolidated Overview**.
-- **Team & Access Control**: 
     - **Role Management**: Grant permissions to Managers (Full Access) or Staff (Operational Access).
     - **Location Pinning**: Assign staff to specific branches for locked-in local context.
+- **Unified Settings Hub**:
+    - **Personal Interface**: A dedicated **"My Profile"** screen for every user to manage their own name and security (Password).
+    - **Consolidated Configuration**: A tabbed hub for Managers to oversee Shop Details, Subscription Billing, and Team Access in one place.
+    - **Staff Override Control**: Robust policy toggles that allow managers to decide if staff can change interest rates or LTV % "on the go" during loan creation.
+    - **Role-Adaptive UI**: Dynamic tabs that automatically hide sensitive financial and team data from staff members while leaving personal settings accessible.
 - **Customer CRM**: 
     - Integrated KYC with ID proof and selfie storage.
     - Complete customer pawn history and phone-based lookup.

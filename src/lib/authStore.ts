@@ -7,6 +7,7 @@ interface AuthState {
   role: UserRole;
   firmId: string | null;
   userName: string | null;
+  email: string | null;
   isAuthenticated: boolean;
 }
 
@@ -17,6 +18,7 @@ const DEFAULT_STATE: AuthState = {
   role: 'staff',
   firmId: null,
   userName: null,
+  email: null,
   isAuthenticated: false,
 };
 
@@ -47,6 +49,9 @@ export const authStore = {
   },
 
   isSuperadmin: () => authStore.get().role === 'superadmin',
-  isManager: () => authStore.get().role === 'manager',
+  isManager: () => {
+    const role = authStore.get().role;
+    return role === 'manager' || (role as string) === 'admin';
+  },
   isStaff: () => authStore.get().role === 'staff',
 };

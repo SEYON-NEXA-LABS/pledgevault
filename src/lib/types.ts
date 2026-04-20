@@ -66,6 +66,7 @@ export interface Customer {
   secondaryIdNumber?: string;
   secondaryIdPhoto?: string;
   selfiePhoto?: string;
+  activeLoansCount?: number;
   createdAt: string;
   updatedAt: string;
 }

@@ -7,7 +7,10 @@
     "build": "cross-env NODE_ENV=production next build",
     "start": "next start",
     "lint": "next lint",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    
+    "db:verify": "npx tsx scripts/verify-schema.ts",
+    "db:seed": "npx tsx scripts/seed-cloud-data.ts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.10.2",
@@ -22,9 +25,10 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "cross-env": "^7.0.3",
+    "dotenv": "^17.4.2",
     "eslint": "^9",
     "eslint-config-next": "16.2.3",
-    "typescript": "^5",
-    "cross-env": "^7.0.3"
+    "typescript": "^5"
   }
 }

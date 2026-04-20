@@ -5,24 +5,24 @@ import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 
 export async function addStaffMemberAction(staffData: { fullName: string, email: string, password: string, branchId?: string, role: 'staff' | 'manager' }) {
-  const supabase = await createClient();
-  const adminClient = createAdminClient();
-
-  // 1. Verify the caller is an ADMIN of their firm
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error('Unauthorized');
-
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('firm_id, role')
-    .eq('id', user.id)
-    .single();
-
-  if (!profile || profile.role !== 'manager') {
-    throw new Error('Unauthorized: Only firm managers can manage the team.');
-  }
-
   try {
+    const supabase = await createClient();
+    const adminClient = createAdminClient();
+
+    // 1. Verify the caller is an ADMIN of their firm
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    if (userError || !user) throw new Error('Unauthorized');
+
+    const { data: profile, error: profileFetchError } = await supabase
+      .from('profiles')
+      .select('firm_id, role')
+      .eq('id', user.id)
+      .single();
+
+    if (profileFetchError || !profile || profile.role !== 'manager') {
+      throw new Error('Unauthorized: Only firm managers can manage the team.');
+    }
+
     // 2. Create the user via Admin API (to avoid logging out the current admin)
     const { data: newUser, error: authError } = await adminClient.auth.admin.createUser({
       email: staffData.email,
@@ -46,49 +46,52 @@ export async function addStaffMemberAction(staffData: { fullName: string, email:
 
     if (profileError) throw profileError;
 
-    revalidatePath('/settings/team');
+    revalidatePath('/settings');
     return { success: true };
   } catch (err: any) {
-    return { success: false, error: err.message };
+    console.error('Add Staff Error:', err);
+    return { success: false, error: err?.message || typeof err === 'string' ? err : 'An error occurred during staff creation' };
   }
 }
 
 export async function removeStaffMemberAction(staffId: string) {
-  const supabase = await createClient();
-  const adminClient = createAdminClient();
-
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error('Unauthorized');
-
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('firm_id, role')
-    .eq('id', user.id)
-    .single();
-
-  if (!profile || profile.role !== 'manager') {
-    throw new Error('Unauthorized');
-  }
-
   try {
+    const supabase = await createClient();
+    const adminClient = createAdminClient();
+
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    if (userError || !user) throw new Error('Unauthorized');
+
+    const { data: profile, error: profileFetchError } = await supabase
+      .from('profiles')
+      .select('firm_id, role')
+      .eq('id', user.id)
+      .single();
+
+    if (profileFetchError || !profile || profile.role !== 'manager') {
+      throw new Error('Unauthorized');
+    }
+
     // 1. Verify target belongs to SAME firm
-    const { data: targetProfile } = await adminClient
+    const { data: targetProfile, error: targetProfileError } = await adminClient
       .from('profiles')
       .select('firm_id, role')
       .eq('id', staffId)
       .single();
 
-    if (!targetProfile || targetProfile.firm_id !== profile.firm_id) {
+    if (targetProfileError || !targetProfile || targetProfile.firm_id !== profile.firm_id) {
       throw new Error('User not found in your firm.');
     }
 
     // 2. MANDATORY MANAGER RULE: Prevent deleting the last manager
     if (targetProfile.role === 'manager') {
-      const { count } = await adminClient
+      const { count, error: countError } = await adminClient
         .from('profiles')
         .select('*', { count: 'exact', head: true })
         .eq('firm_id', profile.firm_id)
         .eq('role', 'manager');
+      
+      if (countError) throw countError;
       
       if ((count || 0) <= 1) {
         throw new Error('Cannot remove the last manager. Every firm must have at least one manager.');
@@ -99,9 +102,10 @@ export async function removeStaffMemberAction(staffId: string) {
     const { error } = await adminClient.auth.admin.deleteUser(staffId);
     if (error) throw error;
 
-    revalidatePath('/settings/team');
+    revalidatePath('/settings');
     return { success: true };
   } catch (err: any) {
-    return { success: false, error: err.message };
+    console.error('Remove Staff Error:', err);
+    return { success: false, error: err?.message || typeof err === 'string' ? err : 'An error occurred during staff removal' };
   }
 }

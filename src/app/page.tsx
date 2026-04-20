@@ -29,7 +29,7 @@ import {
 } from 'recharts';
 import StatCard from '@/components/layout/StatCard';
 import DailyCalendarCard from '@/components/dashboard/DailyCalendarCard';
-import { loanStore, customerStore, settingsStore } from '@/lib/store';
+import { settingsStore } from '@/lib/store';
 import { supabaseService } from '@/lib/supabase/service';
 import { authStore } from '@/lib/authStore';
 import { supabase } from '@/lib/supabase/client';
@@ -65,9 +65,16 @@ export default function DashboardPage() {
   const [cloudStats, setCloudStats] = useState<any>(null);
   const [mounted, setMounted] = useState(false);
 
+  const [settings, setSettings] = useState(settingsStore.get());
   const auth = authStore.get();
-  const settings = settingsStore.get();
+
+  useEffect(() => {
+    const handleUpdate = () => setSettings(settingsStore.get());
+    window.addEventListener('pv_settings_updated', handleUpdate);
+    return () => window.removeEventListener('pv_settings_updated', handleUpdate);
+  }, []);
   const activeBranchId = settings.activeBranchId;
+  const isManager = authStore.isManager() || authStore.isSuperadmin();
 
   // Set default view mode based on role
   useEffect(() => {
@@ -80,9 +87,14 @@ export default function DashboardPage() {
     // Fetch consolidated dashboard data
     const fetchDashboardData = async () => {
       try {
-        if (auth.firmId) {
+        const isValidUUID = (id: string | null) => {
+          if (!id) return false;
+          return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id);
+        };
+
+        if (isValidUUID(auth.firmId)) {
           // Get Optimized RPC stats (Includes recent loans, counts, and metrics)
-          const stats = await supabaseService.getDashboardStats();
+          const stats = await supabaseService.getDashboardStats(auth.firmId as string, activeBranchId);
           setCloudStats(stats);
           
           // Use stats for initial states
@@ -90,7 +102,7 @@ export default function DashboardPage() {
           // We no longer fetch 1000 customers for a simple count!
         }
       } catch (err) {
-        console.error('Failed to fetch dashboard data:', err);
+        console.error('FAILED: fetchDashboardData caught error:', err);
       }
     };
 
@@ -106,27 +118,17 @@ export default function DashboardPage() {
   }
 
   const isBranchView = activeBranchId !== 'firm';
-  const branchLoans = loans.filter(l => !isBranchView || !activeBranchId || l.branchId === activeBranchId);
-  const activeLoans = branchLoans.filter((l) => l.status === 'active' || l.status === 'overdue');
-  const overdueLoans = branchLoans.filter((l) => l.status === 'overdue');
+  const activeLoans = loans.filter((l) => l.status === 'active' || l.status === 'overdue');
+  const overdueLoans = loans.filter((l) => l.status === 'overdue');
 
   const currentBranch = settings.branches.find(b => b.id === activeBranchId);
 
-  // Stats calculation
-  const totalActiveLoanCount = isBranchView ? activeLoans.length : (cloudStats?.totalActiveLoans ?? activeLoans.length);
-  const totalActiveLoanValue = isBranchView
-    ? activeLoans.reduce((sum, l) => sum + l.loanAmount, 0)
-    : (cloudStats?.totalActiveLoanValue ?? activeLoans.reduce((sum, l) => sum + l.loanAmount, 0));
-
-  const totalGoldWeight = isBranchView
-    ? activeLoans.reduce((sum, l) => sum + l.items.filter((i) => i.metalType === 'gold').reduce((s, i) => s + i.netWeight, 0), 0)
-    : (cloudStats?.totalGoldWeight ?? 0);
-
-  const totalSilverWeight = isBranchView
-    ? activeLoans.reduce((sum, l) => sum + l.items.filter((i) => i.metalType === 'silver').reduce((s, i) => s + i.netWeight, 0), 0)
-    : (cloudStats?.totalSilverWeight ?? 0);
-
-  const monthlyInterest = activeLoans.reduce((sum, l) => sum + l.loanAmount * (l.interestRate / 100), 0);
+  // Stats calculation (Using consolidated cloud metrics)
+  const totalActiveLoanCount = cloudStats?.totalActiveLoans ?? 0;
+  const totalActiveLoanValue = cloudStats?.totalActiveLoanValue ?? 0;
+  const totalGoldWeight = cloudStats?.totalGoldWeight ?? 0;
+  const totalSilverWeight = cloudStats?.totalSilverWeight ?? 0;
+  const monthlyInterest = cloudStats?.totalMonthlyInterest ?? 0;
 
   // Chart data
   const recentLoans = [...loans]
@@ -135,28 +137,8 @@ export default function DashboardPage() {
 
   const monthlyData = getMonthlyData(loans);
 
-  // Granular metal data by purity
-  const metalDistributionMap: Record<string, number> = {};
-  activeLoans?.forEach(loan => {
-    loan.items?.forEach(item => {
-      let label = '';
-      if (item.metalType === 'gold') {
-        label = GOLD_PURITY_MAP[item.purity as GoldPurity]?.karat + ' Gold' || 'Gold';
-      } else {
-        label = SILVER_PURITY_MAP[item.purity as SilverPurity]?.label.split(' / ')[0] || 'Silver';
-      }
-
-      metalDistributionMap[label] = (metalDistributionMap[label] || 0) + item.netWeight;
-    });
-  });
-
-  const metalData = Object.entries(metalDistributionMap)
-    .map(([name, value]) => ({
-      name,
-      value: Math.round(value * 100) / 100
-    }))
-    .filter((d) => d.value > 0)
-    .sort((a, b) => b.value - a.value);
+  // Metal distribution from cloud stats
+  const metalData = cloudStats?.metalDistribution || [];
 
   return (
     <>
@@ -184,7 +166,7 @@ export default function DashboardPage() {
           value={totalActiveLoanCount.toString()}
           subtitle={formatCurrency(totalActiveLoanValue) + (!isBranchView ? ' (All Branches)' : ' (Branch)')}
           icon={HandCoins}
-          accent="gold"
+          accent="mint"
           change={`${activeLoans.length} total`}
           changeType="positive"
         />
@@ -193,28 +175,40 @@ export default function DashboardPage() {
           value={formatWeight(totalGoldWeight)}
           subtitle={`@ ${formatCurrency(settings.goldRate24K)}/g (24K)`}
           icon={Scale}
-          accent="teal"
+          accent="mint"
           change={formatWeight(totalSilverWeight) + ' silver'}
           changeType="positive"
         />
         <StatCard
           title="Overdue Loans"
-          value={overdueLoans.length.toString()}
+          value={(cloudStats?.overdueCount ?? 0).toString()}
           subtitle="Require immediate attention"
           icon={AlertTriangle}
           accent="red"
           change={overdueLoans.length > 0 ? 'Action needed' : 'All clear'}
           changeType={overdueLoans.length > 0 ? 'negative' : 'positive'}
         />
-        <StatCard
-          title="Monthly Interest"
-          value={formatCurrency(monthlyInterest)}
-          subtitle={`From ${activeLoans.length} active loans`}
-          icon={TrendingUp}
-          accent="green"
-          change={`${cloudStats?.totalCustomers || 0} customers`}
-          changeType="positive"
-        />
+        {isManager ? (
+          <StatCard
+            title="Monthly Interest"
+            value={formatCurrency(monthlyInterest)}
+            subtitle={`From ${activeLoans.length} active loans`}
+            icon={TrendingUp}
+            accent="peach"
+            change={`${cloudStats?.totalCustomers || 0} customers`}
+            changeType="positive"
+          />
+        ) : (
+          <StatCard
+            title="Recent Activity"
+            value={recentLoans.length.toString()}
+            subtitle="Loans created recently"
+            icon={TrendingUp}
+            accent="peach"
+            change="Ready for review"
+            changeType="positive"
+          />
+        )}
       </div>
 
       {/* Charts Row */}
@@ -228,7 +222,7 @@ export default function DashboardPage() {
           </div>
           <div className="card-body">
             <div className="chart-container">
-              <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveContainer width="100%" height={280}>
                 <BarChart data={monthlyData} barCategoryGap="20%">
                   <CartesianGrid strokeDasharray="3 3" stroke="var(--border-light)" />
                   <XAxis
@@ -255,9 +249,10 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        <div className="card" style={{ animationDelay: '0.25s' }}>
-          <div className="card-header">
-            <h3>Metal Distribution</h3>
+        {isManager && (
+          <div className="card" style={{ animationDelay: '0.25s' }}>
+            <div className="card-header">
+              <h3>Metal Distribution</h3>
             <div className="card-header-actions">
               <span style={{ fontSize: '12px', color: 'var(--text-tertiary)' }}>By weight</span>
             </div>
@@ -265,7 +260,7 @@ export default function DashboardPage() {
           <div className="card-body">
             <div className="chart-container">
               {metalData.length > 0 ? (
-                <ResponsiveContainer width="100%" height="100%">
+                <ResponsiveContainer width="100%" height={280}>
                   <PieChart>
                     <Pie
                       data={metalData}
@@ -277,7 +272,7 @@ export default function DashboardPage() {
                       dataKey="value"
                       label={({ name, value }) => `${name}: ${value}g`}
                     >
-                      {metalData.map((entry, index) => (
+                      {metalData.map((entry: { name: string; value: number }, index: number) => (
                         <Cell
                           key={`cell-${index}`}
                           fill={getMetalColor(entry.name, index)}
@@ -296,6 +291,7 @@ export default function DashboardPage() {
             </div>
           </div>
         </div>
+        )}
       </div>
 
       {/* Recent Loans, Overdue & Daily Calendar */}

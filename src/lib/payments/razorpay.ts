@@ -126,12 +126,12 @@ export const razorpayStub = async (options: RazorpayStubOptions) => {
       }
 
       const mockResult = {
-        razorpay_payment_id: `pay_${Math.random().toString(36).slice(2, 11)}`,
-        razorpay_order_id: `order_${Math.random().toString(36).slice(2, 11)}`,
-        razorpay_signature: Math.random().toString(36).slice(2, 20),
-        payment_method: selectedMethod,
-        start_date: startDate.toISOString(),
-        end_date: endDate.toISOString(),
+        razorpayPaymentId: `pay_${Math.random().toString(36).slice(2, 11)}`,
+        razorpayOrderId: `order_${Math.random().toString(36).slice(2, 11)}`,
+        razorpaySignature: Math.random().toString(36).slice(2, 20),
+        paymentMethod: selectedMethod,
+        startDate: startDate.toISOString(),
+        endDate: endDate.toISOString(),
       };
 
       cleanup();
