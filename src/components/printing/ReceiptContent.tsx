@@ -19,6 +19,8 @@ interface ReceiptContentProps {
 
 export default function ReceiptContent({ loan, customer, settings, type }: ReceiptContentProps) {
   const isThermal = type === 'thermal';
+  const currentBranch = settings.branches.find(b => b.id === loan.branchId);
+  const branchLicense = currentBranch?.licenseNumber;
 
   if (isThermal) {
     return (
@@ -35,7 +37,10 @@ export default function ReceiptContent({ loan, customer, settings, type }: Recei
           <div style={{ fontSize: '16px', fontWeight: 'bold', textTransform: 'uppercase' }}>{settings.shopName}</div>
           <div style={{ fontSize: '10px' }}>{settings.shopAddress}</div>
           <div style={{ fontSize: '10px' }}>Phone: {settings.shopPhone}</div>
-          {settings.licenseNumber && <div style={{ fontSize: '10px' }}>Lic: {settings.licenseNumber}</div>}
+          <div style={{ fontSize: '10px', display: 'flex', justifyContent: 'center', gap: '8px' }}>
+            {branchLicense && <span>Lic: {branchLicense}</span>}
+            {settings.gstNumber && <span>GST: {settings.gstNumber}</span>}
+          </div>
         </div>
 
         <div style={{ borderTop: '1px dashed #000', margin: '10px 0' }} />
@@ -118,7 +123,10 @@ export default function ReceiptContent({ loan, customer, settings, type }: Recei
           <h1 style={{ margin: 0, color: '#1A3C34', fontSize: '24px', fontWeight: 800 }}>{settings.shopName}</h1>
           <p style={{ margin: '5px 0 0', fontSize: '13px', color: '#6F767E', maxWidth: '300px' }}>{settings.shopAddress}</p>
           <p style={{ margin: '2px 0 0', fontSize: '13px', color: '#6F767E' }}>Phone: {settings.shopPhone}</p>
-          {settings.licenseNumber && <p style={{ margin: '2px 0 0', fontSize: '12px', color: '#9A9FA5' }}>License: {settings.licenseNumber}</p>}
+          <div style={{ display: 'flex', gap: '15px', marginTop: '4px' }}>
+            {branchLicense && <p style={{ margin: 0, fontSize: '12px', color: '#9A9FA5' }}>License: <strong>{branchLicense}</strong></p>}
+            {settings.gstNumber && <p style={{ margin: 0, fontSize: '12px', color: '#9A9FA5' }}>GSTIN: <strong>{settings.gstNumber}</strong></p>}
+          </div>
         </div>
         <div style={{ textAlign: 'right' }}>
           <div style={{ 

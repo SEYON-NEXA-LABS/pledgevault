@@ -14,6 +14,14 @@ CREATE TABLE firms (
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
+-- Global Market Rates (Shared for Platform-wide economy)
+CREATE TABLE market_rates (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  gold_24k NUMERIC NOT NULL,
+  silver NUMERIC NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
 -- 2. Profiles Table (User Roles & Firm association)
 CREATE TABLE profiles (
   id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
@@ -33,6 +41,7 @@ CREATE TABLE branches (
   location TEXT,
   code TEXT NOT NULL,
   is_active BOOLEAN DEFAULT true,
+  license_number TEXT,
   created_at TIMESTAMPTZ DEFAULT now(),
   UNIQUE(firm_id, code) -- Code unique within a firm
 );
@@ -129,7 +138,9 @@ CREATE TABLE shop_settings (
   firm_id UUID PRIMARY KEY REFERENCES firms(id) ON DELETE CASCADE,
   shop_address TEXT,
   shop_phone TEXT,
-  license_number TEXT,
+  license_number TEXT, -- Global fallback (deprecated, moving to branches)
+  gst_number TEXT,
+  registration_number TEXT,
   gold_rate_24k NUMERIC DEFAULT 0,
   silver_rate_999 NUMERIC DEFAULT 0,
   default_ltv_gold NUMERIC DEFAULT 75,
@@ -152,7 +163,7 @@ CREATE TABLE subscriptions (
   amount NUMERIC NOT NULL,
   currency TEXT DEFAULT 'INR',
   payment_method TEXT NOT NULL, -- 'upi', 'card', 'netbanking', 'cash', 'trial'
-  status TEXT DEFAULT 'active', -- 'active', 'expired', 'cancelled'
+  status TEXT DEFAULT 'active', -- 'active', 'expired', 'canceled', 'past_due', 'trial'
   start_date TIMESTAMPTZ DEFAULT now(),
   end_date TIMESTAMPTZ NOT NULL,
   razorpay_payment_id TEXT,
@@ -312,7 +323,7 @@ BEGIN
   )) INTO tables_status
   FROM information_schema.tables 
   WHERE table_schema = 'public' 
-  AND table_name IN ('firms', 'profiles', 'branches', 'customers', 'loans', 'loan_items', 'payments', 'shop_settings', 'subscriptions');
+  AND table_name IN ('firms', 'profiles', 'branches', 'customers', 'loans', 'loan_items', 'payments', 'shop_settings', 'subscriptions', 'audit_logs', 'market_rates');
 
   -- Check Critical Columns (The ones added during refinements)
   SELECT json_agg(json_build_object(
@@ -331,7 +342,9 @@ BEGIN
     (table_name = 'shop_settings' AND column_name = 'default_interest_mode') OR
     (table_name = 'shop_settings' AND column_name = 'default_tenure') OR
     (table_name = 'firms' AND column_name = 'loan_counter') OR
-    (table_name = 'firms' AND column_name = 'plan')
+    (table_name = 'firms' AND column_name = 'plan') OR
+    (table_name = 'audit_logs' AND column_name = 'actor_id') OR
+    (table_name = 'audit_logs' AND column_name = 'entity_type')
   );
 
   -- Check Security (RLS)
@@ -350,8 +363,8 @@ BEGIN
     'exists', true
   )) INTO functions_status
   FROM information_schema.routines
-  WHERE routine_schema = 'public'
-  AND routine_name IN ('get_firm_stats', 'get_superadmin_stats', 'check_db_integrity');
+  WHERE routine_schema = 'public' 
+  AND routine_name IN ('get_firm_stats', 'get_superadmin_stats', 'check_db_integrity', 'get_global_activity_feed', 'increment_loan_counter');
 
   SELECT json_build_object(
     'tables', COALESCE(tables_status, '[]'::json),
@@ -418,10 +431,10 @@ SELECT
   c.name,
   c.phone,
   c.city,
-  c.primary_id_type as "primaryIdType",
-  c.primary_id_number as "primaryIdNumber",
+  c.primary_id_type as id_type,
+  c.primary_id_number as id_number,
   c.created_at,
-  COALESCE(count(l.id) FILTER (WHERE l.status IN ('active', 'overdue')), 0) as "activeLoansCount"
+  COALESCE(count(l.id) FILTER (WHERE l.status IN ('active', 'overdue')), 0) as active_loans_count
 FROM customers c
 LEFT JOIN loans l ON c.id = l.customer_id
 GROUP BY c.id;

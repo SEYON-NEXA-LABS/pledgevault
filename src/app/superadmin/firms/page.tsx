@@ -32,6 +32,7 @@ export default function FirmManagementPage() {
   const [editingFirm, setEditingFirm] = useState<any>(null);
   const [showEditModal, setShowEditModal] = useState(false);
   const [updating, setUpdating] = useState(false);
+  const [extendingId, setExtendingId] = useState<string | null>(null);
 
   useEffect(() => {
     async function fetchFirms() {
@@ -70,6 +71,25 @@ export default function FirmManagementPage() {
       alert('Failed to update firm info');
     } finally {
       setUpdating(false);
+    }
+  };
+
+  const handleExtendTrial = async (firmId: string) => {
+    if (!confirm('Extend this firm\'s active subscription by 7 days?')) return;
+    
+    setExtendingId(firmId);
+    try {
+      await supabaseService.extendSubscription(firmId, 7);
+      
+      // Refresh list
+      const data = await supabaseService.getFirmsDetailed();
+      setFirms(data || []);
+      
+      alert('Subscription extended successfully!');
+    } catch (err: any) {
+      alert(err.message || 'Failed to extend subscription. Ensure the firm has an active subscription.');
+    } finally {
+      setExtendingId(null);
     }
   };
 
@@ -142,7 +162,11 @@ export default function FirmManagementPage() {
               <p style={{ color: 'var(--text-tertiary)' }}>Adjust your search or filter to find specific shops.</p>
             </div>
           ) : (
-            filteredFirms.map((firm) => (
+            filteredFirms.map((firm) => {
+              const activeSub = firm.subscriptions?.find((s: any) => s.status === 'active');
+              const extensionStatus = supabaseService.canExtendSubscription(activeSub);
+              
+              return (
               <div key={firm.id} className="firm-mgmt-card card animate-in">
                 <div className="card-top">
                    <div style={{ display: 'flex', gap: '16px', alignItems: 'flex-start' }}>
@@ -174,6 +198,12 @@ export default function FirmManagementPage() {
                       <ShieldCheck size={14} />
                       <span className="date-cell">{formatDate(firm.createdAt)}</span>
                    </div>
+                   {activeSub && (activeSub.plan_id === 'elite' || activeSub.plan_id === 'pro') && (
+                     <div className="metric" style={{ color: '#047857', fontWeight: 600 }}>
+                        <Zap size={14} />
+                        <span>Ends {formatDate(activeSub.end_date)} {activeSub.extension_count > 0 && `(+${activeSub.extension_count})`}</span>
+                     </div>
+                   )}
                 </div>
 
                 <div className="card-footer-actions">
@@ -190,12 +220,32 @@ export default function FirmManagementPage() {
                    >
                       <Palette size={14} /> Edit Identity
                    </button>
+                   <button 
+                     className="mini-action" 
+                     style={{ 
+                       background: extensionStatus.allowed ? '#F0FDF4' : '#F9FAFB', 
+                       color: extensionStatus.allowed ? '#15803D' : '#9CA3AF', 
+                       borderColor: extensionStatus.allowed ? '#DCFCE7' : '#E5E7EB',
+                       cursor: extensionStatus.allowed ? 'pointer' : 'not-allowed'
+                     }}
+                     onClick={() => handleExtendTrial(firm.id)}
+                     disabled={extendingId === firm.id || !extensionStatus.allowed}
+                     title={extensionStatus.reason}
+                   >
+                      {extendingId === firm.id ? (
+                        <Activity size={14} className="spin" />
+                      ) : (
+                        <Zap size={14} />
+                      )}
+                      {extensionStatus.allowed ? 'Extend 7D' : 'Limit Reached'}
+                   </button>
                    <Link href="/superadmin/integrity" className="mini-action" style={{ marginLeft: 'auto' }}>
                       <Activity size={14} />
                    </Link>
                 </div>
               </div>
-            ))
+              );
+            })
           )}
         </div>
       )}

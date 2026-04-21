@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import AppShell from "@/components/layout/AppShell";
+import TrialExpiredGate from "@/components/auth/TrialExpiredGate";
 
 export const metadata: Metadata = {
   title: "PledgeVault — Gold & Silver Loan Management",
@@ -16,7 +17,9 @@ export default function RootLayout({
   return (
     <html lang="en" data-scroll-behavior="smooth">
       <body>
-        <AppShell>{children}</AppShell>
+        <TrialExpiredGate>
+          <AppShell>{children}</AppShell>
+        </TrialExpiredGate>
       </body>
     </html>
   );

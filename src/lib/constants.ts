@@ -54,6 +54,9 @@ export const DEFAULT_SETTINGS: ShopSettings = {
   branches: [],
   allowStaffOverridesInterest: true,
   allowStaffOverridesLtv: true,
+  goldRateMarket: 0,
+  silverRateMarket: 0,
+  ratesUpdatedAt: '',
 };
 
 // ---- Interest Mode Labels ----
@@ -73,10 +76,16 @@ export const LOAN_STATUS_LABELS: Record<string, string> = {
 
 // ---- Currency Formatter ----
 export function formatCurrency(amount: number): string {
+  if (!isFinite(amount) || isNaN(amount)) return '₹0';
+  
+  // Use compact notation for astronomical numbers or values > 1 Crore for layout stability
+  const useCompact = amount >= 10000000 || amount >= 1e12;
+
   return new Intl.NumberFormat('en-IN', {
     style: 'currency',
     currency: 'INR',
-    maximumFractionDigits: 0,
+    maximumFractionDigits: useCompact ? 2 : 0,
+    notation: useCompact ? 'compact' : 'standard',
   }).format(amount);
 }
 

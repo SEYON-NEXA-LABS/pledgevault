@@ -10,7 +10,7 @@ interface StatCardProps {
   changeType?: 'positive' | 'negative';
   subtitle?: string;
   icon: LucideIcon;
-  accent: 'peach' | 'mint' | 'red' | 'teal';
+  variant: 'primary' | 'vibrant' | 'danger' | 'deep';
 }
 
 export default function StatCard({
@@ -20,10 +20,10 @@ export default function StatCard({
   changeType = 'positive',
   subtitle,
   icon: Icon,
-  accent,
+  variant,
 }: StatCardProps) {
   return (
-    <div className={`stat-card ${accent}-accent`}>
+    <div className={`stat-card variant-${variant}`}>
       <div className="stat-card-header">
         <span className="stat-card-title">{title}</span>
         <div className="stat-card-icon">

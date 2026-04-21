@@ -166,7 +166,7 @@ export default function DashboardPage() {
           value={totalActiveLoanCount.toString()}
           subtitle={formatCurrency(totalActiveLoanValue) + (!isBranchView ? ' (All Branches)' : ' (Branch)')}
           icon={HandCoins}
-          accent="mint"
+          variant="vibrant"
           change={`${activeLoans.length} total`}
           changeType="positive"
         />
@@ -175,7 +175,7 @@ export default function DashboardPage() {
           value={formatWeight(totalGoldWeight)}
           subtitle={`@ ${formatCurrency(settings.goldRate24K)}/g (24K)`}
           icon={Scale}
-          accent="mint"
+          variant="vibrant"
           change={formatWeight(totalSilverWeight) + ' silver'}
           changeType="positive"
         />
@@ -184,7 +184,7 @@ export default function DashboardPage() {
           value={(cloudStats?.overdueCount ?? 0).toString()}
           subtitle="Require immediate attention"
           icon={AlertTriangle}
-          accent="red"
+          variant="danger"
           change={overdueLoans.length > 0 ? 'Action needed' : 'All clear'}
           changeType={overdueLoans.length > 0 ? 'negative' : 'positive'}
         />
@@ -194,7 +194,7 @@ export default function DashboardPage() {
             value={formatCurrency(monthlyInterest)}
             subtitle={`From ${activeLoans.length} active loans`}
             icon={TrendingUp}
-            accent="peach"
+            variant="primary"
             change={`${cloudStats?.totalCustomers || 0} customers`}
             changeType="positive"
           />
@@ -204,7 +204,7 @@ export default function DashboardPage() {
             value={recentLoans.length.toString()}
             subtitle="Loans created recently"
             icon={TrendingUp}
-            accent="peach"
+            variant="primary"
             change="Ready for review"
             changeType="positive"
           />
@@ -294,8 +294,8 @@ export default function DashboardPage() {
         )}
       </div>
 
-      {/* Recent Loans, Overdue & Daily Calendar */}
-      <div className="content-grid" style={{ gridTemplateColumns: '1fr 1fr 1fr' }}>
+      {/* Recent Loans & Overdue Alerts */}
+      <div className="content-grid" style={{ gridTemplateColumns: '1fr 1fr' }}>
         <div className="card" style={{ animationDelay: '0.3s' }}>
           <div className="card-header">
             <h3>Recent Loans</h3>
@@ -393,9 +393,6 @@ export default function DashboardPage() {
             )}
           </div>
         </div>
-
-        {/* Daily Calendar */}
-        <DailyCalendarCard />
       </div>
     </>
   );

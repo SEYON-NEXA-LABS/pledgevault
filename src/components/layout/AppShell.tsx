@@ -5,9 +5,10 @@ import { usePathname } from 'next/navigation';
 import { loanStore, settingsStore } from '@/lib/store';
 import { supabaseService } from '@/lib/supabase/service';
 import { authStore } from '@/lib/authStore';
+import { metalRateService } from '@/lib/supabase/metalRateService';
 import Sidebar from './Sidebar';
 import Header from './Header';
-import BranchSwitcherModal from './BranchSwitcherModal';
+import { subscriptionStore } from '@/lib/subscriptionStore';
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -67,15 +68,43 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             ...liveSettings, 
             activeBranchId: targetBranchId 
           });
-        }
 
-        // 4. Fetch Live Dashboard Metrics (like Overdue Count)
-        const stats = await supabaseService.getDashboardStats();
-        setOverdueCount(stats.overdueCount || 0);
+          // 3b. White-Labeling Injection: Override brand colors if firm has custom branding
+          const primaryColor = liveSettings.brandingConfig?.primaryColor;
+          if (primaryColor) {
+            const root = document.documentElement;
+            root.style.setProperty('--brand-primary', primaryColor);
+            root.style.setProperty('--primary-brand', primaryColor);
+            root.style.setProperty('--brand-deep', primaryColor); // Simpler fallback for now
+            // Add a soft glow version
+            root.style.setProperty('--brand-glow', `${primaryColor}26`); // 15% opacity hex hack
+          }
+          if (authStore.isManager()) {
+             metalRateService.getLiveRates().catch(e => console.warn('Global market sync failed:', e));
+          }
+
+          // 5. Fetch Live Dashboard Metrics (like Overdue Count)
+          const stats = await supabaseService.getDashboardStats(auth.firmId as string, targetBranchId);
+          setOverdueCount(stats.overdueCount || 0);
+
+          // 6. Hydrate Subscription Status
+          if (auth.firmId) {
+            const subscription = await supabaseService.getActiveSubscription(auth.firmId);
+            if (subscription) {
+              subscriptionStore.set({
+                planId: subscription.planId,
+                status: subscription.status,
+                endDate: subscription.endDate
+              });
+            } else {
+              // Fallback to free if no active sub found (shouldn't happen for trialists)
+              subscriptionStore.set({ planId: 'free', status: 'active', endDate: null });
+            }
+          }
+        }
       } catch (err) {
         console.error('Core app hydration failed:', err);
       } finally {
-        // Small artificial delay for smooth transition if it finishes too fast
         setTimeout(() => setIsHydrating(false), 500);
       }
     }
@@ -89,53 +118,24 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   if (isHydrating && !isLoginPage) {
     return (
       <div style={{ 
-        height: '100vh', 
-        width: '100vw', 
-        display: 'flex', 
-        flexDirection: 'column',
-        alignItems: 'center', 
-        justifyContent: 'center',
-        background: 'var(--bg-primary)',
-        gap: '24px'
+        height: '100vh', width: '100vw', display: 'flex', flexDirection: 'column',
+        alignItems: 'center', justifyContent: 'center', background: 'var(--bg-primary)', gap: '24px'
       }}>
         <div style={{ position: 'relative', width: '80px', height: '80px' }}>
           <div className="spin" style={{ 
-            position: 'absolute',
-            inset: 0,
-            border: '4px solid var(--border-light)',
-            borderTopColor: 'var(--primary-brand)',
-            borderRadius: '50%'
+            position: 'absolute', inset: 0, border: '4px solid var(--border-light)',
+            borderTopColor: 'var(--primary-brand)', borderRadius: '50%'
           }} />
           <div style={{ 
-            position: 'absolute',
-            inset: '12px',
-            background: 'var(--bg-card)',
-            borderRadius: '50%',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: '24px',
-            boxShadow: 'var(--shadow-sm)'
+            position: 'absolute', inset: '12px', background: 'var(--bg-card)', borderRadius: '50%',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px'
           }}>
             🪙
           </div>
         </div>
         <div style={{ textAlign: 'center' }}>
-          <h2 style={{ 
-            fontFamily: 'var(--font-display)', 
-            fontSize: '20px', 
-            margin: '0 0 4px 0',
-            color: 'var(--text-primary)'
-          }}>
-            Unlocking Vault
-          </h2>
-          <p style={{ 
-            fontSize: '14px', 
-            color: 'var(--text-tertiary)',
-            margin: 0
-          }}>
-            Preparing your secure workspace...
-          </p>
+          <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '20px', margin: '0 0 4px 0' }}>Unlocking Vault</h2>
+          <p style={{ fontSize: '14px', color: 'var(--text-tertiary)', margin: 0 }}>Preparing your secure workspace...</p>
         </div>
       </div>
     );
@@ -154,20 +154,50 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         />
       )}
       <main className={`main-content ${isLoginPage ? 'full-width' : ''}`}>
-        {!isLoginPage && <Header onMenuClick={() => setSidebarOpen(!sidebarOpen)} />}
+        {!isLoginPage && <Header settings={currentSettings} onMenuClick={() => setSidebarOpen(!sidebarOpen)} />}
         <div className={isLoginPage ? '' : 'page-content'}>
           {children}
         </div>
       </main>
 
-      {!isLoginPage && !isHydrating && (
-        <BranchSwitcherModal
-          isOpen={showMandatorySelector}
-          onClose={() => setShowMandatorySelector(false)}
-          branches={branches}
-          activeBranchId={currentSettings.activeBranchId}
-          isMandatory={true}
-        />
+      {/* Mandatory Branch Selector for Staff (Replaces obsolete Modal) */}
+      {showMandatorySelector && !isLoginPage && (
+        <div className="modal-overlay" style={{ backdropFilter: 'blur(20px)', background: 'rgba(16, 123, 136, 0.4)', zIndex: 9999 }}>
+          <div className="card anim-fade-in" style={{ maxWidth: '400px', padding: '40px', textAlign: 'center', borderRadius: '32px', boxShadow: '0 20px 40px rgba(0,0,0,0.2)' }}>
+            <div style={{ 
+              width: '64px', height: '64px', background: 'var(--status-active-bg)', color: 'var(--primary-teal-dark)', 
+              borderRadius: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', 
+              margin: '0 auto 24px auto', fontSize: '24px' 
+            }}>
+              🏠
+            </div>
+            <h2 style={{ fontSize: '24px', fontWeight: 800, margin: '0 0 12px 0' }}>Assign Your Branch</h2>
+            <p style={{ color: 'var(--text-tertiary)', fontSize: '15px', marginBottom: '32px', lineHeight: 1.6 }}>
+              Welcome back! Please select your current reporting branch to access the dashboard.
+            </p>
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {branches.map(branch => (
+                <button
+                  key={branch.id}
+                  onClick={() => {
+                    settingsStore.save({ activeBranchId: branch.id });
+                    window.dispatchEvent(new Event('storage'));
+                    setShowMandatorySelector(false);
+                  }}
+                  className="btn btn-outline"
+                  style={{ 
+                    justifyContent: 'space-between', padding: '16px 20px', borderRadius: '16px', border: '1px solid var(--border)',
+                    background: 'var(--bg-primary)', transition: 'all 0.2s', fontWeight: 700
+                  }}
+                >
+                  <span>{branch.name}</span>
+                  <span style={{ fontSize: '10px', opacity: 0.6, fontWeight: 400 }}>{branch.code}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

@@ -7,6 +7,7 @@ export interface Branch {
   name: string;
   location: string;
   code: string; // e.g., 'CBE01'
+  licenseNumber?: string;
 }
 
 export type MetalType = 'gold' | 'silver';
@@ -108,6 +109,8 @@ export interface Loan {
   interestAccrued: number;
   amountPaid: number;
   closedDate?: string;
+  payoutMethod?: 'cash' | 'bank' | 'upi';
+  payoutReference?: string;
   remarks?: string;
   createdAt: string;
   updatedAt: string;
@@ -131,6 +134,8 @@ export interface ShopSettings {
   shopAddress: string;
   shopPhone: string;
   licenseNumber: string;
+  gstNumber?: string;
+  registrationNumber?: string;
   goldRate24K: number; // per gram
   silverRate999: number; // per gram
   defaultLtvGold: number; // %
@@ -142,6 +147,12 @@ export interface ShopSettings {
   loanNumberCounter: number;
   activeBranchId: string;
   branches: Branch[];
+  goldRateMarket?: number;
+  silverRateMarket?: number;
+  ratesUpdatedAt?: string;
+  allowStaffOverridesInterest?: boolean;
+  allowStaffOverridesLtv?: boolean;
+  brandingConfig?: BrandingConfig;
 }
 
 // ---- Dashboard Stats ----
@@ -177,7 +188,7 @@ export interface SubscriptionPlan {
 }
 
 export type PaymentMethod = 'upi' | 'card' | 'netbanking' | 'cash' | 'trial';
-export type SubscriptionStatus = 'active' | 'expired' | 'cancelled';
+export type SubscriptionStatus = 'active' | 'expired' | 'canceled' | 'past_due' | 'trial' | 'incomplete';
 
 export interface Subscription {
   id: string;
@@ -188,6 +199,7 @@ export interface Subscription {
   currency: string;
   paymentMethod: PaymentMethod;
   status: SubscriptionStatus;
+  extensionCount: number;
   startDate: string;
   endDate: string;
   razorpayPaymentId?: string;

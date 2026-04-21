@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, Suspense } from 'react';
 import { useRouter, redirect, useSearchParams } from 'next/navigation';
+import Link from 'next/link';
 import {
   Settings as SettingsIcon,
   Shield,
@@ -25,7 +26,9 @@ import {
   ChevronRight,
   Database,
   ArrowRight,
-  User
+  User,
+  Info,
+  ExternalLink
 } from 'lucide-react';
 import { supabaseService } from '@/lib/supabase/service';
 import { settingsStore } from '@/lib/store';
@@ -67,13 +70,13 @@ function SettingsContent() {
 
   const fetchFirmInfo = async () => {
     const auth = authStore.get();
-    if (!auth.id || !auth.firmId) return;
+    if (!auth.userId || !auth.firmId) return;
 
     try {
       setFirmId(auth.firmId);
       
       // Fetch Plan info directly from profile or fetch firm if needed
-      const profile = await supabaseService.getUserProfile(auth.id);
+      const profile = await supabaseService.getUserProfile(auth.userId);
       if (profile?.firms?.plan) {
         setCurrentPlan(profile.firms.plan as PlanTier);
       }
@@ -108,9 +111,10 @@ function SettingsContent() {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
+    const checked = (e.target as HTMLInputElement).checked;
     setSettings((prev) => ({
       ...prev,
-      [name]: type === 'number' ? parseFloat(value) : value,
+      [name]: type === 'checkbox' ? checked : (type === 'number' ? parseFloat(value) : value),
     }));
   };
 
@@ -144,6 +148,7 @@ function SettingsContent() {
     const branchCode = prompt('Enter Branch Code (e.g. SLM01):');
     if (!branchCode) return;
     const location = prompt('Enter Location/City:');
+    const license = prompt('Enter Branch License Number (Optional):');
 
     try {
       if (!firmId) throw new Error('Firm ID missing');
@@ -152,7 +157,8 @@ function SettingsContent() {
         firmId: firmId || '',
         name: branchName,
         code: branchCode.toUpperCase(),
-        location: location || ''
+        location: location || '',
+        licenseNumber: license || ''
       } as any);
 
       setSettings(prev => {
@@ -299,16 +305,45 @@ function SettingsContent() {
                     onChange={handleChange}
                   />
                 </div>
+              </div>
+              <div className="form-row">
                 <div className="form-group">
-                  <label className="form-label">License Key</label>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                    <label className="form-label" style={{ margin: 0 }}>GST Number (GSTIN)</label>
+                    <a 
+                      href="https://razorpay.com/gst-number-search/" 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      style={{ fontSize: '11px', color: 'var(--brand-primary)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '4px', fontWeight: 600 }}
+                    >
+                      Verify on Razorpay <ExternalLink size={10} />
+                    </a>
+                  </div>
                   <input
                     type="text"
-                    name="licenseNumber"
+                    name="gstNumber"
                     className="form-input"
-                    value={settings.licenseNumber}
+                    placeholder="e.g., 33AAAAA0000A1Z5"
+                    value={settings.gstNumber || ''}
                     onChange={handleChange}
                   />
                 </div>
+                <div className="form-group">
+                  <label className="form-label">Shop Registration No.</label>
+                  <input
+                    type="text"
+                    name="registrationNumber"
+                    className="form-input"
+                    value={settings.registrationNumber || ''}
+                    onChange={handleChange}
+                  />
+                </div>
+              </div>
+              <div style={{ marginTop: '12px', padding: '10px 14px', background: 'var(--bg-hover)', borderRadius: '12px', display: 'flex', gap: '10px', alignItems: 'center' }}>
+                <Info size={14} style={{ color: 'var(--primary-teal-dark)', flexShrink: 0 }} />
+                <p style={{ margin: 0, fontSize: '11px', color: 'var(--text-tertiary)', lineHeight: '1.4' }}>
+                  <strong>Note:</strong> A complete registration includes a digital copy of your certificate. Document upload (PDF) will be available once storage is configured.
+                </p>
               </div>
             </div>
           </div>
@@ -426,6 +461,31 @@ function SettingsContent() {
                   />
                 </div>
               </div>
+              <div style={{ marginTop: '20px', padding: '16px', background: 'var(--bg-hover)', borderRadius: '16px', border: '1px solid var(--border-light)' }}>
+                <h4 style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <ShieldCheck size={16} color="var(--brand-primary)" /> Staff Permissions
+                </h4>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', fontSize: '13px' }}>
+                    <input 
+                      type="checkbox" 
+                      name="allowStaffOverridesInterest" 
+                      checked={settings.allowStaffOverridesInterest} 
+                      onChange={handleChange}
+                    />
+                    Allow Staff to override Interest Rates
+                  </label>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', fontSize: '13px' }}>
+                    <input 
+                      type="checkbox" 
+                      name="allowStaffOverridesLtv" 
+                      checked={settings.allowStaffOverridesLtv} 
+                      onChange={handleChange}
+                    />
+                    Allow Staff to override LTV %
+                  </label>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -438,9 +498,14 @@ function SettingsContent() {
                 <GitBranch size={18} style={{ color: 'var(--primary-teal-dark)' }} />
                 Branch Locations
               </h3>
-              <button className="btn btn-sm btn-outline-teal" onClick={handleAddBranch}>
-                <Plus size={14} /> Add Branch
-              </button>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <Link href="/branches" className="btn btn-sm btn-outline-teal">
+                   Manage Dashboard <ArrowRight size={14} />
+                </Link>
+                <button className="btn btn-sm btn-gold" onClick={handleAddBranch}>
+                  <Plus size={14} /> Add Branch
+                </button>
+              </div>
             </div>
             <div className="card-body">
               <div className="form-group" style={{ marginBottom: '24px' }}>
@@ -462,7 +527,10 @@ function SettingsContent() {
                   <div key={b.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '16px', background: 'var(--bg-primary)', borderRadius: '16px', border: '1px solid var(--border-light)' }}>
                     <div>
                       <div style={{ fontWeight: 700, fontSize: '14px', color: 'var(--text-primary)' }}>{b.name}</div>
-                      <div style={{ fontSize: '12px', color: 'var(--text-tertiary)' }}>{b.code} • {b.location}</div>
+                      <div style={{ fontSize: '12px', color: 'var(--text-tertiary)' }}>
+                        {b.code} • {b.location}
+                        {b.licenseNumber && <span style={{ marginLeft: '8px', color: 'var(--brand-primary)', fontWeight: 600 }}>Lic: {b.licenseNumber}</span>}
+                      </div>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                       {settings.activeBranchId === b.id && <span className="badge teal" style={{ background: 'var(--status-active-bg)', color: 'var(--primary-teal-dark)', fontSize: '10px' }}>Active</span>}

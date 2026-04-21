@@ -15,6 +15,9 @@ import {
   Mail,
   Plus,
   Users,
+  CreditCard,
+  FileText,
+  ExternalLink,
 } from 'lucide-react';
 import { onboardFirmAction } from './actions';
 
@@ -39,7 +42,10 @@ export default function SuperadminOnboarding() {
     shortCode: '',
     plan: 'pro',
     location: 'Coimbatore, TN',
-    primaryColor: '#107B88'
+    primaryColor: '#107B88',
+    gstNumber: '',
+    licenseNumber: '',
+    registrationNumber: ''
   });
 
   const [managerData, setManagerData] = useState({
@@ -242,6 +248,52 @@ export default function SuperadminOnboarding() {
                     <option value="pro">Premium (Growth)</option>
                     <option value="enterprise">Multi-Store (Enterprise)</option>
                   </select>
+                </div>
+
+                <div className="form-group">
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                    <label style={{ margin: 0 }}>GSTIN (Firm)</label>
+                    <a 
+                      href="https://razorpay.com/gst-number-search/" 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      style={{ fontSize: '11px', color: 'var(--brand-primary)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '4px', fontWeight: 600 }}
+                    >
+                      Verify <ExternalLink size={10} />
+                    </a>
+                  </div>
+                  <div className="input-box">
+                    <CreditCard size={18} />
+                    <input 
+                      placeholder="e.g., 33AAAAA0000A1Z5" 
+                      value={firmData.gstNumber}
+                      onChange={e => setFirmData({...firmData, gstNumber: e.target.value.toUpperCase()})}
+                    />
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <label>Registration Number (Firm)</label>
+                  <div className="input-box">
+                    <FileText size={18} />
+                    <input 
+                      placeholder="e.g., REG-123456" 
+                      value={firmData.registrationNumber}
+                      onChange={e => setFirmData({...firmData, registrationNumber: e.target.value.toUpperCase()})}
+                    />
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <label>Main Branch License (Branch)</label>
+                  <div className="input-box">
+                    <ShieldCheck size={18} />
+                    <input 
+                      placeholder="e.g., JL-TN-456" 
+                      value={firmData.licenseNumber}
+                      onChange={e => setFirmData({...firmData, licenseNumber: e.target.value.toUpperCase()})}
+                    />
+                  </div>
                 </div>
               </div>
 

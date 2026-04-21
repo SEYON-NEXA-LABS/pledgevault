@@ -11,6 +11,7 @@ import {
   AlertCircle 
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 
 import { settingsStore } from '@/lib/store';
 import { authStore } from '@/lib/authStore';
@@ -214,6 +215,11 @@ export default function LoginPage() {
         </form>
 
         <div className="login-footer">
+          <div style={{ marginBottom: '16px' }}>
+            <Link href="/start-trial" className="btn btn-outline btn-full" style={{ justifyContent: 'center' }}>
+              Start 14-Day Free Trial
+            </Link>
+          </div>
           Don't have an account? <a href="#">Contact Sales</a>
           <div style={{ marginTop: '24px', fontSize: '10px', color: 'rgba(0,0,0,0.2)', letterSpacing: '0.5px' }}>
             v{process.env.NEXT_PUBLIC_APP_VERSION || '1.0.0'}

@@ -146,7 +146,7 @@ export default function DailyCalendarCard() {
     <div className="card daily-calendar-card" style={{ animationDelay: '0.4s' }}>
       <div className="card-header">
         <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <Calendar size={18} style={{ color: 'var(--gold)' }} />
+          <Calendar size={18} style={{ color: 'var(--brand-primary)' }} />
           {en.labels.dailyCalendar}
         </h3>
         <div className="card-header-actions">
@@ -162,7 +162,7 @@ export default function DailyCalendarCard() {
         }}>
           <div style={{
             fontSize: '42px', fontFamily: 'var(--font-display)', fontWeight: 800, lineHeight: 1, marginBottom: '4px',
-            background: 'var(--gold-gradient)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
+            color: 'var(--brand-primary)', // Using solid brand color for clarity
           }}>
             {now.getDate()}
           </div>
@@ -170,8 +170,8 @@ export default function DailyCalendarCard() {
           <div style={{ fontSize: '13px', opacity: 0.7 }}>{formattedDate}</div>
           <div style={{
             marginTop: '8px', padding: '4px 14px', display: 'inline-block',
-            background: 'rgba(212, 168, 67, 0.15)', borderRadius: 'var(--radius-full)',
-            fontSize: '13px', color: 'var(--gold-light)', fontWeight: 600,
+            background: 'var(--status-active-bg)', borderRadius: 'var(--radius-full)',
+            fontSize: '13px', color: 'var(--brand-deep)', fontWeight: 600,
           }}>
             {t.days[dayOfWeek]} • {t.months[getTamilMonthIndex(now)]} {getTamilYear(now)}
           </div>
@@ -188,7 +188,7 @@ export default function DailyCalendarCard() {
           <div style={{
             width: '52px', height: '52px', borderRadius: '50%',
             display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '32px', flexShrink: 0,
-            background: moonInfo.phaseId === 'full' ? 'var(--gold-glow)' : moonInfo.phaseId === 'new' ? 'rgba(0,0,0,0.08)' : 'var(--bg-input)',
+            background: moonInfo.phaseId === 'full' ? 'var(--brand-glow)' : moonInfo.phaseId === 'new' ? 'rgba(0,0,0,0.08)' : 'var(--bg-input)',
           }}>
             {moonInfo.emoji}
           </div>
@@ -196,7 +196,7 @@ export default function DailyCalendarCard() {
             <div style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
               {t.moonPhases[moonInfo.phaseKey]}
               {isSpecialDay && (
-                <span className={`badge ${moonInfo.phaseId === 'full' ? 'gold' : 'closed'}`} style={{ fontSize: '10px', padding: '2px 8px' }}>
+                <span className={`badge ${moonInfo.phaseId === 'full' ? 'gold' : 'closed'}`} style={{ fontSize: '10px', padding: '2px 8px', background: moonInfo.phaseId === 'full' ? 'var(--brand-primary)' : '' }}>
                   {moonInfo.phaseId === 'full' ? t.moonPhases.fullMoon : t.moonPhases.newMoon}
                 </span>
               )}
@@ -216,7 +216,7 @@ export default function DailyCalendarCard() {
             <div style={{ fontSize: '10px', color: 'var(--text-tertiary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
               {t.labels.nextFullMoon}
             </div>
-            <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--gold-dark)', marginTop: '2px' }}>
+            <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--brand-primary)', marginTop: '2px' }}>
               🌕 {moonInfo.daysToNextFullMoon} {t.labels.days}
             </div>
           </div>
@@ -296,12 +296,12 @@ export default function DailyCalendarCard() {
           <div style={{ display: 'flex', gap: '8px', marginTop: '2px' }}>
             <div style={{
               flex: 1, display: 'flex', alignItems: 'center', gap: '8px',
-              padding: '8px 10px', background: 'var(--gold-glow)', borderRadius: 'var(--radius-md)',
+              padding: '8px 10px', background: 'var(--brand-glow)', borderRadius: 'var(--radius-md)',
             }}>
-              <Sun size={14} style={{ color: 'var(--gold)' }} />
+              <Sun size={14} style={{ color: 'var(--brand-primary)' }} />
               <div>
                 <div style={{ fontSize: '9px', fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{t.labels.sunrise}</div>
-                <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--gold-dark)' }}>6:05 AM</div>
+                <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--brand-deep)' }}>6:05 AM</div>
               </div>
             </div>
             <div style={{

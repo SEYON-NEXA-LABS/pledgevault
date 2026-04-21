@@ -15,7 +15,15 @@ import {
   FileText,
   CircleDollarSign,
   Camera,
-  CheckCircle2
+  CheckCircle2,
+  Lock,
+  UserCheck,
+  UserPlus,
+  RefreshCcw,
+  Search,
+  X,
+  Maximize2,
+  Image as ImageIcon
 } from 'lucide-react';
 import { customerStore, loanStore, settingsStore } from '@/lib/store';
 import { compressImage } from '@/lib/image';
@@ -27,6 +35,7 @@ import { canCreateLoan } from '@/lib/plans';
 import { supabaseService } from '@/lib/supabase/service';
 import { authStore } from '@/lib/authStore';
 import Link from 'next/link';
+import RealTimeRateSync from '@/components/common/RealTimeRateSync';
 
 interface ItemRow {
   id: string;
@@ -48,6 +57,51 @@ const emptyItem = (): ItemRow => ({
   photoBase64: '',
 });
 
+interface WeightInputProps {
+  value: string;
+  onChange: (val: string) => void;
+  onStep: (delta: number) => void;
+  metalType: MetalType;
+  placeholder?: string;
+  isWarning?: boolean;
+}
+
+const WeightInput = ({ value, onChange, onStep, metalType, placeholder, isWarning }: WeightInputProps) => {
+  const [showQuickPicks, setShowQuickPicks] = useState(false);
+  const goldPresets = ['1.00', '2.00', '4.00', '8.00'];
+  const silverPresets = ['10.00', '50.00', '100.00', '500.00'];
+  const presets = metalType === 'gold' ? goldPresets : silverPresets;
+
+  return (
+    <div className="weight-input-container" style={{ 
+      borderColor: isWarning ? '#f59e0b' : '',
+      background: isWarning ? '#fffbeb' : ''
+    }}>
+      <button className="weight-stepper" onClick={() => onStep(-0.01)}>−</button>
+      <input
+        type="text"
+        className="weight-input-naked"
+        placeholder={placeholder || "0.00"}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        onFocus={() => setShowQuickPicks(true)}
+        onBlur={() => setTimeout(() => setShowQuickPicks(false), 200)}
+      />
+      <button className="weight-stepper" onClick={() => onStep(0.01)}>+</button>
+      
+      {showQuickPicks && (
+        <div className="quick-pick-container">
+          {presets.map(p => (
+            <div key={p} className="quick-pick-tag" onClick={() => onChange(p)}>
+              {parseFloat(p)}g
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
 function NewLoanContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -65,10 +119,20 @@ function NewLoanContent() {
   const [loanAmountOverride, setLoanAmountOverride] = useState('');
   const [remarks, setRemarks] = useState('');
   const [saving, setSaving] = useState(false);
+  const [dragIndex, setDragIndex] = useState<number | null>(null);
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const [activeMenuIndex, setActiveMenuIndex] = useState<number | null>(null);
   const [subscription, setSubscription] = useState<Subscription | null>(null);
   const [loanCount, setLoanCount] = useState(0);
   const [enforcement, setEnforcement] = useState<{ allowed: boolean; reason?: string }>({ allowed: true });
   const [selectedBranchId, setSelectedBranchId] = useState('');
+  const [goldRate, setGoldRate] = useState(7200);
+  const [silverRate, setSilverRate] = useState(90);
+  
+  // Payout Stage state
+  const [isPayoutStage, setIsPayoutStage] = useState(false);
+  const [payoutMethod, setPayoutMethod] = useState<'cash' | 'bank' | 'upi'>('cash');
+  const [payoutReference, setPayoutReference] = useState('');
   
   // Manager Override state
   const [showManagerOverrideModal, setShowManagerOverrideModal] = useState(false);
@@ -83,6 +147,11 @@ function NewLoanContent() {
 
   useEffect(() => {
     setMounted(true);
+    
+    // Close photo menu on click outside
+    const handleClickOutside = () => setActiveMenuIndex(null);
+    window.addEventListener('click', handleClickOutside);
+    
     if (auth.firmId) {
       supabaseService.getCustomers(auth.firmId, 0, 1000).then(res => {
         setCustomers(res.data as Customer[]);
@@ -96,11 +165,14 @@ function NewLoanContent() {
     setInterestMode(s.defaultInterestMode);
     setTenure(s.defaultTenure.toString());
     setLtvPercent(s.defaultLtvGold.toString());
+    setGoldRate(s.goldRate24K || 7200);
+    setSilverRate(s.silverRate999 || 90);
 
-    // Pre-select customer if ID provided in query
-    const cid = searchParams.get('customerId');
-    if (cid) {
-      setSelectedCustomerId(cid);
+    // Initialize branch selection
+    if (authStore.isStaff() && s.activeBranchId && s.activeBranchId !== 'firm') {
+      setSelectedBranchId(s.activeBranchId);
+    } else {
+      setSelectedBranchId('');
     }
     
     // Fetch enforcement data
@@ -135,19 +207,40 @@ function NewLoanContent() {
 
   // Calculate item values
   const calculatedItems: (ItemRow & { value: number; rate: number })[] = items.map((item) => {
-    const rate = item.metalType === 'gold'
-      ? (settings?.goldRate24K || 7200)
-      : (settings?.silverRate999 || 90);
-    const value = item.netWeight
+    const rate = item.metalType === 'gold' ? goldRate : silverRate;
+    
+    // Safety Guard: If Net > Gross, it's a data entry error. Zero out value.
+    const isInvalid = (parseFloat(item.netWeight) || 0) > (parseFloat(item.grossWeight) || 0);
+    
+    const value = (item.netWeight && !isInvalid)
       ? calculateItemValue(parseFloat(item.netWeight) || 0, item.metalType, item.purity, rate)
       : 0;
-    return { ...item, value, rate };
+    return { ...item, value: value || 0, rate };
   });
 
   const totalWeight = calculatedItems.reduce(
     (s, i) => s + (parseFloat(i.netWeight) || 0),
     0
   );
+  
+  const totalGrossWeight = calculatedItems.reduce(
+    (s, i) => s + (parseFloat(i.grossWeight) || 0),
+    0
+  );
+  
+  // Breakdown calculations
+  const goldItems = calculatedItems.filter(i => i.metalType === 'gold');
+  const silverItems = calculatedItems.filter(i => i.metalType === 'silver');
+  
+  const goldWeight = goldItems.reduce((s, i) => s + (parseFloat(i.netWeight) || 0), 0);
+  const silverWeight = silverItems.reduce((s, i) => s + (parseFloat(i.netWeight) || 0), 0);
+  const goldValue = goldItems.reduce((s, i) => s + i.value, 0);
+  const silverValue = silverItems.reduce((s, i) => s + i.value, 0);
+  
+  const hasGold = goldItems.some(i => parseFloat(i.netWeight) > 0);
+  const hasSilver = silverItems.some(i => parseFloat(i.netWeight) > 0);
+  const isMixed = hasGold && hasSilver;
+
   const totalValue = calculatedItems.reduce((s, i) => s + i.value, 0);
   const computedLoanAmount = calculateLoanAmount(totalValue, parseFloat(ltvPercent) || 75);
   const finalLoanAmount = loanAmountOverride
@@ -165,21 +258,49 @@ function NewLoanContent() {
     totalWeight
   );
 
+  const sanitizeWeight = (val: string, max = 5000): string => {
+    // Keep only numbers and one decimal point
+    let sanitized = val.replace(/[^0-9.]/g, '');
+    const parts = sanitized.split('.');
+    if (parts.length > 2) sanitized = parts[0] + '.' + parts.slice(1).join('');
+    
+    // Limit to 2 decimal places
+    if (parts.length === 2 && parts[1].length > 2) {
+      sanitized = parts[0] + '.' + parts[1].slice(0, 2);
+    }
+
+    const num = parseFloat(sanitized);
+    if (!isNaN(num) && num > max) return max.toString();
+    return sanitized;
+  };
+
   const updateItem = (index: number, field: keyof ItemRow, value: string) => {
     const updated = [...items];
-    updated[index] = { ...updated[index], [field]: value };
+    let finalValue = value;
+
+    if (field === 'grossWeight' || field === 'netWeight') {
+      finalValue = sanitizeWeight(value);
+    }
+
+    updated[index] = { ...updated[index], [field]: finalValue };
 
     // Auto-set netWeight to grossWeight if not manually changed
     if (field === 'grossWeight' && !updated[index].netWeight) {
-      updated[index].netWeight = value;
+      updated[index].netWeight = finalValue;
     }
 
     // Reset purity when metal type changes
     if (field === 'metalType') {
-      updated[index].purity = value === 'gold' ? '916' : '925';
+      updated[index].purity = finalValue === 'gold' ? '916' : '925';
     }
 
     setItems(updated);
+  };
+
+  const handleStepChange = (index: number, field: 'grossWeight' | 'netWeight', delta: number) => {
+    const current = parseFloat(items[index][field]) || 0;
+    const newVal = Math.max(0, current + delta).toFixed(2);
+    updateItem(index, field, newVal);
   };
 
   const addItem = () => {
@@ -191,30 +312,40 @@ function NewLoanContent() {
     setItems(items.filter((_, i) => i !== index));
   };
 
-  const handleCapturePhoto = async (index: number) => {
-    // In a real app, this would open a camera modal or file input. 
-    // For this prototype, we'll use a file input to simulate capture.
+  const processPhoto = async (index: number, file: File) => {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onloadend = async () => {
+      const rawBase64 = reader.result as string;
+      const optimizedBase64 = await compressImage(rawBase64, 1200, 0.7);
+      const updated = [...items];
+      updated[index].photoBase64 = optimizedBase64;
+      setItems(updated);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const triggerPhotoSource = (index: number, source: 'camera' | 'gallery') => {
     const input = document.createElement('input');
     input.type = 'file';
     input.accept = 'image/*';
-    input.capture = 'environment';
-    
-    input.onchange = async (e: any) => {
-      const file = e.target.files[0];
-      if (file) {
-        const reader = new FileReader();
-        reader.onloadend = async () => {
-          const rawBase64 = reader.result as string;
-          // Jewelry needs more detail, so we use higher width/quality than IDs
-          const optimizedBase64 = await compressImage(rawBase64, 1200, 0.7);
-          const updated = [...items];
-          updated[index].photoBase64 = optimizedBase64;
-          setItems(updated);
-        };
-        reader.readAsDataURL(file);
-      }
-    };
+    if (source === 'camera') input.capture = 'environment';
+    input.onchange = (e: any) => processPhoto(index, e.target.files[0]);
     input.click();
+    setActiveMenuIndex(null);
+  };
+
+  const handleCapturePhoto = (index: number) => {
+    setActiveMenuIndex(index);
+  };
+
+  const handleDrop = (e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    setDragIndex(null);
+    const file = e.dataTransfer.files[0];
+    if (file && file.type.startsWith('image/')) {
+      processPhoto(index, file);
+    }
   };
 
   const selectedCustomer = customers.find((c) => c.id === selectedCustomerId);
@@ -225,6 +356,37 @@ function NewLoanContent() {
           c.phone.includes(customerSearch)
       )
     : customers;
+
+  const handleReviewQuote = () => {
+    if (!enforcement.allowed) {
+      alert(`Access Restricted: ${enforcement.reason === 'expired' ? 'Subscription Expired' : 'Plan Limit Exceeded'}`);
+      return;
+    }
+    if (!selectedCustomerId) {
+      alert('Please select a customer');
+      return;
+    }
+    if (!items.some((i) => parseFloat(i.netWeight) > 0)) {
+      alert('Please add at least one item with weight');
+      return;
+    }
+
+    // Hard Regulatory Block: LTV > 85%
+    if (parseFloat(ltvPercent) > 85) {
+      alert('Regulatory Block: LTV cannot exceed 85% (RBI Safety Cap). Please adjust the loan terms.');
+      return;
+    }
+    
+    // Check High Value Override
+    const computedAmount = loanAmountOverride ? parseFloat(loanAmountOverride) : computedLoanAmount;
+    const isManager = authStore.isManager() || authStore.isSuperadmin();
+    if (!isManager && computedAmount >= HIGH_VALUE_THRESHOLD) {
+      setShowManagerOverrideModal(true);
+      return;
+    }
+
+    setIsPayoutStage(true);
+  };
 
   const handleSave = (bypassOverride = false) => {
     if (!enforcement.allowed) {
@@ -237,6 +399,12 @@ function NewLoanContent() {
     }
     if (!items.some((i) => parseFloat(i.netWeight) > 0)) {
       alert('Please add at least one item with weight');
+      return;
+    }
+
+    // Hard Regulatory Block: LTV > 85%
+    if (parseFloat(ltvPercent) > 85) {
+      alert('Regulatory Block: LTV cannot exceed 85% (RBI Safety Cap). Please adjust the loan terms.');
       return;
     }
     
@@ -304,6 +472,8 @@ function NewLoanContent() {
       interestAccrued: 0,
       amountPaid: 0,
       remarks,
+      payoutMethod,
+      payoutReference,
       createdAt: now.toISOString(),
       updatedAt: now.toISOString(),
     } as any;
@@ -363,23 +533,27 @@ function NewLoanContent() {
               <User size={20} /> Customer Details
             </div>
 
-            {settings?.activeBranchId === 'firm' && (
-              <div className="form-group" style={{ marginBottom: '24px', padding: '16px', background: 'var(--bg-gold-light)', borderRadius: 'var(--radius-md)', border: '1px solid var(--gold-light)', animation: 'fadeIn 0.3s ease' }}>
-                <label className="form-label" style={{ fontWeight: 700, color: 'var(--sidebar-bg)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            {authStore.isManager() && (
+              <div className="form-group" style={{ marginBottom: '24px', padding: '16px', background: 'var(--status-active-bg)', borderRadius: 'var(--radius-md)', border: '1px solid var(--brand-primary)', animation: 'fadeIn 0.3s ease' }}>
+                <label className="form-label" style={{ fontWeight: 700, color: 'var(--brand-deep)', display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <Building2 size={16} /> Select Primary Branch
                 </label>
-                <p style={{ fontSize: '13px', color: 'var(--text-tertiary)', marginBottom: '12px' }}>
-                  You are currently in Global View. Please select which branch will hold this pledge record.
+                <p style={{ fontSize: '13px', color: 'var(--brand-deep)', marginBottom: '12px', opacity: 0.8 }}>
+                  Please confirm which branch is receiving this pledge and holding the cash.
                 </p>
                 <select 
                   className="form-input" 
                   required 
                   value={selectedBranchId}
                   onChange={e => setSelectedBranchId(e.target.value)}
+                  style={{ 
+                    border: !selectedBranchId ? '2px solid var(--brand-primary)' : '1px solid var(--border)',
+                    background: 'white'
+                  }}
                 >
-                  <option value="">Choose a branch...</option>
-                  {settings?.branches.map(b => (
-                    <option key={b.id} value={b.id}>{b.name}</option>
+                  <option value="">-- Choose Branch --</option>
+                  {settings?.branches.map((b: any) => (
+                    <option key={b.id} value={b.id}>{b.name} ({b.code})</option>
                   ))}
                 </select>
               </div>
@@ -387,116 +561,157 @@ function NewLoanContent() {
 
             <div className="form-group" style={{ position: 'relative' }}>
               <label className="form-label">Select Customer</label>
-              <input
-                type="text"
-                className="form-input"
-                placeholder="Search by name or phone..."
-                value={selectedCustomer ? selectedCustomer.name : customerSearch}
-                onChange={(e) => {
-                  setCustomerSearch(e.target.value);
-                  setSelectedCustomerId('');
-                  setShowCustomerDropdown(true);
-                }}
-                onFocus={() => setShowCustomerDropdown(true)}
-                id="customer-search"
-              />
-              {showCustomerDropdown && !selectedCustomerId && (
-                <div
-                  style={{
-                    position: 'absolute',
-                    top: '100%',
-                    left: 0,
-                    right: 0,
-                    background: 'var(--bg-card)',
-                    border: '1px solid var(--border)',
-                    borderRadius: 'var(--radius-md)',
-                    boxShadow: 'var(--shadow-lg)',
-                    zIndex: 10,
-                    maxHeight: '200px',
-                    overflowY: 'auto',
-                  }}
-                >
-                  {filteredCustomers.map((c) => (
-                    <button
-                      key={c.id}
+              {!selectedCustomer ? (
+                <>
+                  <div style={{ position: 'relative' }}>
+                    <input
+                      type="text"
+                      className="form-input"
+                      placeholder="Search by name or phone..."
+                      value={customerSearch}
+                      onChange={(e) => {
+                        setCustomerSearch(e.target.value);
+                        setShowCustomerDropdown(true);
+                      }}
+                      onFocus={() => setShowCustomerDropdown(true)}
+                      id="customer-search"
+                      style={{ paddingLeft: '40px' }}
+                    />
+                    <Search 
+                      size={18} 
+                      style={{ 
+                        position: 'absolute', 
+                        left: '14px', 
+                        top: '50%', 
+                        transform: 'translateY(-50%)', 
+                        color: 'var(--text-tertiary)' 
+                      }} 
+                    />
+                  </div>
+
+                  {showCustomerDropdown && customerSearch.length >= 1 && (
+                    <div
                       style={{
-                        width: '100%',
-                        padding: '10px 14px',
-                        textAlign: 'left',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '10px',
-                        borderBottom: '1px solid var(--border-light)',
-                        transition: 'background 0.1s',
+                        position: 'absolute',
+                        top: '100%',
+                        left: 0,
+                        right: 0,
+                        background: 'var(--bg-card)',
+                        border: '1.5px solid var(--brand-primary)',
+                        borderRadius: 'var(--radius-md)',
+                        boxShadow: 'var(--shadow-lg)',
+                        zIndex: 100,
+                        maxHeight: '300px',
+                        overflowY: 'auto',
+                        marginTop: '4px',
+                        animation: 'fadeIn 0.2s ease'
                       }}
-                      onClick={() => {
-                        setSelectedCustomerId(c.id);
-                        setCustomerSearch('');
-                        setShowCustomerDropdown(false);
-                      }}
-                      onMouseEnter={(e) =>
-                        (e.currentTarget.style.background = 'var(--bg-card-hover)')
-                      }
-                      onMouseLeave={(e) =>
-                        (e.currentTarget.style.background = 'transparent')
-                      }
                     >
-                      <div className="customer-avatar" style={{ width: '28px', height: '28px', fontSize: '11px' }}>
-                        {c.name.charAt(0)}
-                      </div>
-                      <div>
-                        <div style={{ fontWeight: 600, fontSize: '13px' }}>{c.name}</div>
-                        <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
-                          {c.phone}
+                      {filteredCustomers.length > 0 ? (
+                        filteredCustomers.map((c) => (
+                          <button
+                            key={c.id}
+                            style={{
+                              width: '100%',
+                              padding: '12px 16px',
+                              textAlign: 'left',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '12px',
+                              borderBottom: '1px solid var(--border-light)',
+                              transition: 'background 0.1s',
+                            }}
+                            onClick={() => {
+                              setSelectedCustomerId(c.id);
+                              setCustomerSearch('');
+                              setShowCustomerDropdown(false);
+                            }}
+                          >
+                            <div className="customer-avatar" style={{ width: '32px', height: '32px', background: 'var(--status-active-bg)', color: 'var(--brand-deep)' }}>
+                              {c.name.charAt(0)}
+                            </div>
+                            <div style={{ flex: 1 }}>
+                              <div style={{ fontWeight: 600, fontSize: '14px', color: 'var(--text-primary)' }}>
+                                {customerSearch ? c.name.split(new RegExp(`(${customerSearch.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi')).map((part, i) => 
+                                  part.toLowerCase() === customerSearch.toLowerCase() 
+                                    ? <span key={i} className="search-highlight">{part}</span> 
+                                    : part
+                                ) : c.name}
+                              </div>
+                              <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+                                {c.phone} • {c.city}
+                              </div>
+                            </div>
+                            <UserCheck size={16} style={{ color: 'var(--brand-primary)', opacity: 0.5 }} />
+                          </button>
+                        ))
+                      ) : (
+                        <div style={{ padding: '24px', textAlign: 'center' }}>
+                          <p style={{ color: 'var(--text-tertiary)', fontSize: '13px', marginBottom: '12px' }}>No matches for "{customerSearch}"</p>
+                          <Link href="/customers/new" className="btn btn-sm btn-outline" style={{ borderStyle: 'dashed' }}>
+                            <UserPlus size={14} /> Add New Customer
+                          </Link>
                         </div>
-                      </div>
-                    </button>
-                  ))}
-                  {filteredCustomers.length === 0 && (
-                    <div style={{ padding: '16px', textAlign: 'center', color: 'var(--text-tertiary)', fontSize: '13px' }}>
-                      No customers found.{' '}
-                      <Link href="/customers/new" style={{ color: 'var(--gold)', fontWeight: 600 }}>
-                        Add new
-                      </Link>
+                      )}
                     </div>
                   )}
+                </>
+              ) : (
+                <div className="customer-profile-card">
+                  <div className="customer-avatar" style={{ width: '56px', height: '56px', fontSize: '20px', background: 'var(--brand-primary)', color: 'white', boxShadow: 'var(--shadow-brand)' }}>
+                    {selectedCustomer.name.charAt(0)}
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                      <h4 style={{ margin: 0, fontSize: '18px', fontWeight: 700, color: 'var(--brand-deep)' }}>{selectedCustomer.name}</h4>
+                      <span style={{ 
+                        padding: '2px 8px', 
+                        background: 'var(--status-active-bg)', 
+                        color: 'var(--brand-deep)', 
+                        fontSize: '10px', 
+                        fontWeight: 800, 
+                        borderRadius: 'var(--radius-full)',
+                        textTransform: 'uppercase'
+                      }}>
+                        Verified User
+                      </span>
+                    </div>
+                    <div style={{ display: 'flex', gap: '16px', color: 'var(--text-secondary)', fontSize: '13px' }}>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <RefreshCcw size={12} /> {selectedCustomer.phone}
+                      </span>
+                      <span>{selectedCustomer.city}, {(selectedCustomer.primaryIdType || 'ID').toUpperCase()}: {selectedCustomer.primaryIdNumber}</span>
+                    </div>
+                  </div>
+                  <button 
+                    className="btn btn-sm btn-outline" 
+                    onClick={() => {
+                      setSelectedCustomerId('');
+                      setCustomerSearch('');
+                    }}
+                    style={{ background: 'white' }}
+                  >
+                    Change Customer
+                  </button>
                 </div>
               )}
             </div>
 
-            {selectedCustomer && (
-              <div
-                style={{
-                  display: 'flex',
-                  gap: '24px',
-                  padding: '12px 16px',
-                  background: 'var(--bg-input)',
-                  borderRadius: 'var(--radius-md)',
-                  fontSize: '13px',
-                }}
-              >
-                <div>
-                  <span style={{ color: 'var(--text-tertiary)' }}>Phone:</span>{' '}
-                  <strong>{selectedCustomer.phone}</strong>
-                </div>
-                {selectedCustomer.primaryIdNumber && (
-                  <div>
-                    <span style={{ color: 'var(--text-tertiary)' }}>{selectedCustomer.primaryIdType.toUpperCase()}:</span>{' '}
-                    <strong>{selectedCustomer.primaryIdNumber}</strong>
-                  </div>
-                )}
-                <div>
-                  <span style={{ color: 'var(--text-tertiary)' }}>City:</span>{' '}
-                  <strong>{selectedCustomer.city}</strong>
-                </div>
-              </div>
-            )}
           </div>
 
           {/* Pledge Items */}
           <div className="form-card">
-            <div className="form-card-title">
-              <Gem size={20} /> Pledge Items
+            <div className="form-card-title" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Gem size={20} /> Pledge Items
+              </div>
+              <RealTimeRateSync 
+                compact 
+                onSync={(rates) => {
+                  setGoldRate(rates.gold22k); // Syncing 22K specifically for loan valuation
+                  setSilverRate(rates.silver);
+                }} 
+              />
             </div>
 
             <div style={{ overflowX: 'auto' }}>
@@ -546,31 +761,22 @@ function NewLoanContent() {
                         </select>
                       </td>
                       <td>
-                        <input
-                          type="number"
-                          className="form-input"
-                          placeholder="0.00"
+                        <WeightInput
                           value={item.grossWeight}
-                          onChange={(e) =>
-                            updateItem(index, 'grossWeight', e.target.value)
-                          }
-                          step="0.01"
-                          min="0"
-                          style={{ width: '90px' }}
+                          onChange={(val) => updateItem(index, 'grossWeight', val)}
+                          onStep={(delta) => handleStepChange(index, 'grossWeight', delta)}
+                          metalType={item.metalType}
+                          placeholder="0.00"
                         />
                       </td>
                       <td>
-                        <input
-                          type="number"
-                          className="form-input"
-                          placeholder="0.00"
+                        <WeightInput
                           value={item.netWeight}
-                          onChange={(e) =>
-                            updateItem(index, 'netWeight', e.target.value)
-                          }
-                          step="0.01"
-                          min="0"
-                          style={{ width: '90px' }}
+                          onChange={(val) => updateItem(index, 'netWeight', val)}
+                          onStep={(delta) => handleStepChange(index, 'netWeight', delta)}
+                          metalType={item.metalType}
+                          placeholder="0.00"
+                          isWarning={(parseFloat(item.netWeight) || 0) > (parseFloat(item.grossWeight) || 0)}
                         />
                       </td>
                       <td>
@@ -607,14 +813,52 @@ function NewLoanContent() {
                         </span>
                       </td>
                       <td style={{ textAlign: 'center' }}>
-                        <button 
-                          className="btn btn-ghost"
-                          onClick={() => handleCapturePhoto(index)}
-                          title="Capture/Upload Item Photo"
-                          style={{ padding: '6px', minWidth: 'auto', color: item.photoBase64 ? 'var(--status-active)' : 'var(--text-tertiary)' }}
+                        <div 
+                          className={`photo-dropzone ${dragIndex === index ? 'active' : ''}`}
+                          onDragOver={(e) => { e.preventDefault(); setDragIndex(index); }}
+                          onDragLeave={() => setDragIndex(null)}
+                          onDrop={(e) => handleDrop(e, index)}
+                          onClick={() => !item.photoBase64 && handleCapturePhoto(index)}
+                          style={{ position: 'relative' }}
                         >
-                          {item.photoBase64 ? <CheckCircle2 size={16} /> : <Camera size={16} />}
-                        </button>
+                          {activeMenuIndex === index && !item.photoBase64 && (
+                            <div className="photo-action-menu" onClick={e => e.stopPropagation()}>
+                              <button className="action-option" onClick={() => triggerPhotoSource(index, 'camera')}>
+                                <Camera size={14} /> Take Photo
+                              </button>
+                              <button className="action-option" onClick={() => triggerPhotoSource(index, 'gallery')}>
+                                <ImageIcon size={14} /> From Gallery
+                              </button>
+                            </div>
+                          )}
+
+                          {item.photoBase64 ? (
+                            <>
+                              <img 
+                                src={item.photoBase64} 
+                                alt="Item preview" 
+                                className="mini-thumbnail" 
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setPreviewImage(item.photoBase64 || null);
+                                }}
+                              />
+                              <button 
+                                className="remove-photo-badge"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  const updated = [...items];
+                                  updated[index].photoBase64 = '';
+                                  setItems(updated);
+                                }}
+                              >
+                                <X size={10} />
+                              </button>
+                            </>
+                          ) : (
+                            <Camera size={18} />
+                          )}
+                        </div>
                       </td>
                       <td>
                         <button
@@ -655,19 +899,25 @@ function NewLoanContent() {
 
             <div className="form-row">
               <div className="form-group">
-                <label className="form-label">LTV %</label>
+                <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  LTV % {!canOverrideLtv && <Lock size={12} color="var(--text-tertiary)" />}
+                </label>
                 <input
                   type="number"
-                  className="form-input"
+                  className={`form-input ${(parseFloat(ltvPercent) || 0) > 75 ? 'warning' : ''}`}
                   value={ltvPercent}
                   onChange={(e) => setLtvPercent(e.target.value)}
                   min="0"
                   max="100"
                   disabled={!canOverrideLtv}
-                  title={!canOverrideLtv ? "Managed by shop policy" : ""}
+                  title={!canOverrideLtv ? "Managed by shop policy" : (parseFloat(ltvPercent) > 75 ? "Exceeds standard 75% Bank LTV" : "")}
+                  style={{
+                    borderColor: (parseFloat(ltvPercent) || 0) > 75 ? '#f59e0b' : '',
+                    backgroundColor: (parseFloat(ltvPercent) || 0) > 85 ? '#fee2e2' : ''
+                  }}
                 />
-                <span className="form-helper">
-                  Auto loan: {formatCurrency(computedLoanAmount)}
+                <span className="form-helper" style={{ color: (parseFloat(ltvPercent) || 0) > 75 ? '#d97706' : '' }}>
+                  {parseFloat(ltvPercent) > 85 ? '✖ Above RBI Limit (85%)' : (parseFloat(ltvPercent) > 75 ? '⚠ High LTV Warning' : `Auto loan: ${formatCurrency(computedLoanAmount)}`)}
                 </span>
               </div>
               <div className="form-group">
@@ -699,17 +949,28 @@ function NewLoanContent() {
                 </select>
               </div>
               <div className="form-group">
-                <label className="form-label">Interest Rate (% / month)</label>
+                <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  Interest Rate (% / month) {!canOverrideInterest && <Lock size={12} color="var(--text-tertiary)" />}
+                </label>
                 <input
                   type="number"
-                  className="form-input"
+                  className={`form-input ${(parseFloat(interestRate) || 0) > 1.5 ? 'warning' : ''}`}
                   value={interestRate}
                   onChange={(e) => setInterestRate(e.target.value)}
                   step="0.1"
                   min="0"
                   disabled={!canOverrideInterest}
-                  title={!canOverrideInterest ? "Managed by shop policy" : ""}
+                  title={!canOverrideInterest ? "Managed by shop policy" : (parseFloat(interestRate) > 1.5 ? "Exceeds State Money Lending Cap (1.5%)" : "")}
+                  style={{
+                    borderColor: (parseFloat(interestRate) || 0) > 1.5 ? '#f59e0b' : '',
+                    boxShadow: (parseFloat(interestRate) || 0) > 2 ? '0 0 0 2px rgba(245, 158, 11, 0.2)' : ''
+                  }}
                 />
+                {(parseFloat(interestRate) || 0) > 1.5 && (
+                  <span className="form-helper" style={{ color: '#d97706', fontSize: '11px', display: 'block', marginTop: '4px' }}>
+                    {parseFloat(interestRate) > 2 ? '⚠ High Interest Alert' : '⚠ Near State Cap (1.5%)'}
+                  </span>
+                )}
               </div>
               <div className="form-group">
                 <label className="form-label">Tenure (months)</label>
@@ -744,12 +1005,12 @@ function NewLoanContent() {
             </Link>
             <button 
               className="btn btn-gold" 
-              onClick={() => handleSave()}
+              onClick={handleReviewQuote}
               disabled={saving || !enforcement.allowed}
               id="save-loan-btn"
             >
-              <Save size={18} />
-              {saving ? 'Saving...' : 'Create Loan'}
+              <CircleDollarSign size={18} />
+              Review & Payout
             </button>
           </div>
         </div>
@@ -765,9 +1026,42 @@ function NewLoanContent() {
             <span className="loan-summary-value">{items.filter((i) => parseFloat(i.netWeight) > 0).length}</span>
           </div>
           <div className="loan-summary-row">
-            <span className="loan-summary-label">Total Weight</span>
-            <span className="loan-summary-value gold">{formatWeight(totalWeight)}</span>
+            <span className="loan-summary-label">
+              <span title="Total Machine Weight" style={{ borderBottom: '1px dotted var(--text-tertiary)', cursor: 'help' }}>Gross Weight</span>
+            </span>
+            <span className="loan-summary-value" style={{
+              fontWeight: 700,
+              color: 'var(--text-primary)',
+              maxWidth: '150px',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+              textAlign: 'right'
+            }}>{formatWeight(totalGrossWeight)}</span>
           </div>
+
+          <div className="loan-summary-row" style={{ marginBottom: isMixed ? '8px' : '16px' }}>
+            <span className="loan-summary-label">
+              <span title="Total Metal Weight (Appraisable)" style={{ borderBottom: '1px dotted var(--brand-primary)', cursor: 'help' }}>Net Weight</span>
+            </span>
+            <span className="loan-summary-value gold" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+              {isMixed ? formatWeight(totalWeight) : (hasGold ? '🥇 ' : '🥈 ') + formatWeight(totalWeight)}
+            </span>
+          </div>
+
+          {isMixed && (
+            <div style={{ padding: '8px 12px', background: 'var(--bg-primary)', borderRadius: 'var(--radius-md)', marginBottom: '16px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px' }}>
+                <span style={{ color: 'var(--text-tertiary)' }}>🥇 Gold Total:</span>
+                <span style={{ fontWeight: 600 }}>{formatWeight(goldWeight)} ({formatCurrency(goldValue)})</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px' }}>
+                <span style={{ color: 'var(--text-tertiary)' }}>🥈 Silver Total:</span>
+                <span style={{ fontWeight: 600 }}>{formatWeight(silverWeight)} ({formatCurrency(silverValue)})</span>
+              </div>
+            </div>
+          )}
+
           <div className="loan-summary-row">
             <span className="loan-summary-label">Appraised Value</span>
             <span className="loan-summary-value">{formatCurrency(totalValue)}</span>
@@ -777,7 +1071,7 @@ function NewLoanContent() {
             <span className="loan-summary-value">{formatCurrency(computedLoanAmount)}</span>
           </div>
 
-          <div style={{ margin: '16px 0', borderTop: '1px solid rgba(255,255,255,0.1)' }} />
+          <div style={{ margin: '16px 0', borderTop: '1px solid var(--border-light)' }} />
 
           <div className="loan-summary-row">
             <span className="loan-summary-label">Loan Amount</span>
@@ -799,7 +1093,7 @@ function NewLoanContent() {
           <div className="loan-summary-total">
             <div className="loan-summary-row">
               <span className="loan-summary-label">Maturity Amount</span>
-              <span className="loan-summary-value" style={{ fontSize: '22px', color: '#E8C973' }}>
+              <span className="loan-summary-value" style={{ fontSize: '22px', color: 'var(--brand-deep)' }}>
                 {formatCurrency(maturityAmount)}
               </span>
             </div>
@@ -809,11 +1103,12 @@ function NewLoanContent() {
             style={{
               marginTop: '16px',
               padding: '10px 12px',
-              background: 'rgba(212, 168, 67, 0.15)',
+              background: 'var(--status-active-bg)',
               borderRadius: 'var(--radius-md)',
               fontSize: '12px',
-              color: '#E8C973',
+              color: 'var(--brand-primary)',
               lineHeight: 1.5,
+              border: '1px solid var(--brand-glow)'
             }}
           >
             💡 Gold Rate: {formatCurrency(settings?.goldRate24K || 7200)}/g (24K) •
@@ -893,6 +1188,99 @@ function NewLoanContent() {
           animation: pulse 2s infinite;
         }
       `}</style>
+      {/* Lightbox Preview */}
+      {previewImage && (
+        <div className="lightbox-overlay" onClick={() => setPreviewImage(null)}>
+          <div className="lightbox-content" onClick={e => e.stopPropagation()}>
+            <button className="lightbox-close" onClick={() => setPreviewImage(null)}>
+              <X size={20} /> Close Preview
+            </button>
+            <img src={previewImage} alt="Fullscreen preview" className="lightbox-image" />
+          </div>
+        </div>
+      )}
+      {isPayoutStage && (
+        <div className="modal-overlay" style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(18, 31, 29, 0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+          zIndex: 1100, backdropFilter: 'blur(8px)'
+        }}>
+          <div className="card" style={{ width: '500px', maxWidth: '95%', border: '1px solid var(--brand-primary)', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)' }}>
+            <div className="card-header" style={{ background: 'var(--brand-primary)', color: 'white' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <CircleDollarSign size={20} /> 
+                <h3 style={{ color: 'white', margin: 0 }}>Finalize Disbursement</h3>
+              </div>
+            </div>
+            <div className="card-body" style={{ padding: '24px' }}>
+              <div style={{ marginBottom: '20px', padding: '16px', background: 'var(--status-active-bg)', borderRadius: 'var(--radius-md)', border: '1px solid var(--brand-glow)' }}>
+                <div style={{ fontSize: '12px', color: 'var(--brand-primary)', fontWeight: 600, marginBottom: '4px' }}>TOTAL LOAN AMOUNT</div>
+                <div style={{ fontSize: '28px', fontWeight: 800, color: 'var(--brand-deep)' }}>{formatCurrency(finalLoanAmount)}</div>
+              </div>
+
+              <div className="form-group" style={{ marginBottom: '20px' }}>
+                <label className="form-label" style={{ fontWeight: 700 }}>disbursement Method</label>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px', marginTop: '8px' }}>
+                  {(['cash', 'bank', 'upi'] as const).map(method => (
+                    <button
+                      key={method}
+                      onClick={() => setPayoutMethod(method)}
+                      style={{
+                        padding: '12px 8px',
+                        borderRadius: 'var(--radius-md)',
+                        border: '1.5px solid',
+                        borderColor: payoutMethod === method ? 'var(--brand-primary)' : 'var(--border)',
+                        background: payoutMethod === method ? 'var(--status-active-bg)' : 'white',
+                        color: payoutMethod === method ? 'var(--brand-deep)' : 'var(--text-secondary)',
+                        fontWeight: 700,
+                        fontSize: '12px',
+                        textTransform: 'capitalize',
+                        transition: 'all 0.2s',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        gap: '4px'
+                      }}
+                    >
+                      {method === 'cash' && <CircleDollarSign size={18} />}
+                      {method === 'bank' && <Building2 size={18} />}
+                      {method === 'upi' && <Gem size={18} />}
+                      {method}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {payoutMethod !== 'cash' && (
+                <div className="form-group" style={{ marginBottom: '24px' }}>
+                  <label className="form-label" style={{ fontWeight: 700 }}>
+                    {payoutMethod === 'bank' ? 'Bank Name / Reference #' : 'UPI Transaction ID'}
+                  </label>
+                  <input
+                    className="form-input"
+                    value={payoutReference}
+                    onChange={e => setPayoutReference(e.target.value)}
+                    placeholder={payoutMethod === 'bank' ? 'e.g. HDFC NEFT #12345' : 'e.g. UPI#987654321'}
+                    autoFocus
+                  />
+                </div>
+              )}
+
+              <div style={{ display: 'flex', gap: '12px', marginTop: '32px' }}>
+                <button className="btn btn-outline" style={{ flex: 1 }} onClick={() => setIsPayoutStage(false)}>Back</button>
+                <button 
+                  className="btn btn-gold" 
+                  style={{ flex: 2 }} 
+                  onClick={() => handleSave(true)}
+                  disabled={saving}
+                >
+                  <Save size={18} /> {saving ? 'Finalizing...' : 'Confirm Disbursement'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }

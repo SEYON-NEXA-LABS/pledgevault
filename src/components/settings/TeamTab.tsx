@@ -11,7 +11,12 @@ import {
   X,
   Loader2,
   AlertCircle,
-  Building2
+  Building2,
+  Eye,
+  Edit2,
+  Power,
+  CheckCircle2,
+  MoreVertical
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase/client';
 import { addStaffMemberAction, removeStaffMemberAction } from '@/app/settings/team/actions';
@@ -22,7 +27,9 @@ import { supabaseService } from '@/lib/supabase/service';
 export default function TeamTab() {
   const [team, setTeam] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showModal, setShowModal] = useState(false);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [editingMember, setEditingMember] = useState<any | null>(null);
+  const [viewingMember, setViewingMember] = useState<any | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [branches, setBranches] = useState<any[]>([]);
@@ -41,11 +48,8 @@ export default function TeamTab() {
 
     setLoading(true);
     try {
-      // 1. Fetch available branches for the form
       const branchData = await supabaseService.getBranches(auth.firmId);
       setBranches(branchData);
-
-      // 2. Fetch team using modernized service
       const teamData = await supabaseService.getFirmTeam(auth.firmId);
       setTeam(teamData);
     } catch (err) {
@@ -66,13 +70,42 @@ export default function TeamTab() {
 
     const result = await addStaffMemberAction(formData);
     if (result.success) {
-      setShowModal(false);
+      setShowAddModal(false);
       setFormData({ fullName: '', email: '', password: '', branchId: '', role: 'staff' });
       fetchTeam();
     } else {
       setError(result.error);
     }
     setSubmitting(false);
+  };
+
+  const handleToggleStatus = async (member: any) => {
+    try {
+      const newStatus = !member.isActive;
+      await supabaseService.updateMemberStatus(member.id, newStatus);
+      setTeam(prev => prev.map(m => m.id === member.id ? { ...m, isActive: newStatus } : m));
+    } catch (err) {
+      alert('Failed to update status');
+    }
+  };
+
+  const handleUpdateMember = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingMember) return;
+    setSubmitting(true);
+    try {
+      await supabaseService.updateMemberProfile(editingMember.id, {
+        full_name: editingMember.fullName,
+        role: editingMember.role,
+        default_branch_id: editingMember.defaultBranchId || null
+      });
+      setEditingMember(null);
+      fetchTeam();
+    } catch (err) {
+      alert('Failed to update member');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const handleRemove = async (id: string, name: string) => {
@@ -93,82 +126,111 @@ export default function TeamTab() {
           <h3 style={{ margin: 0 }}>Team & Access</h3>
           <p style={{ color: 'var(--text-tertiary)', fontSize: '14px', margin: '4px 0 0 0' }}>Manage staff accounts and permissions</p>
         </div>
-        <button className="btn btn-teal" onClick={() => setShowModal(true)}>
+        <button className="btn btn-teal" onClick={() => setShowAddModal(true)}>
           <UserPlus size={18} /> Add Team Member
         </button>
       </div>
 
-      <div className="team-grid">
-        {loading ? (
-          [1, 2, 3].map(i => <div key={i} className="member-skeleton pulse" style={{ height: '180px', background: 'var(--bg-input)', borderRadius: '24px' }} />)
-        ) : (
-          team.map(member => (
-            <div key={member.id} className="member-card card" style={{ borderRadius: '24px' }}>
-              <div className="member-top" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
-                <div className="member-avatar" style={{ 
-                  width: '44px', height: '44px', 
-                  background: 'var(--status-active-bg)', 
-                  color: 'var(--primary-teal-dark)', 
-                  borderRadius: '14px', 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  justifyContent: 'center', 
-                  fontWeight: '800',
-                  fontSize: '18px'
-                }}>
-                  {member.fullName?.[0] || '?'}
-                </div>
-                <div className={`role-badge ${member.role}`} style={{ 
-                  padding: '6px 12px', borderRadius: '10px', fontSize: '10px', fontWeight: '900', display: 'flex', alignItems: 'center', gap: '6px',
-                  background: member.role === 'manager' ? 'var(--sidebar-bg-dark)' : 'var(--bg-primary)',
-                  color: member.role === 'manager' ? 'var(--primary-brand)' : 'var(--text-tertiary)',
-                  border: `1px solid ${member.role === 'manager' ? 'var(--primary-brand)' : 'var(--border-light)'}`
-                }}>
-                   {member.role === 'manager' ? <Shield size={12} /> : <User size={12} />}
-                   {member.role === 'manager' ? 'MANAGER' : 'STAFF'}
-                </div>
-              </div>
-              
-              <div className="member-info">
-                <h4 style={{ margin: '0 0 6px 0', fontSize: '16px', fontWeight: '800' }}>{member.fullName}</h4>
-                {member.email ? (
-                  <div style={{ fontSize: '13px', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <Mail size={14} style={{ opacity: 0.7 }} /> {member.email}
-                  </div>
-                ) : (
-                  <div style={{ fontSize: '12px', color: 'var(--text-tertiary)', fontStyle: 'italic', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <Mail size={14} style={{ opacity: 0.4 }} /> Email hidden for privacy
-                  </div>
-                )}
-                <div style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginTop: '12px', display: 'flex', alignItems: 'center', gap: '8px', background: 'var(--bg-primary)', padding: '6px 10px', borderRadius: '8px', width: 'fit-content' }}>
-                  <Building2 size={13} style={{ color: 'var(--primary-brand)' }} /> {member.branches?.name || 'Firm Overview'}
-                </div>
-              </div>
-
-              <div className="member-footer" style={{ marginTop: '20px', paddingTop: '16px', borderTop: '1px solid var(--border-light)' }}>
-                {member.role !== 'manager' ? (
-                  <button 
-                    className="btn-text-danger" 
-                    style={{ background: 'transparent', border: 'none', color: '#ff4d4f', fontSize: '12px', fontWeight: '700', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', padding: 0 }}
-                    onClick={() => handleRemove(member.id, member.fullName)}
-                  >
-                    <Trash2 size={14} /> Remove Member
-                  </button>
-                ) : (
-                  <span style={{ fontSize: '11px', color: 'var(--text-tertiary)', fontWeight: '600' }}>Primary Account Holder</span>
-                )}
-              </div>
-            </div>
-          ))
-        )}
+      <div className="card" style={{ padding: 0, borderRadius: '24px', overflow: 'hidden' }}>
+        <div style={{ overflowX: 'auto' }}>
+          <table className="data-table">
+            <thead>
+              <tr>
+                <th>Member</th>
+                <th>Role</th>
+                <th>Branch</th>
+                <th>Status</th>
+                <th style={{ textAlign: 'right' }}>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {loading ? (
+                [1,2,3].map(i => (
+                  <tr key={i}><td colSpan={5}><div className="skeleton pulse" style={{ height: '40px', margin: '10px 0' }} /></td></tr>
+                ))
+              ) : team.map(member => (
+                <tr key={member.id} style={{ opacity: member.isActive === false ? 0.6 : 1 }}>
+                  <td>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                      <div style={{ 
+                        width: '36px', height: '36px', 
+                        background: member.isActive === false ? 'var(--bg-input)' : 'var(--status-active-bg)', 
+                        color: member.isActive === false ? 'var(--text-tertiary)' : 'var(--primary-teal-dark)', 
+                        borderRadius: '10px', 
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', 
+                        fontWeight: '800', fontSize: '14px'
+                      }}>
+                        {member.fullName?.[0] || '?'}
+                      </div>
+                      <div>
+                        <div style={{ fontWeight: 700, fontSize: '14px' }}>{member.fullName}</div>
+                        <div style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>{member.email || 'No email'}</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td>
+                    <div className={`role-badge ${member.role}`} style={{ 
+                      padding: '4px 10px', borderRadius: '8px', fontSize: '9px', fontWeight: '900', display: 'flex', alignItems: 'center', gap: '4px',
+                      background: member.role === 'manager' ? 'var(--sidebar-bg-dark)' : 'var(--bg-primary)',
+                      color: member.role === 'manager' ? 'var(--primary-brand)' : 'var(--text-tertiary)',
+                      border: `1px solid ${member.role === 'manager' ? 'var(--primary-brand)' : 'var(--border-light)'}`,
+                      width: 'fit-content'
+                    }}>
+                       {member.role === 'manager' ? <Shield size={10} /> : <User size={10} />}
+                       {member.role.toUpperCase()}
+                    </div>
+                  </td>
+                  <td>
+                    <div style={{ fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <Building2 size={13} style={{ color: 'var(--primary-brand)' }} />
+                      {member.branches?.name || 'All Branches'}
+                    </div>
+                  </td>
+                  <td>
+                    <button 
+                      onClick={() => handleToggleStatus(member)}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        background: member.isActive === false ? '#fff1f0' : 'var(--status-active-bg)',
+                        color: member.isActive === false ? '#cf1322' : 'var(--status-active)',
+                        padding: '6px 12px',
+                        borderRadius: '20px',
+                        border: 'none',
+                        fontSize: '11px',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        transition: 'all 0.2s'
+                      }}
+                    >
+                      <Power size={12} />
+                      {member.isActive === false ? 'DISABLED' : 'ACTIVE'}
+                    </button>
+                  </td>
+                  <td style={{ textAlign: 'right' }}>
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+                      <button className="btn-icon-sm" onClick={() => setViewingMember(member)} title="View Details"><Eye size={16} /></button>
+                      <button className="btn-icon-sm" onClick={() => setEditingMember(member)} title="Edit Member"><Edit2 size={16} /></button>
+                      {member.role !== 'manager' && (
+                        <button className="btn-icon-sm danger" onClick={() => handleRemove(member.id, member.fullName)} title="Remove"><Trash2 size={16} /></button>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
 
-      {showModal && (
+      {/* Add Member Modal */}
+      {showAddModal && (
         <div className="modal-overlay">
           <div className="modal" style={{ maxWidth: '440px', borderRadius: '32px', padding: '32px' }}>
             <div className="modal-header" style={{ marginBottom: '24px' }}>
               <h3 style={{ fontSize: '24px', fontWeight: '800' }}>Add Team Member</h3>
-              <button className="btn-icon" onClick={() => setShowModal(false)}><X size={20} /></button>
+              <button className="btn-icon" onClick={() => setShowAddModal(false)}><X size={20} /></button>
             </div>
             <form onSubmit={handleAddMember}>
               <div className="modal-body" style={{ gap: '20px', display: 'flex', flexDirection: 'column' }}>
@@ -203,7 +265,7 @@ export default function TeamTab() {
                 </div>
               </div>
               <div className="modal-footer" style={{ marginTop: '32px', gap: '12px' }}>
-                <button type="button" className="btn btn-outline" onClick={() => setShowModal(false)}>Cancel</button>
+                <button type="button" className="btn btn-outline" onClick={() => setShowAddModal(false)}>Cancel</button>
                 <button type="submit" className="btn btn-teal" disabled={submitting}>
                   {submitting ? <Loader2 className="spin" size={18} /> : 'Invite Member'}
                 </button>
@@ -213,18 +275,111 @@ export default function TeamTab() {
         </div>
       )}
 
-      <style jsx>{`
-        .team-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-          gap: 24px;
-        }
-        .member-skeleton {
-          background: var(--bg-input);
-          animation: pulse 1.5s infinite;
-        }
-        @keyframes pulse { 0% { opacity: 0.6; } 50% { opacity: 1; } 100% { opacity: 0.6; } }
-      `}</style>
+      {/* Edit Member Modal */}
+      {editingMember && (
+        <div className="modal-overlay">
+          <div className="modal" style={{ maxWidth: '440px', borderRadius: '32px', padding: '32px' }}>
+            <div className="modal-header" style={{ marginBottom: '24px' }}>
+              <h3 style={{ fontSize: '24px', fontWeight: '800' }}>Edit Member</h3>
+              <button className="btn-icon" onClick={() => setEditingMember(null)}><X size={20} /></button>
+            </div>
+            <form onSubmit={handleUpdateMember}>
+              <div className="modal-body" style={{ gap: '20px', display: 'flex', flexDirection: 'column' }}>
+                <div className="form-group">
+                  <label className="form-label">Full Name</label>
+                  <input 
+                    className="form-input" 
+                    required 
+                    value={editingMember.fullName} 
+                    onChange={e => setEditingMember({...editingMember, fullName: e.target.value})} 
+                    style={{ borderRadius: '12px' }} 
+                  />
+                </div>
+                <div className="form-row">
+                  <div className="form-group">
+                    <label className="form-label">Role</label>
+                    <select 
+                      className="form-input" 
+                      value={editingMember.role} 
+                      onChange={e => setEditingMember({...editingMember, role: e.target.value as any})} 
+                      style={{ borderRadius: '12px' }}
+                    >
+                      <option value="staff">Staff Member</option>
+                      <option value="manager">Lead Manager</option>
+                    </select>
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Branch Access</label>
+                    <select 
+                      className="form-input" 
+                      value={editingMember.defaultBranchId || ''} 
+                      onChange={e => setEditingMember({...editingMember, defaultBranchId: e.target.value})} 
+                      style={{ borderRadius: '12px' }}
+                    >
+                      <option value="">Global Overview</option>
+                      {branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+                    </select>
+                  </div>
+                </div>
+              </div>
+              <div className="modal-footer" style={{ marginTop: '32px', gap: '12px' }}>
+                <button type="button" className="btn btn-outline" onClick={() => setEditingMember(null)}>Cancel</button>
+                <button type="submit" className="btn btn-teal" disabled={submitting}>
+                  {submitting ? <Loader2 className="spin" size={18} /> : 'Save Changes'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* View Member Modal */}
+      {viewingMember && (
+        <div className="modal-overlay">
+          <div className="modal" style={{ maxWidth: '440px', borderRadius: '32px', padding: '32px' }}>
+            <div className="modal-header" style={{ marginBottom: '24px' }}>
+              <h3 style={{ fontSize: '24px', fontWeight: '800' }}>Member Profile</h3>
+              <button className="btn-icon" onClick={() => setViewingMember(null)}><X size={20} /></button>
+            </div>
+            <div className="modal-body" style={{ gap: '24px', display: 'flex', flexDirection: 'column' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+                <div style={{ 
+                  width: '64px', height: '64px', borderRadius: '20px', 
+                  background: 'var(--status-active-bg)', color: 'var(--primary-teal-dark)', 
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', 
+                  fontSize: '24px', fontWeight: '800' 
+                }}>
+                  {viewingMember.fullName?.[0]}
+                </div>
+                <div>
+                  <h4 style={{ margin: 0, fontSize: '20px' }}>{viewingMember.fullName}</h4>
+                  <p style={{ margin: 0, color: 'var(--text-tertiary)', fontSize: '14px' }}>{viewingMember.email}</p>
+                </div>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                 <div style={{ padding: '16px', background: 'var(--bg-primary)', borderRadius: '16px' }}>
+                   <div style={{ fontSize: '11px', color: 'var(--text-tertiary)', fontWeight: 700, marginBottom: '4px' }}>ROLE</div>
+                   <div style={{ fontSize: '14px', fontWeight: 700, textTransform: 'capitalize' }}>{viewingMember.role}</div>
+                 </div>
+                 <div style={{ padding: '16px', background: 'var(--bg-primary)', borderRadius: '16px' }}>
+                   <div style={{ fontSize: '11px', color: 'var(--text-tertiary)', fontWeight: 700, marginBottom: '4px' }}>MEMBER SINCE</div>
+                   <div style={{ fontSize: '14px', fontWeight: 700 }}>{formatDate(viewingMember.createdAt)}</div>
+                 </div>
+                 <div style={{ padding: '16px', background: 'var(--bg-primary)', borderRadius: '16px', gridColumn: 'span 2' }}>
+                   <div style={{ fontSize: '11px', color: 'var(--text-tertiary)', fontWeight: 700, marginBottom: '4px' }}>ASSIGNED BRANCH</div>
+                   <div style={{ fontSize: '14px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                     <Building2 size={16} style={{ color: 'var(--primary-brand)' }} />
+                     {viewingMember.branches?.name || 'All Branches'}
+                   </div>
+                 </div>
+              </div>
+            </div>
+            <div className="modal-footer" style={{ marginTop: '32px' }}>
+              <button className="btn btn-teal" style={{ width: '100%' }} onClick={() => setViewingMember(null)}>Close Profile</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

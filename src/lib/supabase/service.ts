@@ -1,4 +1,5 @@
 import { supabase } from './client';
+import { DEFAULT_SETTINGS, generateLoanNumber } from '../constants';
 import { Customer, Loan, Payment, ShopSettings, Branch, DashboardStats, Subscription, BrandingConfig } from '../types';
 
 // Simple snake_case to camelCase mapper
@@ -43,10 +44,12 @@ export const supabaseService = {
     if (error) throw error;
 
     // Fallback: If this is the current logged in user, fetch their email from Auth
-    const { data: { user } } = await supabase.auth.getUser();
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
     let email = null;
     if (user && user.id === userId) {
       email = user.email;
+    } else if (authError && authError.name === 'AuthApiError' && (authError as any).code === 'refresh_token_not_found') {
+      console.warn('Session expired during profile fetch');
     }
 
     return {
@@ -71,12 +74,33 @@ export const supabaseService = {
     const { data, error } = await supabase
       .from('profiles')
       .select(`
-        id, full_name, role, default_branch_id, created_at,
+        id, full_name, role, default_branch_id, is_active, created_at,
         branches:default_branch_id (id, name)
       `)
       .eq('firm_id', firmId)
       .order('role', { ascending: false });
     
+    if (error) throw error;
+    return toCamel(data);
+  },
+
+  async updateMemberStatus(userId: string, isActive: boolean) {
+    const { error } = await supabase
+      .from('profiles')
+      .update({ is_active: isActive })
+      .eq('id', userId);
+    if (error) throw error;
+    return true;
+  },
+
+  async updateMemberProfile(userId: string, updates: any) {
+    const dbUpdates = toSnake(updates);
+    const { data, error } = await supabase
+      .from('profiles')
+      .update(dbUpdates)
+      .eq('id', userId)
+      .select()
+      .single();
     if (error) throw error;
     return toCamel(data);
   },
@@ -97,7 +121,7 @@ export const supabaseService = {
   async getCustomerWithDetails(id: string) {
     const { data, error } = await supabase
       .from('customers')
-      .select('id, firm_id, name, phone, email, address, city, state, pincode, id_type, id_number, photo_url, notes, created_at, created_by')
+      .select('id, firm_id, name, phone, email, address, city, state, pincode, primary_id_type, primary_id_number, selfie_photo, created_at, created_by')
       .eq('id', id)
       .single();
     if (error) throw error;
@@ -105,10 +129,13 @@ export const supabaseService = {
   },
 
   async createCustomer(customer: Omit<Customer, 'id'>) {
-    const { data: { user } } = await supabase.auth.getUser();
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) {
+      throw new Error('Authentication required to create a customer. Session may have expired.');
+    }
     const { data, error } = await supabase
       .from('customers')
-      .insert([{ ...customer, created_by: user?.id }])
+      .insert([{ ...customer, created_by: user.id }])
       .select()
       .single();
     if (error) throw error;
@@ -178,7 +205,10 @@ export const supabaseService = {
   },
 
   async createLoan(loan: Omit<Loan, 'id'>) {
-    const { data: { user } } = await supabase.auth.getUser();
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) {
+      throw new Error('Authentication required to create a loan.');
+    }
 
     // Separate items from loan data for insertion
     const { items, ...loanData } = loan as any;
@@ -199,7 +229,7 @@ export const supabaseService = {
       .insert([{ 
         ...loanData, 
         loan_number: formattedNumber, // Override with structured ID
-        created_by: user?.id 
+        created_by: user.id 
       }])
       .select()
       .single();
@@ -211,7 +241,7 @@ export const supabaseService = {
       const itemsToInsert = items.map((item: any) => ({
         ...item,
         loan_id: newLoan.id,
-        created_by: user?.id
+        created_by: user.id
       }));
       const { error: itemsError } = await supabase
         .from('loan_items')
@@ -234,10 +264,15 @@ export const supabaseService = {
   },
 
   async createPayment(payment: Omit<Payment, 'id'>) {
-    const { data: { user } } = await supabase.auth.getUser();
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) {
+      console.warn('Auth Error in createPayment:', authError?.message || 'No user session');
+      throw new Error('Authentication required to create a payment. Please sign in again.');
+    }
+    
     const { data, error } = await supabase
       .from('payments')
-      .insert([{ ...payment, created_by: user?.id }])
+      .insert([{ ...payment, created_by: user.id }])
       .select()
       .single();
     if (error) throw error;
@@ -246,70 +281,96 @@ export const supabaseService = {
 
   // ---- Settings ----
   async getSettings() {
-    const { data, error } = await supabase
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) return null;
+    
+    const profile = await this.getUserProfile(user.id);
+    const firmId = profile?.firmId;
+
+    if (!firmId) return null;
+
+    // 1. Fetch Firm Info (Name & branding_config for White-Labeling)
+    const { data: firm } = await supabase
+      .from('firms')
+      .select('id, name, branding_config')
+      .eq('id', firmId)
+      .single();
+
+    // 2. Fetch Shop Settings
+    const { data: shopData, error: shopError } = await supabase
       .from('shop_settings')
-      .select(`
-        firm_id, 
-        shop_address, 
-        shop_phone, 
-        license_number, 
-        gold_rate_24k, 
-        silver_rate_999, 
-        default_ltv_gold, 
-        default_ltv_silver, 
-        default_interest_rate, 
-        default_interest_mode, 
-        default_tenure, 
-        loan_number_prefix, 
-        loan_number_counter, 
-        active_branch_id, 
-        firms(name)
-      `)
+      .select('*')
+      .eq('firm_id', firmId)
       .single();
     
-    if (error) {
-      console.error('CRITICAL: Error fetching shop_settings:', {
-        code: error.code,
-        message: error.message,
-        details: error.details,
-        hint: error.hint
-      });
-      return null;
-    }
-
-    // Map fetched join data to our ShopSettings structure
-    const firmData = (data as any).firms;
-
-    // Fetch branches for this firm
+    // 3. Fetch Branches
     const { data: branches } = await supabase
       .from('branches')
-      .select('id, firm_id, name, code, location, is_active')
-      .eq('firm_id', data.firm_id);
-    
+      .select('id, firm_id, name, code, location, is_active, license_number')
+      .eq('firm_id', firmId);
+
+    // If no shop settings exist yet, return defaults
+    if (shopError || !shopData) {
+      return {
+        ...DEFAULT_SETTINGS,
+        firmId: firmId,
+        shopName: firm?.name || DEFAULT_SETTINGS.shopName,
+        branches: branches ? toCamel(branches) : [],
+        brandingConfig: toCamel(firm?.branding_config || {}),
+      } as ShopSettings;
+    }
+
     return {
-      firmId: data.firm_id,
-      shopName: firmData?.name || 'My Shop',
-      shopAddress: data.shop_address,
-      shopPhone: data.shop_phone,
-      licenseNumber: data.license_number,
-      goldRate24K: data.gold_rate_24k,
-      silverRate999: data.silver_rate_999,
-      defaultLtvGold: data.default_ltv_gold,
-      defaultLtvSilver: data.default_ltv_silver,
-      defaultInterestRate: data.default_interest_rate,
-      defaultInterestMode: data.default_interest_mode,
-      defaultTenure: data.default_tenure,
-      loanNumberPrefix: data.loan_number_prefix,
-      loanNumberCounter: data.loan_number_counter,
-      activeBranchId: data.active_branch_id,
+      firmId: shopData.firm_id,
+      shopName: shopData.shop_name || firm?.name || DEFAULT_SETTINGS.shopName,
+      shopAddress: shopData.shop_address,
+      shopPhone: shopData.shop_phone,
+      licenseNumber: shopData.license_number,
+      gstNumber: shopData.gst_number,
+      registrationNumber: shopData.registration_number,
+      goldRate24K: shopData.gold_rate_24k,
+      silverRate999: shopData.silver_rate_999,
+      defaultLtvGold: shopData.default_ltv_gold,
+      defaultLtvSilver: shopData.default_ltv_silver,
+      defaultInterestRate: shopData.default_interest_rate,
+      defaultInterestMode: shopData.default_interest_mode,
+      defaultTenure: shopData.default_tenure,
+      loanNumberPrefix: shopData.loan_number_prefix,
+      loanNumberCounter: shopData.loan_number_counter,
+      activeBranchId: shopData.active_branch_id,
       branches: branches ? toCamel(branches) : [],
+      brandingConfig: toCamel(firm?.branding_config || {}),
     } as ShopSettings;
+  },
+
+  async getLatestMarketRates() {
+    const { data, error } = await supabase
+      .from('market_rates')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+      
+    if (error) throw error;
+    return data;
+  },
+
+  async addMarketRateEntry(gold: number, silver: number) {
+    const { data, error } = await supabase
+      .from('market_rates')
+      .insert([{ gold_24k: gold, silver: silver }])
+      .select()
+      .single();
+    
+    if (error) throw error;
+    return data;
   },
 
   async updateSettings(settings: Partial<ShopSettings>) {
     // 1. Get current firm context
-    const { data: { user } } = await supabase.auth.getUser();
-    const profile = await this.getUserProfile(user?.id || '');
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) throw new Error('Unauthenticated or session expired');
+    const profile = await this.getUserProfile(user.id);
     const firmId = profile?.firmId;
 
     if (!firmId) throw new Error('Unauthenticated or firm missing');
@@ -328,6 +389,8 @@ export const supabaseService = {
     if (settings.shopAddress !== undefined) mapped.shop_address = settings.shopAddress;
     if (settings.shopPhone !== undefined) mapped.shop_phone = settings.shopPhone;
     if (settings.licenseNumber !== undefined) mapped.license_number = settings.licenseNumber;
+    if (settings.gstNumber !== undefined) mapped.gst_number = settings.gstNumber;
+    if (settings.registrationNumber !== undefined) mapped.registration_number = settings.registrationNumber;
     if (settings.goldRate24K !== undefined) mapped.gold_rate_24k = settings.goldRate24K;
     if (settings.silverRate999 !== undefined) mapped.silver_rate_999 = settings.silverRate999;
     if (settings.defaultLtvGold !== undefined) mapped.default_ltv_gold = settings.defaultLtvGold;
@@ -338,6 +401,11 @@ export const supabaseService = {
     if (settings.loanNumberPrefix !== undefined) mapped.loan_number_prefix = settings.loanNumberPrefix;
     if (settings.loanNumberCounter !== undefined) mapped.loan_number_counter = settings.loanNumberCounter;
     if (settings.activeBranchId !== undefined) mapped.active_branch_id = settings.activeBranchId;
+    
+    // Final Sanitization: "firm", "", or null/undefined must all be NULL for the UUID column
+    if (!mapped.active_branch_id || mapped.active_branch_id === 'firm' || mapped.active_branch_id === '') {
+      mapped.active_branch_id = null;
+    }
 
     const { data, error } = await supabase
       .from('shop_settings')
@@ -355,7 +423,7 @@ export const supabaseService = {
     
     const { data, error } = await supabase
       .from('branches')
-      .select('id, firm_id, name, code, location, is_active')
+      .select('id, firm_id, name, code, location, is_active, license_number')
       .eq('firm_id', firmId)
       .order('name');
     if (error) throw error;
@@ -385,9 +453,10 @@ export const supabaseService = {
   // ---- Analytics (Egress Optimized) ----
   // ---- Analytics (Firm-wide) ----
   async getDashboardStats(firmId: string, branchId?: string) {
+    // Aggressive Sanitization & Parameter Alignment (p_branch_id first)
     const params = { 
-      p_firm_id: firmId, 
-      p_branch_id: branchId === 'firm' ? null : branchId 
+      p_branch_id: (branchId && branchId !== 'firm' && branchId !== '') ? branchId : null,
+      p_firm_id: firmId || null
     };
     const { data, error } = await supabase.rpc('get_firm_stats', params);
     
@@ -457,7 +526,7 @@ export const supabaseService = {
     
     const { data, error } = await supabase
       .from('subscriptions')
-      .select('id, firm_id, plan_id, status, start_date, end_date')
+      .select('id, firm_id, plan_id, status, start_date, end_date, extension_count')
       .eq('firm_id', firmId)
       .eq('status', 'active')
       .order('end_date', { ascending: false })
@@ -474,7 +543,7 @@ export const supabaseService = {
         id, name, slug, short_code, branding_config, created_at,
         branches(count),
         profiles(count),
-        subscriptions(id, plan_id, status, start_date, end_date, amount, interval)
+        subscriptions(id, plan_id, status, start_date, end_date, amount, interval, extension_count)
       `)
       .order('created_at', { ascending: false });
     
@@ -523,16 +592,39 @@ export const supabaseService = {
     if (error) throw error;
   },
 
+  canExtendSubscription(sub: any) {
+    const MAX_EXTENSIONS = 2;
+    if (!sub) return { allowed: false, reason: 'No subscription found' };
+    
+    // Convert from DB if needed
+    const extensionCount = sub.extensionCount || sub.extension_count || 0;
+    const planId = sub.planId || sub.plan_id;
+
+    if (planId !== 'elite' && planId !== 'pro') {
+       return { allowed: false, reason: 'Manual extensions only for Trial plans' };
+    }
+    if (extensionCount >= MAX_EXTENSIONS) {
+      return { allowed: false, reason: `Maximum of ${MAX_EXTENSIONS} extensions reached for this firm.` };
+    }
+    return { allowed: true };
+  },
+
   async extendSubscription(firmId: string, days: number) {
     const sub = await this.getActiveSubscription(firmId);
     if (!sub) throw new Error('No active subscription found to extend');
+
+    const check = this.canExtendSubscription(sub);
+    if (!check.allowed) throw new Error(check.reason);
 
     const newEnd = new Date(sub.endDate);
     newEnd.setDate(newEnd.getDate() + days);
 
     const { data, error } = await supabase
       .from('subscriptions')
-      .update({ end_date: newEnd.toISOString() })
+      .update({ 
+        end_date: newEnd.toISOString(),
+        extension_count: (sub.extensionCount || 0) + 1
+      })
       .eq('id', sub.id)
       .select()
       .single();

@@ -150,8 +150,8 @@ export default function SubscriptionTab({ currentPlan, onUpgrade, firmName }: Su
               <span className="currency">₹</span>
               <span className="amount">
                 {interval === 'monthly' 
-                  ? plan.monthlyPrice.toLocaleString('en-IN') 
-                  : plan.yearlyPrice.toLocaleString('en-IN')}
+                  ? (plan.monthlyPrice?.toLocaleString('en-IN') ?? '0') 
+                  : (plan.yearlyPrice?.toLocaleString('en-IN') ?? '0')}
               </span>
               <span className="period">{interval === 'monthly' ? '/mo' : '/yr'}</span>
             </div>
@@ -207,10 +207,10 @@ export default function SubscriptionTab({ currentPlan, onUpgrade, firmName }: Su
               ) : history.map((sub) => (
                 <tr key={sub.id}>
                   <td>{formatDate(sub.createdAt)}</td>
-                  <td><span className="plan-name">{sub.planId.toUpperCase()}</span></td>
+                  <td><span className="plan-name">{(sub.planId || 'UNKNOWN').toUpperCase()}</span></td>
                   <td>{sub.interval === 'yearly' ? 'Yearly' : 'Monthly'}</td>
-                  <td>₹{sub.amount.toLocaleString('en-IN')}</td>
-                  <td><span className="pay-method">{sub.paymentMethod.toUpperCase()}</span></td>
+                  <td>₹{sub.amount?.toLocaleString('en-IN') ?? '0'}</td>
+                  <td><span className="pay-method">{(sub.paymentMethod || 'OTHER').toUpperCase()}</span></td>
                   <td><span className={`status-pill ${sub.status}`}>{sub.status}</span></td>
                 </tr>
               ))}
@@ -271,8 +271,8 @@ export default function SubscriptionTab({ currentPlan, onUpgrade, firmName }: Su
         .saving-badge {
           position: absolute;
           right: -110px;
-          background: var(--accent-peach);
-          color: var(--primary-teal-dark);
+          background: var(--brand-vibrant);
+          color: var(--brand-deep);
           font-size: 10px;
           font-weight: 900;
           padding: 4px 12px;
@@ -326,8 +326,8 @@ export default function SubscriptionTab({ currentPlan, onUpgrade, firmName }: Su
           top: -14px;
           left: 50%;
           transform: translateX(-50%);
-          background: var(--accent-peach);
-          color: var(--primary-teal-dark);
+          background: var(--brand-vibrant);
+          color: var(--brand-deep);
           padding: 6px 16px;
           border-radius: 20px;
           font-size: 11px;
@@ -470,7 +470,7 @@ export default function SubscriptionTab({ currentPlan, onUpgrade, firmName }: Su
           flex-shrink: 0;
         }
 
-        .featured .check-icon { color: var(--accent-peach); }
+        .featured .check-icon { color: var(--brand-vibrant); }
 
         .excluded {
           color: var(--text-tertiary);

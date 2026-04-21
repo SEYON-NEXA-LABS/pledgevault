@@ -23,13 +23,16 @@ import {
 import { useRouter, useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase/client';
 import { authStore } from '@/lib/authStore';
+import { settingsStore } from '@/lib/store';
 import { ChevronDown } from 'lucide-react';
 
 const navItems = [
   { href: '/', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/loans', label: 'Loans', icon: HandCoins },
   { href: '/customers', label: 'Customers', icon: Users },
+  { href: '/branches', label: 'Branches', icon: Building2, isElite: true },
   { href: '/reports', label: 'Reports', icon: BarChart3 },
+  { href: '/settings', label: 'Settings', icon: Settings },
 ];
 
 // Removed configGroups constant to calculate dynamically inside Sidebar component
@@ -47,6 +50,7 @@ export default function Sidebar({ isOpen, onToggle, overdueCount = 0 }: SidebarP
   const [expandedGroups, setExpandedGroups] = React.useState<string[]>(['settings']);
 
   const auth = authStore.get();
+  const settings = settingsStore.get();
   const isManager = authStore.isManager() || authStore.isSuperadmin();
 
   const dynamicConfigGroups = [
@@ -75,9 +79,7 @@ export default function Sidebar({ isOpen, onToggle, overdueCount = 0 }: SidebarP
   }, [pathname]);
 
   const toggleGroup = (groupId: string) => {
-    setExpandedGroups(prev => 
-      prev.includes(groupId) ? prev.filter(id => id !== groupId) : [...prev, groupId]
-    );
+    // Group toggling disabled as we moved to a flat structure
   };
 
   const handleSignOut = async () => {
@@ -147,14 +149,13 @@ export default function Sidebar({ isOpen, onToggle, overdueCount = 0 }: SidebarP
         {/* Logo */}
         <div className="sidebar-logo">
           <div className="sidebar-logo-icon" style={{ 
-            background: authStore.isSuperadmin() ? 'var(--gold-gradient)' : 
-                        authStore.isManager() ? 'linear-gradient(135deg, var(--primary-brand), var(--accent-peach))' : 'var(--bg-primary)',
-            color: authStore.isManager() || authStore.isSuperadmin() ? '#FFFFFF' : 'var(--primary-teal-dark)'
+            background: 'var(--gold-gradient)',
+            color: authStore.isManager() || authStore.isSuperadmin() ? '#FFFFFF' : 'var(--brand-deep)'
           }}>
             {authStore.isSuperadmin() ? <ShieldCheck size={22} /> : <Shield size={22} />}
           </div>
           <div className="sidebar-logo-text">
-            <h1>PledgeVault</h1>
+            <h1>{authStore.isSuperadmin() ? 'Pledge Vault' : (settings.shopName || 'Pledge Vault')}</h1>
             <p>Loan Management</p>
           </div>
           <button
@@ -184,12 +185,25 @@ export default function Sidebar({ isOpen, onToggle, overdueCount = 0 }: SidebarP
                   key={item.href}
                   href={item.href}
                   className={`sidebar-link ${isActive(item.href) ? 'active' : ''}`}
-                  style={{
-                    '--active-bar': 'var(--accent-peach)'
-                  } as React.CSSProperties}
                 >
                   <item.icon size={20} />
                   <span>{item.label}</span>
+                  {(item as any).isElite && (
+                    <span 
+                      style={{ 
+                        marginLeft: 'auto', 
+                        background: 'rgba(212, 175, 55, 0.2)', 
+                        color: '#B8860B', 
+                        fontSize: '9px', 
+                        fontWeight: 900, 
+                        padding: '2px 6px', 
+                        borderRadius: '6px',
+                        textTransform: 'uppercase'
+                      }}
+                    >
+                      Elite
+                    </span>
+                  )}
                   {item.href === '/loans' && overdueCount > 0 && (
                     <span className="badge">{overdueCount}</span>
                   )}
@@ -198,43 +212,6 @@ export default function Sidebar({ isOpen, onToggle, overdueCount = 0 }: SidebarP
             </nav>
           </>
         )}
-
-        {/* Unified Settings & Configuration (Everyone) */}
-        <div className="sidebar-section" style={{ marginTop: '20px' }}>
-          <span className="sidebar-section-title">Account & Shop</span>
-        </div>
-        <nav className="sidebar-nav">
-          {dynamicConfigGroups.map((group) => (
-            <div key={group.id} className="sidebar-group">
-              <button 
-                className={`sidebar-link group-header ${expandedGroups.includes(group.id) ? 'expanded' : ''}`}
-                onClick={() => toggleGroup(group.id)}
-              >
-                <group.icon size={20} />
-                <span>{group.label}</span>
-                <ChevronDown size={14} style={{ marginLeft: 'auto', transform: expandedGroups.includes(group.id) ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
-              </button>
-              
-              {expandedGroups.includes(group.id) && (
-                <div className="sidebar-submenu">
-                  {group.children.map((child) => (
-                    <Link
-                      key={child.href}
-                      href={child.href}
-                      className={`sidebar-link sub-item ${isActive(child.href) ? 'active' : ''}`}
-                      style={{
-                        '--active-bar': 'var(--accent-peach)'
-                      } as React.CSSProperties}
-                    >
-                      <child.icon size={16} />
-                      <span>{child.label}</span>
-                    </Link>
-                  ))}
-                </div>
-              )}
-            </div>
-          ))}
-        </nav>
 
         {/* Platform Administration (Superadmin only) */}
         {authStore.isSuperadmin() && (
@@ -278,8 +255,8 @@ export default function Sidebar({ isOpen, onToggle, overdueCount = 0 }: SidebarP
         {/* Footer */}
         <div className="sidebar-footer">
             <div className="sidebar-avatar" style={{ 
-              boxShadow: authStore.isSuperadmin() ? '0 0 15px var(--gold-glow)' : 'none',
-              border: authStore.isSuperadmin() ? '1px solid var(--gold)' : 'none'
+              boxShadow: authStore.isSuperadmin() ? '0 0 15px var(--brand-glow)' : 'none',
+              border: authStore.isSuperadmin() ? '1px solid var(--brand-vibrant)' : 'none'
             }}>
               <User size={18} />
             </div>

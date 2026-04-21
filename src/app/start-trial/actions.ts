@@ -4,43 +4,34 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 
-export async function onboardFirmAction(formData: any) {
+/**
+ * registerTrialAction
+ * Allows a new shop owner to start a 14-day Elite Trial.
+ * Does NOT require prior authentication.
+ */
+export async function registerTrialAction(formData: any) {
   const adminClient = createAdminClient();
-  const supabase = await createClient();
-
-  // 1. Double check the caller is a superadmin
-  const { data: { user }, error: authError } = await supabase.auth.getUser();
-  if (authError || !user) {
-    return { success: false, error: 'Unauthorized: Session expired or invalid.' };
-  }
-
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('role')
-    .eq('id', user.id)
-    .single();
-
-  if (!profile || profile.role !== 'superadmin') {
-    throw new Error('Only superadmins can onboard new firms');
-  }
 
   const { 
-    name, slug, shortCode, plan, primaryColor, 
-    email, password, fullName, staffMembers,
-    gstNumber, registrationNumber, licenseNumber, location
+    name, location,
+    email, password, fullName
   } = formData;
 
   try {
-    // 2. Create the Firm
+    // 1. Create the Firm (Default Elite Trial Branding)
+    // We use a simplified slug based on name
+    const slug = name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+    const shortCode = name.split(' ').map((w: string) => w[0]).join('').toUpperCase().slice(0, 4);
+
     const { data: firm, error: firmError } = await adminClient
       .from('firms')
       .insert([{ 
         name, 
         slug, 
         short_code: shortCode, 
-        plan, 
+        plan: 'elite', 
         branding_config: { 
-          primary_color: primaryColor || '#107B88', 
+          primary_color: '#107B88', 
           login_greeting: `Welcome to ${name}` 
         } 
       }])
@@ -49,22 +40,21 @@ export async function onboardFirmAction(formData: any) {
 
     if (firmError) throw firmError;
     
-    // 2.5 Create default "Main Branch"
+    // 2. Create default "Main Branch"
     const { data: mainBranch, error: branchError } = await adminClient
       .from('branches')
       .insert([{
         firm_id: firm.id,
         name: 'Main Branch',
         code: 'MAIN',
-        location: location || 'Main Office',
-        license_number: licenseNumber
+        location: location || 'Main Office'
       }])
       .select()
       .single();
 
     if (branchError) throw branchError;
 
-    // 3. Create the Primary Admin User (No logout!)
+    // 3. Create the Owner User in Auth
     const { data: newUser, error: authError } = await adminClient.auth.admin.createUser({
       email,
       password,
@@ -74,7 +64,7 @@ export async function onboardFirmAction(formData: any) {
 
     if (authError) throw authError;
 
-    // 4. Create the Profile for the new admin
+    // 4. Create the Profile for the owner
     const { error: profileError } = await adminClient
       .from('profiles')
       .insert([{
@@ -87,47 +77,19 @@ export async function onboardFirmAction(formData: any) {
 
     if (profileError) throw profileError;
 
-    // 5. Create Staff Members (Optional)
-    if (staffMembers && staffMembers.length > 0) {
-      for (const staff of staffMembers) {
-        if (!staff.email || !staff.password) continue;
-        
-        const { data: nStaff, error: sAuthError } = await adminClient.auth.admin.createUser({
-          email: staff.email,
-          password: staff.password,
-          email_confirm: true,
-          user_metadata: { full_name: staff.fullName }
-        });
-
-        if (sAuthError) continue; // Log error but continue onboarding others
-
-        await adminClient
-          .from('profiles')
-          .insert([{
-            id: nStaff.user.id,
-            firm_id: firm.id,
-            default_branch_id: mainBranch.id,
-            full_name: staff.fullName,
-            role: 'staff'
-          }]);
-      }
-    }
-
-    // 6. Initialize Shop Settings
+    // 5. Initialize Shop Settings
     const { error: settingsError } = await adminClient
       .from('shop_settings')
       .insert([{
         firm_id: firm.id,
         shop_address: location || 'Initial Address',
-        shop_phone: 'Initial Phone',
-        gst_number: gstNumber,
-        registration_number: registrationNumber,
+        shop_phone: 'Not provided',
         active_branch_id: mainBranch.id
       }]);
 
     if (settingsError) throw settingsError;
 
-    // 7. Initialize 14-Day Elite Trial
+    // 6. Initialize 14-Day Elite Trial Subscription
     const trialEndDate = new Date();
     trialEndDate.setDate(trialEndDate.getDate() + 14);
 
@@ -147,11 +109,16 @@ export async function onboardFirmAction(formData: any) {
 
     if (trialError) throw trialError;
 
-    revalidatePath('/superadmin');
-    return { success: true, firmId: firm.id };
+    return { 
+      success: true, 
+      firmId: firm.id, 
+      email, 
+      password, // Return credentials for auto-login on client side
+      fullName 
+    };
 
   } catch (error: any) {
-    console.error('Onboarding Error:', error);
+    console.error('Trial Registration Error:', error);
     return { success: false, error: error.message };
   }
 }

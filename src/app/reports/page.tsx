@@ -37,6 +37,7 @@ import { formatCurrency, formatWeight, formatDateShort } from '@/lib/constants';
 import { calculateAccruedInterestFromDates } from '@/lib/interest';
 import { Loan, Payment } from '@/lib/types';
 import Link from 'next/link';
+import StatCard from '@/components/layout/StatCard';
 
 const COLORS = ['#D4A843', '#1A3C34', '#6C757D', '#28A745', '#DC3545'];
 
@@ -178,52 +179,39 @@ export default function ReportsPage() {
         </div>
       </div>
 
-      {/* Overview Cards */}
       <div className="stats-grid">
-        <div className="stat-card gold-accent">
-          <div className="stat-card-header">
-            <span className="stat-card-title">Interest Yield</span>
-            <div className="stat-card-icon"><TrendingUp /></div>
-          </div>
-          <div className="stat-card-value">{formatCurrency(totalInterestCollected)}</div>
-          <div className="stat-card-meta">
-            <span className="stat-card-change positive">
-              <ArrowUpRight size={12} /> 12%
-            </span>
-            <span>vs last month</span>
-          </div>
-        </div>
-        <div className="stat-card teal-accent">
-          <div className="stat-card-header">
-            <span className="stat-card-title">Principal Out</span>
-            <div className="stat-card-icon"><ArrowUpRight /></div>
-          </div>
-          <div className="stat-card-value">{formatCurrency(outstandingPrincipal)}</div>
-          <div className="stat-card-meta">
-            <span>In {activeLoans.length} active pledges</span>
-          </div>
-        </div>
-        <div className="stat-card green-accent">
-          <div className="stat-card-header">
-            <span className="stat-card-title">Estimated Profit</span>
-            <div className="stat-card-icon"><CircleDollarSign /></div>
-          </div>
-          <div className="stat-card-value">{formatCurrency(estimatedProfit > 0 ? estimatedProfit : 0)}</div>
-          <div className="stat-card-meta">
-            <span>Total interest realized</span>
-          </div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-card-header">
-            <span className="stat-card-title">Portfolio Health</span>
-            <div className="stat-card-icon"><Shield /></div>
-          </div>
-          <div className="stat-card-value">94.2%</div>
-          <div className="stat-card-meta">
-            <span className="stat-card-change positive">Solid</span>
-            <span>LTV safety margin</span>
-          </div>
-        </div>
+        <StatCard
+          title="Interest Yield"
+          value={formatCurrency(totalInterestCollected)}
+          icon={TrendingUp}
+          variant="primary"
+          change="12%"
+          changeType="positive"
+          subtitle="vs last month"
+        />
+        <StatCard
+          title="Principal Out"
+          value={formatCurrency(outstandingPrincipal)}
+          icon={ArrowUpRight}
+          variant="deep"
+          subtitle={`In ${activeLoans.length} active pledges`}
+        />
+        <StatCard
+          title="Estimated Profit"
+          value={formatCurrency(estimatedProfit > 0 ? estimatedProfit : 0)}
+          icon={CircleDollarSign}
+          variant="vibrant"
+          subtitle="Total interest realized"
+        />
+        <StatCard
+          title="Portfolio Health"
+          value="94.2%"
+          icon={Shield}
+          variant="primary"
+          change="Solid"
+          changeType="positive"
+          subtitle="LTV safety margin"
+        />
       </div>
 
       <div className="content-grid">
@@ -238,8 +226,8 @@ export default function ReportsPage() {
                 <AreaChart data={dailyEarnings}>
                   <defs>
                     <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#D4A843" stopOpacity={0.3}/>
-                      <stop offset="95%" stopColor="#D4A843" stopOpacity={0}/>
+                      <stop offset="5%" stopColor="#158567" stopOpacity={0.3}/>
+                      <stop offset="95%" stopColor="#158567" stopOpacity={0}/>
                     </linearGradient>
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" stroke="var(--border-light)" vertical={false} />
@@ -248,7 +236,7 @@ export default function ReportsPage() {
                   <Tooltip 
                     contentStyle={{ borderRadius: '8px', border: '1px solid #eee', boxShadow: 'var(--shadow-md)' }}
                   />
-                  <Area type="monotone" dataKey="amount" stroke="#D4A843" fillOpacity={1} fill="url(#colorValue)" strokeWidth={3} />
+                  <Area type="monotone" dataKey="amount" stroke="#158567" fillOpacity={1} fill="url(#colorValue)" strokeWidth={3} />
                 </AreaChart>
               </ResponsiveContainer>
             </div>
@@ -347,7 +335,7 @@ export default function ReportsPage() {
         alignItems: 'center',
         gap: '12px'
       }}>
-        <Info size={20} color="var(--gold)" />
+        <Info size={20} color="var(--brand-primary)" />
         <p style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
           <strong>Pro Tip:</strong> Your average LTV (Loan to Value) is currently at 72%. The historical safety margin for gold loans in Coimbatore is 75%, indicating a very safe lending portfolio.
         </p>

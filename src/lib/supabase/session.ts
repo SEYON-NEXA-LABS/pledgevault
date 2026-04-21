@@ -31,16 +31,34 @@ export async function updateSession(request: NextRequest) {
   // supabase.auth.getUser(). A simple mistake can make it very hard to debug
   // issues with users being randomly logged out.
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  let user = null;
+  try {
+    const {
+      data: { user: authUser },
+      error,
+    } = await supabase.auth.getUser();
+    
+    if (error) {
+      if (error.name === 'AuthApiError' && (error as any).code === 'refresh_token_not_found') {
+        // This is exactly the error being reported. 
+        // We catch it and allow the code to redirect to login naturally.
+        console.warn('Supabase Session: Refresh token not found, user unauthenticated.');
+      } else {
+        // Other auth errors
+        console.error('Supabase Session Error:', error.message);
+      }
+    }
+    user = authUser;
+  } catch (err) {
+    // Unexpected crash in getUser()
+    console.error('CRITICAL: Supabase Session Manager crashed:', err);
+  }
 
   if (
     !user &&
     !request.nextUrl.pathname.startsWith('/login') &&
     !request.nextUrl.pathname.startsWith('/auth')
   ) {
-    // no user, potentially respond by redirecting the user to the login page
     const url = request.nextUrl.clone();
     url.pathname = '/login';
     return NextResponse.redirect(url);
