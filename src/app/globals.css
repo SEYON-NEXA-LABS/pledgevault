@@ -84,6 +84,15 @@
     --sidebar-border: oklch(0.93 0.007 106.5);
     --sidebar-ring: oklch(0.737 0.021 106.9);
     --gold: oklch(0.795 0.184 86.047);
+    
+    /* Brand System */
+    --brand-primary: var(--primary);
+    --brand-primary-foreground: var(--primary-foreground);
+    --brand-deep: oklch(0.25 0.06 165);
+    --brand-vibrant: oklch(0.8 0.15 165);
+    --status-overdue: oklch(0.6 0.2 30);
+    --status-overdue-bg: oklch(0.6 0.2 30 / 10%);
+    --bg-primary: oklch(0.98 0.01 165);
 }
 
 .dark {
@@ -837,6 +846,20 @@
   @apply flex flex-col gap-2;
 }
 
+.pv-input {
+  @apply flex w-full rounded-xl border border-input bg-background px-4 py-2 text-sm font-medium ring-offset-background transition-all file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:ring-offset-0 focus-visible:border-primary disabled:cursor-not-allowed disabled:opacity-50;
+  height: 48px;
+}
+
+select.pv-input {
+  @apply cursor-pointer appearance-none;
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='currentColor' stroke-width='2'%3e%3cpath stroke-linecap='round' stroke-linejoin='round' d='M19 9l-7 7-7-7'/%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 1rem center;
+  background-size: 1.25rem;
+  padding-right: 2.5rem;
+}
+
 .input-icon-label {
   @apply flex items-center gap-2 text-[11px] font-extrabold text-muted-foreground uppercase tracking-wider;
 }
@@ -886,3 +909,162 @@
 .dev-btn.staff {
   @apply bg-muted/50 border-border text-muted-foreground hover:bg-muted hover:text-foreground;
 }
+/* ---- Global Print System ---- */
+@media print {
+  /* Hide every top-level layout container */
+  .sidebar, 
+  .header-bar, 
+  .mobile-bottom-nav, 
+  .trial-banner,
+  .no-print,
+  .modal-header,
+  .modal-footer {
+    display: none !important;
+  }
+
+  /* Reset layout constraints */
+  .app-layout, .main-content, .page-content {
+    display: block !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    overflow: visible !important;
+    height: auto !important;
+  }
+
+  body {
+    background: white !important;
+    visibility: hidden;
+  }
+
+  #receipt-to-print, #receipt-to-print * {
+    visibility: visible !important;
+  }
+
+  #receipt-to-print {
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 100% !important;
+    margin: 0 !important;
+  }
+
+  @page {
+    margin: 0;
+    size: auto;
+  }
+}
+/* ---- Loan Creation Layout System ---- */
+.loan-create-layout {
+  @apply grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-8 items-start mt-8;
+}
+
+.loan-summary {
+  @apply sticky top-24 space-y-6 animate-in fade-in slide-in-from-right-4 duration-500;
+}
+
+.loan-summary-row {
+  @apply flex justify-between items-center py-3 border-b border-border/40;
+}
+
+.loan-summary-label {
+  @apply text-[11px] font-black text-muted-foreground uppercase tracking-widest;
+}
+
+.loan-summary-value {
+  @apply text-sm font-black text-foreground;
+}
+
+.loan-summary-value.gold {
+  @apply text-primary;
+}
+
+.loan-summary-total {
+  @apply mt-6 p-5 rounded-2xl bg-primary/5 border border-primary/10 shadow-inner;
+}
+
+.payout-method-grid {
+  @apply grid grid-cols-3 gap-3;
+}
+
+.payout-btn {
+  @apply flex flex-col items-center justify-center gap-2 p-4 rounded-xl border-2 border-border bg-card transition-all hover:border-primary/40 hover:bg-primary/5;
+}
+
+.payout-btn.active {
+  @apply border-primary bg-primary/10 text-primary shadow-lg shadow-primary/10;
+}
+
+/* Appraisal Table Specifics */
+.data-table th {
+  @apply py-3 px-4 text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground/60 border-b border-border/60 bg-muted/10;
+}
+
+.data-table td {
+  @apply py-2 px-3 border-b border-border/30;
+}
+
+.data-table .pv-input {
+  @apply h-10 w-full rounded-lg px-3 text-[13px] font-bold;
+}
+
+select.pv-input {
+  @apply cursor-pointer appearance-none pr-8;
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='currentColor' stroke-width='2'%3e%3cpath stroke-linecap='round' stroke-linejoin='round' d='M19 9l-7 7-7-7'/%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  background-size: 1rem;
+}
+
+@media (max-width: 1024px) {
+  .loan-create-layout {
+    @apply grid-cols-1;
+  }
+  .loan-summary {
+    @apply relative top-0;
+  }
+}
+/* ---- Weight Input & Stepper System ---- */
+.weight-input-container {
+  @apply flex items-center h-10 w-full rounded-lg border border-input bg-background overflow-hidden transition-all focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary relative;
+  min-width: 100px;
+}
+
+.weight-stepper {
+  @apply flex h-full w-7 items-center justify-center bg-muted text-muted-foreground transition-all hover:bg-primary/10 hover:text-primary active:scale-90 cursor-pointer text-[10px] font-black border-none outline-none flex-shrink-0;
+}
+
+.weight-input-naked {
+  @apply flex-1 h-full bg-transparent border-none outline-none text-center text-sm font-black text-foreground placeholder:text-muted-foreground/30;
+}
+
+.quick-pick-container {
+  @apply absolute top-[calc(100%+8px)] left-0 right-0 p-2 bg-card border border-border rounded-xl shadow-2xl z-50 flex flex-wrap gap-2 animate-in fade-in zoom-in-95 duration-200;
+}
+
+.quick-pick-tag {
+  @apply flex-1 flex items-center justify-center py-2 px-3 bg-muted/50 border border-border/50 rounded-lg text-[11px] font-black transition-all hover:bg-primary hover:text-primary-foreground hover:border-primary cursor-pointer active:scale-95;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(5px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Collections Ledger Styles */
+.collections-page {
+  padding: 40px;
+  animation: fadeIn 0.4s ease-out;
+}
+
+.data-table tr {
+  border-bottom: 1px solid var(--border-light);
+}
+
+.data-table tr:last-child {
+  border-bottom: none;
+}
+
+.badge.interest { background: rgba(59, 130, 246, 0.1); color: #3b82f6; border: 1px solid rgba(59, 130, 246, 0.2); }
+.badge.principal { background: rgba(16, 123, 136, 0.1); color: #107B88; border: 1px solid rgba(16, 123, 136, 0.2); }
+.badge.full_closure { background: rgba(16, 185, 129, 0.1); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.2); }
+.badge.partial { background: rgba(245, 158, 11, 0.1); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.2); }

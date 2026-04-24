@@ -28,8 +28,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" data-scroll-behavior="smooth">
-      <body className={`${outfit.variable} ${hindMadurai.variable} antialiased`}>
+    <html lang="en" className={`${outfit.variable} ${hindMadurai.variable}`} data-scroll-behavior="smooth">
+      <body className="antialiased">
         <TrialExpiredGate>
           <AppShell>{children}</AppShell>
         </TrialExpiredGate>

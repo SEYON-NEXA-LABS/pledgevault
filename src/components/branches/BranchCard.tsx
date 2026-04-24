@@ -12,8 +12,8 @@ interface BranchCardProps {
     code: string;
     location: string;
     isActive?: boolean;
-    activeLoans?: number;
-    goldWeight?: number;
+    activeLoansCount?: number;
+    totalGoldWeight?: number;
   };
   onDelete?: (id: string, name: string) => void;
   isManager?: boolean;
@@ -67,11 +67,11 @@ export default function BranchCard({ branch, onDelete, isManager }: BranchCardPr
       <div className="branch-metrics">
         <div className="metric">
           <span className="label">Active Loans</span>
-          <span className="value">{branch.activeLoans || '15+'}</span>
+          <span className="value">{branch.activeLoansCount || 0}</span>
         </div>
         <div className="metric">
           <span className="label">Gold Stock</span>
-          <span className="value">{branch.goldWeight || '420'}g</span>
+          <span className="value">{(branch.totalGoldWeight || 0).toFixed(2)}g</span>
         </div>
       </div>
 

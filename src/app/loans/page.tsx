@@ -22,12 +22,16 @@ import { ChevronLeft as ChevronLeftIcon, ChevronRight } from 'lucide-react';
 import { formatCurrency, formatWeight, formatDate, getDaysOverdue, LOAN_STATUS_LABELS } from '@/lib/constants';
 import { Loan, LoanStatus } from '@/lib/types';
 import Pagination from '@/components/common/Pagination';
+import { PLAN_LIMITS } from '@/lib/constants';
+import { PlanTier } from '@/lib/types';
+import { Shield, Zap, AlertTriangle } from 'lucide-react';
 
 const STATUS_FILTERS: { value: string; label: string }[] = [
   { value: 'all', label: 'All Loans' },
   { value: 'active', label: 'Active' },
   { value: 'overdue', label: 'Overdue' },
   { value: 'closed', label: 'Closed' },
+  { value: 'draft', label: 'Drafts' },
 ];
 
 export default function LoansPage() {
@@ -42,6 +46,8 @@ export default function LoansPage() {
   const [showFilters, setShowFilters] = useState(false);
   const [loading, setLoading] = useState(true);
   const [mounted, setMounted] = useState(false);
+  const [activeCount, setActiveCount] = useState(0);
+  const [currentPlan, setCurrentPlan] = useState<PlanTier>('free');
 
   const auth = authStore.get();
   const settings = settingsStore.get();
@@ -54,6 +60,17 @@ export default function LoansPage() {
     fetchLoans();
   }, [page, statusFilter, activeBranchId, dateRange.start, dateRange.end, amountRange.min, amountRange.max]);
 
+  // Debounced search
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (mounted) {
+        setPage(0);
+        fetchLoans();
+      }
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [search]);
+
   const fetchLoans = async () => {
     setLoading(true);
     try {
@@ -64,15 +81,27 @@ export default function LoansPage() {
           (activeBranchId && isValidUuid(activeBranchId)) ? activeBranchId : undefined,
           page,
           pageSize,
-          statusFilter === 'all' ? undefined : statusFilter
+          search || undefined
+          // Note: The service might need status filter support too, adding it next
         );
-        setLoans(result.data);
+        
+        // Temporarily filter status locally if service doesn't support it yet
+        let filteredData = result.data;
+        if (statusFilter !== 'all') {
+          filteredData = result.data.filter(l => l.status === statusFilter);
+        }
+
+        setLoans(filteredData);
         setTotal(result.total);
       } else {
         // Fallback for demo/local mode
         const allLocal = loanStore.getAll().filter(l => {
           if (activeBranchId && l.branchId !== activeBranchId) return false;
           if (statusFilter !== 'all' && l.status !== statusFilter) return false;
+          if (search) {
+             const q = search.toLowerCase();
+             return l.loanNumber?.toLowerCase().includes(q) || l.customerName?.toLowerCase().includes(q);
+          }
           return true;
         });
         setLoans(allLocal.slice(page * pageSize, (page + 1) * pageSize));
@@ -85,33 +114,29 @@ export default function LoansPage() {
     }
   };
 
+  const fetchCapacity = async () => {
+    if (!auth.firmId) return;
+    try {
+      const count = await supabaseService.getActiveLoanCount(auth.firmId);
+      setActiveCount(count);
+      
+      const profile = await supabaseService.getUserProfile(auth.userId || '');
+      if (profile?.firms?.plan) {
+        setCurrentPlan(profile.firms.plan as PlanTier);
+      }
+    } catch (err) {
+      console.error('Error fetching capacity:', err);
+    }
+  };
+
+  useEffect(() => {
+    if (mounted) fetchCapacity();
+  }, [mounted, loans]);
+
 
   if (!mounted) {
     return <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-tertiary)' }}>Loading...</div>;
   }
-
-  // Local Search filtering (on top of paginated results for now, 
-  // though real search should be server-side)
-  const displayLoans = loans.filter((l) => {
-    // 1. Search Query
-    if (search) {
-      const q = search.toLowerCase();
-      const matchesSearch = l.loanNumber?.toLowerCase().includes(q) ||
-        l.customerName?.toLowerCase().includes(q) ||
-        l.customerPhone?.includes(q);
-      if (!matchesSearch) return false;
-    }
-
-    // 2. Amount Range
-    if (amountRange.min && (l.loanAmount || 0) < Number(amountRange.min)) return false;
-    if (amountRange.max && (l.loanAmount || 0) > Number(amountRange.max)) return false;
-
-    // 3. Date Range
-    if (dateRange.start && l.startDate && new Date(l.startDate) < new Date(dateRange.start)) return false;
-    if (dateRange.end && l.startDate && new Date(l.startDate) > new Date(dateRange.end)) return false;
-
-    return true;
-  });
 
   const handleCloseLoan = async (loanId: string) => {
     if (confirm('Are you sure you want to close this loan? This marks the pledge as redeemed.')) {
@@ -130,9 +155,29 @@ export default function LoansPage() {
       <div className="page-header">
         <div className="page-header-left">
           <h2 className="text-4xl font-black tracking-tight mb-2">{t.loans.title}</h2>
-          <p className="text-sm font-bold text-muted-foreground opacity-70">
-            {t.sidebar.loans} — {loans.length} {t.common.all}, {loans.filter((l) => l.status === 'active').length} {t.common.active}
-          </p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '4px' }}>
+            <p className="text-sm font-bold text-muted-foreground opacity-70">
+              {t.sidebar.loans} — {loans.length} {t.common.all}, {loans.filter((l) => l.status === 'active').length} {t.common.active}
+            </p>
+            
+            {/* Plan Capacity Indicator */}
+            <div style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '6px', 
+              padding: '4px 10px', 
+              background: 'var(--bg-primary)', 
+              border: '1px solid var(--border)', 
+              borderRadius: '8px',
+              fontSize: '11px',
+              fontWeight: 800,
+              color: activeCount >= (PLAN_LIMITS[currentPlan]?.maxLoans || 0) ? 'var(--status-overdue)' : 
+                     activeCount >= (PLAN_LIMITS[currentPlan]?.maxLoans || 0) * 0.9 ? 'var(--gold)' : 'var(--brand-primary)'
+            }}>
+              {activeCount >= (PLAN_LIMITS[currentPlan]?.maxLoans || 0) ? <AlertTriangle size={12} /> : <Zap size={12} />}
+              <span>{activeCount} / {PLAN_LIMITS[currentPlan]?.maxLoans === Infinity ? '∞' : (PLAN_LIMITS[currentPlan]?.maxLoans || 0)} ACTIVE</span>
+            </div>
+          </div>
         </div>
         <div className="page-header-right">
           <Link href="/loans/new" className="pv-btn pv-btn-gold shadow-lg shadow-primary/10" id="create-loan-btn">
@@ -234,7 +279,7 @@ export default function LoansPage() {
                       <p className="text-sm font-bold text-muted-foreground uppercase tracking-widest opacity-50">Fetching loans...</p>
                     </td>
                   </tr>
-                ) : displayLoans.map((loan) => {
+                ) : loans.map((loan) => {
                   const items = (loan as any).items || [];
                   const goldWeight = items
                     .filter((i: any) => i.metalType === 'gold')
@@ -338,8 +383,13 @@ export default function LoansPage() {
                       <td>
                         <div className="flex gap-2">
                           <Link href={`/loans/${loan.id}`} className="pv-btn pv-btn-sm pv-btn-outline font-black text-[10px] uppercase tracking-widest h-8 px-3">
-                            Details
+                            {t.common.details}
                           </Link>
+                          {loan.status === 'draft' && (
+                            <Link href={`/loans/new?draftId=${loan.id}`} className="pv-btn pv-btn-sm pv-btn-gold font-black text-[10px] uppercase tracking-widest h-8 px-3">
+                               {t.loans.resume}
+                            </Link>
+                          )}
                           {(loan.status === 'active' || loan.status === 'overdue') && (
                             <button
                               className="pv-btn pv-btn-sm pv-btn-outline text-destructive border-destructive/20 font-black text-[10px] uppercase tracking-widest h-8 px-3"
@@ -358,7 +408,7 @@ export default function LoansPage() {
           </div>
 
           <div className="mobile-cards">
-             {displayLoans.map((loan) => (
+             {loans.map((loan) => (
                <div key={loan.id} className="pv-card flex flex-col gap-4 p-5 hover:shadow-lg transition-all duration-300">
                  <div className="flex items-center justify-between">
                     <div className="flex flex-col">
@@ -400,7 +450,7 @@ export default function LoansPage() {
              ))}
           </div>
 
-          {!loading && displayLoans.length === 0 && (
+          {!loading && loans.length === 0 && (
             <div className="empty-state" style={{ padding: '80px', textAlign: 'center' }}>
                <HandCoins size={32} style={{ color: 'var(--text-tertiary)', marginBottom: '16px' }} />
                <h3 style={{ fontWeight: 800 }}>No loans found</h3>

@@ -5,7 +5,7 @@ import { metalRateService } from '@/lib/supabase/metalRateService';
 import { RefreshCcw, Zap } from 'lucide-react';
 
 interface RealTimeRateSyncProps {
-  onSync: (rates: { gold22k: number; silver: number }) => void;
+  onSync: (rates: { gold24k: number; gold22k: number; silver: number }) => void;
   compact?: boolean;
 }
 
@@ -16,7 +16,11 @@ export default function RealTimeRateSync({ onSync, compact = false }: RealTimeRa
     setLoading(true);
     try {
       const data = await metalRateService.getLiveRates();
-      onSync({ gold22k: data.gold22k, silver: data.silver });
+      onSync({ 
+        gold24k: data.gold24k, 
+        gold22k: data.gold22k, 
+        silver: data.silver 
+      });
     } catch (err) {
       console.error('Manual rate sync failed:', err);
     } finally {

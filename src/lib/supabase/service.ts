@@ -106,16 +106,54 @@ export const supabaseService = {
   },
 
   // ---- Customers (Firm-wide) ----
-  async getCustomers(firmId: string, page = 0, pageSize = 20) {
-    const { data, count, error } = await supabase
-      .from('v_customer_summaries')
-      .select('id, name, phone, city, id_type, id_number, active_loans_count', { count: 'exact' }) 
-      .eq('firm_id', firmId)
-      .order('name')
-      .range(page * pageSize, (page + 1) * pageSize - 1);
+  async getCustomers(firmId: string, page: number = 0, pageSize: number = 10, search?: string) {
+    if (!isValidUUID(firmId)) return { data: [], total: 0 };
     
+    let query = supabase
+      .from('customers')
+      .select('id, name, phone, alt_phone, primary_id_type, primary_id_number, address, city, state, pincode, created_at', { count: 'exact' })
+      .eq('firm_id', firmId)
+      .order('name');
+
+    if (search) {
+      query = query.or(`name.ilike.%${search}%,phone.ilike.%${search}%,primary_id_number.ilike.%${search}%`);
+    }
+
+    const { data, count, error } = await query
+      .range(page * pageSize, (page + 1) * pageSize - 1);
+
     if (error) throw error;
-    return { data: data as any[], total: count || 0 };
+    return {
+      data: toCamel(data || []) as Customer[],
+      total: count || 0
+    };
+  },
+
+  async getLoans(firmId: string, branchId?: string, page: number = 0, pageSize: number = 10, search?: string) {
+    if (!isValidUUID(firmId)) return { data: [], total: 0 };
+    
+    let query = supabase
+      .from('loans')
+      .select('id, loan_number, customer_id, customer_name, customer_phone, branch_id, loan_amount, status, interest_rate, start_date, due_date, created_at', { count: 'exact' })
+      .eq('firm_id', firmId)
+      .order('created_at', { ascending: false });
+
+    if (branchId && branchId !== 'firm') {
+      query = query.eq('branch_id', branchId);
+    }
+
+    if (search) {
+      query = query.or(`loan_number.ilike.%${search}%,customer_name.ilike.%${search}%,customer_phone.ilike.%${search}%`);
+    }
+
+    const { data, count, error } = await query
+      .range(page * pageSize, (page + 1) * pageSize - 1);
+
+    if (error) throw error;
+    return {
+      data: toCamel(data || []) as Loan[],
+      total: count || 0
+    };
   },
 
   async getCustomerWithDetails(id: string) {
@@ -152,35 +190,20 @@ export const supabaseService = {
     if (error) throw error;
     return data as Customer;
   },
-
-  // ---- Loans ----
-  // ---- Loans (Branch-specific or Firm-wide) ----
-  async getLoans(firmId: string, branchId?: string, page = 0, pageSize = 20, status?: string) {
-    let query = supabase
+  async getLoansByCustomer(customerId: string, page: number = 0, pageSize: number = 10) {
+    if (!isValidUUID(customerId)) return { data: [], total: 0 };
+    const { data, count, error } = await supabase
       .from('loans')
-      .select('id, loan_number, customer_name, customer_phone, loan_amount, status, start_date, due_date, interest_rate, total_net_weight, total_gross_weight, items:loan_items(id, item_type, metal_type, net_weight)', { count: 'exact' })
-      .eq('firm_id', firmId)
-      .order('created_at', { ascending: false })
-      .range(page * pageSize, (page + 1) * pageSize - 1);
-    
-    if (branchId) query = query.eq('branch_id', branchId);
-    if (status) query = query.eq('status', status);
-
-    const { data, count, error } = await query;
-    if (error) throw error;
-    return { 
-      data: toCamel(data) as Partial<Loan>[], 
-      total: count || 0 
-    };
-  },
-  async getLoansByCustomer(customerId: string) {
-    const { data, error } = await supabase
-      .from('loans')
-      .select('id, loan_number, loan_amount, status, start_date, due_date, items:loan_items(id, metal_type, item_type)')
+      .select('id, loan_number, loan_amount, status, start_date, due_date, items:loan_items(id, metal_type, item_type)', { count: 'exact' })
       .eq('customer_id', customerId)
-      .order('start_date', { ascending: false });
+      .order('start_date', { ascending: false })
+      .range(page * pageSize, (page + 1) * pageSize - 1);
+      
     if (error) throw error;
-    return toCamel(data) as any[];
+    return {
+      data: toCamel(data || []) as any[],
+      total: count || 0
+    };
   },
 
   async updateLoanStatus(id: string, status: string) {
@@ -212,23 +235,44 @@ export const supabaseService = {
 
     // Separate items from loan data for insertion
     const { items, ...loanData } = loan as any;
+    let firmId = loanData.firm_id || loanData.firmId || items?.[0]?.firm_id || items?.[0]?.firmId;
     
-    // 1. Increment Counter & Get Format Metadata
-    const { data: newCount, error: countError } = await supabase.rpc('increment_loan_counter', { f_id: items[0]?.firm_id || loanData.firm_id });
-    if (countError) throw countError;
+    // Fallback: If firmId is missing from payload, fetch from session
+    if (!firmId) {
+      const profile = await this.getUserProfile(user.id);
+      firmId = profile?.firmId;
+    }
 
-    // 2. Generate Structured Loan Number
-    // Format: 2 chars firm, 2 chars branch, 7 chars sequence
-    const firmPrefix = (loanData.firm_id as string).substring(0, 2).toUpperCase();
-    const branchPrefix = (loanData.branch_id as string).substring(0, 2).toUpperCase();
-    const formattedNumber = `${firmPrefix}_${branchPrefix}_${String(newCount).padStart(7, '0')}`;
+    if (!firmId) throw new Error('Could not determine Firm ID for loan creation.');
+
+    const isDraft = (loanData.status === 'draft');
+    let formattedNumber = loanData.loan_number || loanData.loanNumber || '';
+
+    if (!isDraft && !formattedNumber) {
+      // 1. Increment Counter & Get Format Metadata
+      const { data: newCount, error: countError } = await supabase.rpc('increment_loan_counter', { f_id: firmId });
+      
+      if (countError) {
+        console.error('RPC increment_loan_counter failed:', countError);
+        throw new Error(`Database Error: ${countError.message}. Please ensure the 'increment_loan_counter' function is installed in Supabase.`);
+      }
+
+      // 2. Generate Structured Loan Number
+      const firmPrefix = (firmId as string).substring(0, 2).toUpperCase();
+      const branchId = loanData.branch_id || loanData.branchId;
+      const branchPrefix = branchId ? (branchId as string).substring(0, 2).toUpperCase() : 'XX';
+      formattedNumber = `${firmPrefix}_${branchPrefix}_${String(newCount).padStart(7, '0')}`;
+    } else if (isDraft && !formattedNumber) {
+      formattedNumber = `DRAFT_${Date.now()}`;
+    }
 
     // 3. Insert Loan
+    const dbLoanData = toSnake(loanData);
     const { data: newLoan, error: loanError } = await supabase
       .from('loans')
       .insert([{ 
-        ...loanData, 
-        loan_number: formattedNumber, // Override with structured ID
+        ...dbLoanData, 
+        loan_number: formattedNumber, 
         created_by: user.id 
       }])
       .select()
@@ -236,11 +280,12 @@ export const supabaseService = {
     
     if (loanError) throw loanError;
 
-    // 2. Insert Items
+    // 4. Insert Items
     if (items && items.length > 0) {
       const itemsToInsert = items.map((item: any) => ({
-        ...item,
+        ...toSnake(item),
         loan_id: newLoan.id,
+        firm_id: firmId,
         created_by: user.id
       }));
       const { error: itemsError } = await supabase
@@ -253,6 +298,71 @@ export const supabaseService = {
     return toCamel(newLoan) as Loan;
   },
 
+  async updateLoan(id: string, loan: Partial<Loan>) {
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) throw new Error('Authentication required.');
+
+    const { items, ...loanData } = loan as any;
+    let firmId = loanData.firm_id || loanData.firmId || items?.[0]?.firm_id || items?.[0]?.firmId;
+
+    if (!firmId) {
+      const profile = await this.getUserProfile(user.id);
+      firmId = profile?.firmId;
+    }
+    
+    // If transitioning from draft to active, we might need a real loan number
+    const isTransitioningToActive = loanData.status === 'active';
+    let formattedNumber = loanData.loan_number || loanData.loanNumber;
+
+    if (isTransitioningToActive && (!formattedNumber || formattedNumber.startsWith('DRAFT_'))) {
+        const { data: newCount, error: countError } = await supabase.rpc('increment_loan_counter', { f_id: firmId });
+        
+        if (countError) {
+          console.error('RPC increment_loan_counter failed during draft activation:', countError);
+          throw new Error(`Database Error: ${countError.message}. Please ensure the 'increment_loan_counter' function is installed in Supabase.`);
+        }
+
+        const firmPrefix = (firmId as string).substring(0, 2).toUpperCase();
+        const branchId = loanData.branch_id || loanData.branchId;
+        const branchPrefix = branchId ? (branchId as string).substring(0, 2).toUpperCase() : 'XX';
+        formattedNumber = `${firmPrefix}_${branchPrefix}_${String(newCount).padStart(7, '0')}`;
+        loanData.loan_number = formattedNumber;
+    }
+
+    const dbLoanData = toSnake(loanData);
+
+    // 1. Update Loan Header
+    const { data: updatedLoan, error: loanError } = await supabase
+      .from('loans')
+      .update(dbLoanData)
+      .eq('id', id)
+      .select()
+      .single();
+    
+    if (loanError) throw loanError;
+
+    // 2. Update Items (Delete and Re-insert for simplicity in drafts)
+    if (items) {
+      await supabase.from('loan_items').delete().eq('loan_id', id);
+      
+      if (items.length > 0) {
+        const itemsToInsert = items.map((item: any) => ({
+          ...toSnake(item),
+          loan_id: id,
+          firm_id: firmId,
+          created_by: user.id
+        }));
+        const { error: itemsError } = await supabase
+          .from('loan_items')
+          .insert(itemsToInsert);
+        
+        if (itemsError) throw itemsError;
+      }
+    }
+
+    return toCamel(updatedLoan) as Loan;
+  },
+
   // ---- Payments ----
   async getPayments(loanId?: string) {
     let query = supabase.from('payments').select('id, loan_id, branch_id, amount, payment_date, type, remarks, created_at, created_by');
@@ -263,6 +373,111 @@ export const supabaseService = {
     return toCamel(data) as Payment[];
   },
 
+  async getPaginatedPayments(
+    firmId: string, 
+    branchId?: string, 
+    page: number = 0, 
+    pageSize: number = 10,
+    filters?: {
+      startDate?: string;
+      endDate?: string;
+      type?: string;
+      search?: string;
+    }
+  ) {
+    if (!isValidUUID(firmId)) return { data: [], total: 0 };
+    
+    let query = supabase
+      .from('payments')
+      .select(`
+        id, 
+        loan_id, 
+        branch_id, 
+        amount, 
+        payment_date, 
+        type, 
+        remarks, 
+        created_at, 
+        created_by,
+        loans!inner(loan_number, customer_name)
+      `, { count: 'exact' })
+      .eq('firm_id', firmId)
+      .order('payment_date', { ascending: false });
+
+    if (branchId && branchId !== 'firm') {
+      query = query.eq('branch_id', branchId);
+    }
+
+    if (filters?.startDate) {
+      query = query.gte('payment_date', filters.startDate);
+    }
+    if (filters?.endDate) {
+      query = query.lte('payment_date', filters.endDate);
+    }
+    if (filters?.type && filters.type !== 'all') {
+      query = query.eq('type', filters.type);
+    }
+    if (filters?.search) {
+      query = query.or(`loan_number.ilike.%${filters.search}%,customer_name.ilike.%${filters.search}%`, { foreignTable: 'loans' });
+    }
+
+    const { data, count, error } = await query
+      .range(page * pageSize, (page + 1) * pageSize - 1);
+
+    if (error) throw error;
+    
+    return {
+      data: toCamel(data || []),
+      total: count || 0
+    };
+  },
+
+  async getPaymentsForExport(
+    firmId: string, 
+    branchId?: string, 
+    filters?: {
+      startDate?: string;
+      endDate?: string;
+      type?: string;
+      search?: string;
+    }
+  ) {
+    if (!isValidUUID(firmId)) return [];
+    
+    let query = supabase
+      .from('payments')
+      .select(`
+        amount, 
+        payment_date, 
+        type, 
+        remarks, 
+        loans!inner(loan_number, customer_name)
+      `)
+      .eq('firm_id', firmId)
+      .order('payment_date', { ascending: false })
+      .limit(1000);
+
+    if (branchId && branchId !== 'firm') {
+      query = query.eq('branch_id', branchId);
+    }
+
+    if (filters?.startDate) {
+      query = query.gte('payment_date', filters.startDate);
+    }
+    if (filters?.endDate) {
+      query = query.lte('payment_date', filters.endDate);
+    }
+    if (filters?.type && filters.type !== 'all') {
+      query = query.eq('type', filters.type);
+    }
+    if (filters?.search) {
+      query = query.or(`loan_number.ilike.%${filters.search}%,customer_name.ilike.%${filters.search}%`, { foreignTable: 'loans' });
+    }
+
+    const { data, error } = await query;
+    if (error) throw error;
+    return toCamel(data || []);
+  },
   async createPayment(payment: Omit<Payment, 'id'>) {
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) {
@@ -359,6 +574,25 @@ export const supabaseService = {
       language: shopData.language || 'en',
       brandingConfig: toCamel(firm?.branding_config || {}),
     } as ShopSettings;
+  },
+
+  async getBranchesWithMetrics(firmId: string) {
+    if (!isValidUUID(firmId)) return [];
+    const { data, error } = await supabase.rpc('get_branches_with_metrics', { f_id: firmId });
+    if (error) throw error;
+    return toCamel(data || []);
+  },
+
+  async getReportsData(firmId: string, branchId?: string, startDate?: string, endDate?: string) {
+    if (!isValidUUID(firmId)) return null;
+    const { data, error } = await supabase.rpc('get_reports_data', {
+      p_firm_id: firmId,
+      p_branch_id: branchId && branchId !== 'firm' ? branchId : null,
+      p_start_date: startDate || null,
+      p_end_date: endDate || null
+    });
+    if (error) throw error;
+    return toCamel(data);
   },
 
   async getLatestMarketRates() {
@@ -564,12 +798,13 @@ export const supabaseService = {
       totalCustomers: data?.total_customers || 0,
       totalMonthlyInterest: data?.total_monthly_interest || 0,
       recentLoans: toCamel(data?.recent_loans || []) as Loan[],
+      metalDistribution: toCamel(data?.metal_distribution || []),
+      monthlyTrends: toCamel(data?.monthly_trends || []),
       loansByMonth: (data?.loans_by_month || []).map((m: any) => ({
         month: m.month,
         count: m.count || 0,
         value: m.value || 0
       })),
-      metalDistribution: data?.metal_distribution || [],
     } as any; // Using any for local mapping
   },
 

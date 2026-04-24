@@ -143,7 +143,10 @@ export default function DashboardPage() {
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
     .slice(0, 5);
 
-  const monthlyData = getMonthlyData(loans);
+  // Use server-side monthly trends if available, otherwise fallback to local calculation (for dev/demo)
+  const monthlyData = (cloudStats?.monthlyTrends && cloudStats.monthlyTrends.length > 0) 
+    ? cloudStats.monthlyTrends 
+    : getMonthlyData(loans);
 
   // Metal distribution from cloud stats
   const metalData = cloudStats?.metalDistribution || [];
@@ -184,8 +187,8 @@ export default function DashboardPage() {
                       </div>
                    </div>
                    <div className="text-3xl font-black mb-4">₹{Math.round((settings.goldRate24K || 0) * (22/24)).toLocaleString('en-IN')}<small className="text-xs ml-1 opacity-40 font-bold uppercase">/gram</small></div>
-                   <div className="h-12">
-                      <ResponsiveContainer width="100%" height="100%">
+                   <div className="h-12 min-w-0">
+                      <ResponsiveContainer width="100%" height="100%" minHeight={48}>
                         <AreaChart data={marketTrends.history}>
                           <defs>
                             <linearGradient id="colorGold" x1="0" y1="0" x2="0" y2="1">
@@ -209,8 +212,8 @@ export default function DashboardPage() {
                       </div>
                    </div>
                    <div className="text-3xl font-black mb-4">₹{(settings.silverRate999 || 0).toLocaleString('en-IN')}<small className="text-xs ml-1 opacity-40 font-bold uppercase">/gram</small></div>
-                   <div className="h-12">
-                      <ResponsiveContainer width="100%" height="100%">
+                   <div className="h-12 min-w-0">
+                      <ResponsiveContainer width="100%" height="100%" minHeight={48}>
                         <AreaChart data={marketTrends.history}>
                           <defs>
                             <linearGradient id="colorSilver" x1="0" y1="0" x2="0" y2="1">
@@ -300,8 +303,8 @@ export default function DashboardPage() {
             <h3 className="text-xs font-black uppercase tracking-[0.2em] text-muted-foreground">{t.dashboard.loanVolume}</h3>
             <span className="text-[10px] font-black opacity-40 uppercase tracking-widest">{t.dashboard.viewAll}</span>
           </div>
-          <div className="p-6 h-[320px]">
-              <ResponsiveContainer width="100%" height="100%">
+          <div className="p-6 h-[320px] min-w-0">
+              <ResponsiveContainer width="100%" height="100%" minHeight={200}>
                 <BarChart data={monthlyData} barCategoryGap="20%">
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
                   <XAxis
@@ -339,9 +342,9 @@ export default function DashboardPage() {
               <h3 className="text-xs font-black uppercase tracking-[0.2em] text-muted-foreground">{t.dashboard.assetComposition}</h3>
               <span className="text-[10px] font-black opacity-40 uppercase tracking-widest">{t.common.all}</span>
             </div>
-            <div className="p-6 h-[320px]">
+            <div className="p-6 h-[320px] min-w-0">
               {metalData.length > 0 ? (
-                <ResponsiveContainer width="100%" height="100%">
+                <ResponsiveContainer width="100%" height="100%" minHeight={200}>
                   <PieChart>
                     <Pie
                       data={metalData}
@@ -399,6 +402,7 @@ export default function DashboardPage() {
                   <th>{t.loans.customer}</th>
                   <th>{t.loans.amount}</th>
                   <th>{t.common.status}</th>
+                  <th className="text-right">{t.common.actions}</th>
                 </tr>
               </thead>
               <tbody>
@@ -422,6 +426,11 @@ export default function DashboardPage() {
                         {loan.status}
                       </span>
                     </td>
+                    <td className="text-right">
+                       <Link href={`/loans/${loan.id}`} className="text-[10px] font-black text-primary uppercase tracking-widest hover:underline">
+                          View
+                       </Link>
+                     </td>
                   </tr>
                 ))}
               </tbody>

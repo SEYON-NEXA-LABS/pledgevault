@@ -11,6 +11,7 @@ import Header from './Header';
 import { subscriptionStore } from '@/lib/subscriptionStore';
 import MobileBottomNav from './MobileBottomNav';
 import { ChevronRight } from 'lucide-react';
+import { translations, Language } from '@/lib/i18n/translations';
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -22,9 +23,21 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const [branches, setBranches] = useState<any[]>([]);
 
   const isPublicPage = pathname === '/login' || pathname === '/start-trial';
+  const [lang, setLang] = useState<Language>('en');
 
   useEffect(() => {
     setMounted(true);
+    
+    // Initial Load Lang
+    const s = settingsStore.get();
+    if (s.language) setLang(s.language as Language);
+
+    // Sync Lang
+    const syncLang = () => {
+      const updated = settingsStore.get();
+      if (updated.language) setLang(updated.language as Language);
+    };
+    window.addEventListener('pv_settings_updated', syncLang);
     
     // Check for persisted sidebar state
     const savedSidebarState = localStorage.getItem('pv_sidebar_open');
@@ -103,9 +116,12 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     }
 
     initializeLiveState();
+    return () => window.removeEventListener('pv_settings_updated', syncLang);
   }, [pathname, isPublicPage]);
 
   if (!mounted) return null;
+
+  const t = translations[lang] || translations.en;
 
   // Hydration / Loading Splash Screen
   if (isHydrating && !isPublicPage) {
@@ -120,14 +136,14 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           </div>
         </div>
         <div className="text-center">
-          <h2 className="text-2xl font-black tracking-tight mb-2">PledgeVault</h2>
+          <h2 className="text-2xl font-black tracking-tight mb-2">{t.common.pledgevault}</h2>
           <div className="flex items-center gap-2 justify-center">
             <div className="w-1.5 h-1.5 bg-primary rounded-full animate-bounce [animation-delay:-0.3s]" />
             <div className="w-1.5 h-1.5 bg-primary rounded-full animate-bounce [animation-delay:-0.15s]" />
             <div className="w-1.5 h-1.5 bg-primary rounded-full animate-bounce" />
           </div>
           <p className="text-[10px] text-muted-foreground font-black uppercase tracking-[0.2em] mt-4 opacity-40">
-            Secure Workspace Initialization
+            {t.common.secureVault}
           </p>
         </div>
       </div>
@@ -170,9 +186,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             <div className="w-20 h-20 bg-primary/10 text-primary rounded-3xl flex items-center justify-center text-4xl mx-auto mb-8 shadow-inner">
                 🏠
             </div>
-            <h2 className="text-3xl font-black tracking-tight mb-3">Branch Identity</h2>
+            <h2 className="text-3xl font-black tracking-tight mb-3">{t.branches.branchIdentity}</h2>
             <p className="text-muted-foreground font-bold text-sm leading-relaxed mb-10 opacity-70">
-              Please select your current reporting branch to initialize your session.
+              {t.branches.selectReportingBranch}
             </p>
             
             <div className="flex flex-col gap-3">

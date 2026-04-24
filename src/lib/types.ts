@@ -14,7 +14,7 @@ export interface Branch {
 
 export type MetalType = 'gold' | 'silver';
 
-export type LoanStatus = 'active' | 'overdue' | 'closed' | 'auctioned';
+export type LoanStatus = 'active' | 'overdue' | 'closed' | 'auctioned' | 'draft';
 
 export type InterestMode = 'flat' | 'reducing' | 'per_gram';
 
@@ -60,6 +60,8 @@ export interface Customer {
   altPhone?: string;
   address: string;
   city: string;
+  state?: string;
+  pincode: string;
   // Primary ID (Mandatory)
   primaryIdType: string;
   primaryIdNumber: string;

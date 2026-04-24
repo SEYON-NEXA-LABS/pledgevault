@@ -116,14 +116,14 @@ export default function ReceiptContent({ loan, customer, settings, type, remarks
   return (
     <div className="modern-receipt" style={{
       width: '148mm', // A5 Width
-      minHeight: '210mm',
+      minHeight: 'auto',
       padding: '10mm',
       fontFamily: "'Inter', sans-serif",
       color: '#1a1d1f',
       background: '#fff',
       margin: '0 auto',
-      border: '1px solid #eee',
-      boxShadow: '0 0 10px rgba(0,0,0,0.05)'
+      border: 'none',
+      boxShadow: 'none'
     }}>
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '30px' }}>

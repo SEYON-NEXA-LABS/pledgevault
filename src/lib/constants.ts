@@ -21,18 +21,18 @@ export const SILVER_PURITY_MAP: Record<SilverPurity, { label: string; factor: nu
 };
 
 // ---- Item Types ----
-export const ITEM_TYPES: { value: ItemType; label: string }[] = [
-  { value: 'chain', label: 'Chain' },
-  { value: 'necklace', label: 'Necklace' },
-  { value: 'ring', label: 'Ring' },
-  { value: 'bangle', label: 'Bangle' },
-  { value: 'earring', label: 'Earring' },
-  { value: 'bracelet', label: 'Bracelet' },
-  { value: 'anklet', label: 'Anklet' },
-  { value: 'pendant', label: 'Pendant' },
-  { value: 'coin', label: 'Coin' },
-  { value: 'bar', label: 'Bar / Biscuit' },
-  { value: 'other', label: 'Other' },
+export const ITEM_TYPES: { value: ItemType; labelKey: string }[] = [
+  { value: 'chain', labelKey: 'chain' },
+  { value: 'necklace', labelKey: 'necklace' },
+  { value: 'ring', labelKey: 'ring' },
+  { value: 'bangle', labelKey: 'bangle' },
+  { value: 'earring', labelKey: 'earring' },
+  { value: 'bracelet', labelKey: 'bracelet' },
+  { value: 'anklet', labelKey: 'anklet' },
+  { value: 'pendant', labelKey: 'pendant' },
+  { value: 'coin', labelKey: 'coin' },
+  { value: 'bar', labelKey: 'bar' },
+  { value: 'other', labelKey: 'other' },
 ];
 
 // ---- Default Shop Settings ----
@@ -55,7 +55,7 @@ export const DEFAULT_SETTINGS: ShopSettings = {
   branches: [],
   allowStaffOverridesInterest: true,
   allowStaffOverridesLtv: true,
-  language: 'en',
+  language: 'ta',
   theme: 'emerald',
   goldRateMarket: 0,
   silverRateMarket: 0,
@@ -64,17 +64,17 @@ export const DEFAULT_SETTINGS: ShopSettings = {
 
 // ---- Interest Mode Labels ----
 export const INTEREST_MODE_LABELS: Record<string, string> = {
-  flat: 'Flat Rate',
-  reducing: 'Reducing Balance',
-  per_gram: 'Per Gram / Month',
+  flat: 'flat',
+  reducing: 'reducing',
+  per_gram: 'per_gram',
 };
 
 // ---- Loan Status Labels ----
 export const LOAN_STATUS_LABELS: Record<string, string> = {
-  active: 'Active',
-  overdue: 'Overdue',
-  closed: 'Closed',
-  auctioned: 'Auctioned',
+  active: 'active',
+  overdue: 'overdue',
+  closed: 'closed',
+  auctioned: 'auctioned',
 };
 
 // ---- Currency Formatter ----

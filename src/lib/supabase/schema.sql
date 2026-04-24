@@ -143,6 +143,7 @@ CREATE TABLE shop_settings (
   gst_number TEXT,
   registration_number TEXT,
   gold_rate_24k NUMERIC DEFAULT 0,
+  gold_rate_22k NUMERIC DEFAULT 0,
   silver_rate_999 NUMERIC DEFAULT 0,
   default_ltv_gold NUMERIC DEFAULT 75,
   default_ltv_silver NUMERIC DEFAULT 70,
@@ -262,6 +263,7 @@ BEGIN
        WHERE li.metal_type = 'silver' AND l.status IN ('active', 'overdue') AND l.firm_id = f_id
     ),
     'total_customers', (SELECT COUNT(*) FROM public.customers WHERE firm_id = f_id),
+    'total_monthly_interest', (SELECT COALESCE(SUM(loan_amount * interest_rate / 100), 0) FROM public.loans WHERE firm_id = f_id AND status IN ('active', 'overdue')),
     'recent_loans', (
        SELECT COALESCE(json_agg(t), '[]'::json) FROM (
          SELECT id, loan_number, customer_name, customer_phone, loan_amount, status, created_at
@@ -271,7 +273,30 @@ BEGIN
          LIMIT 5
        ) t
     ),
-    'overdue_count', (SELECT COUNT(*) FROM public.loans WHERE firm_id = f_id AND status = 'overdue')
+    'overdue_count', (SELECT COUNT(*) FROM public.loans WHERE firm_id = f_id AND status = 'overdue'),
+    'metal_distribution', (
+       SELECT COALESCE(json_agg(json_build_object('name', metal_type, 'value', weight_sum)), '[]'::json) FROM (
+         SELECT li.metal_type, SUM(li.net_weight) as weight_sum
+         FROM loan_items li
+         JOIN loans l ON li.loan_id = l.id
+         WHERE l.firm_id = f_id AND l.status IN ('active', 'overdue')
+         GROUP BY li.metal_type
+       ) d
+    ),
+    'monthly_trends', (
+       SELECT COALESCE(json_agg(json_build_object('month', month_label, 'gold', gold_count, 'silver', silver_count)), '[]'::json) FROM (
+         SELECT 
+           to_char(created_at, 'Mon') as month_label,
+           COUNT(*) as gold_count,
+           0 as silver_count
+         FROM loans
+         WHERE firm_id = f_id 
+         AND (p_branch_id IS NULL OR branch_id = p_branch_id)
+         AND created_at >= now() - interval '6 months'
+         GROUP BY month_label, date_trunc('month', created_at)
+         ORDER BY date_trunc('month', created_at) ASC
+       ) m
+    )
   ) INTO result;
   
   RETURN result;
@@ -299,6 +324,38 @@ BEGIN
   ) INTO result;
   
   RETURN result;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- 11. Branch Metrics (Enterprise Level)
+CREATE OR REPLACE FUNCTION get_branches_with_metrics(f_id UUID)
+RETURNS TABLE (
+  id UUID,
+  name TEXT,
+  code TEXT,
+  location TEXT,
+  phone TEXT,
+  is_active BOOLEAN,
+  active_loans_count BIGINT,
+  total_gold_weight NUMERIC
+) AS $$
+BEGIN
+  RETURN QUERY
+  SELECT 
+    b.id,
+    b.name,
+    b.code,
+    b.location,
+    b.phone,
+    b.is_active,
+    COUNT(DISTINCT l.id) FILTER (WHERE l.status IN ('active', 'overdue')) as active_loans_count,
+    COALESCE(SUM(li.net_weight) FILTER (WHERE li.metal_type = 'gold' AND l.status IN ('active', 'overdue')), 0) as total_gold_weight
+  FROM public.branches b
+  LEFT JOIN public.loans l ON b.id = l.branch_id
+  LEFT JOIN public.loan_items li ON l.id = li.loan_id
+  WHERE b.firm_id = f_id
+  GROUP BY b.id, b.name, b.code, b.location, b.phone, b.is_active
+  ORDER BY b.name ASC;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
@@ -497,3 +554,73 @@ CREATE TRIGGER on_loan_created
   AFTER INSERT ON loans
   FOR EACH ROW
   EXECUTE FUNCTION tr_log_loan_creation();
+
+
+-- 17. Reporting RPC
+CREATE OR REPLACE FUNCTION get_reports_data(
+  p_firm_id UUID,
+  p_branch_id UUID DEFAULT NULL,
+  p_start_date TIMESTAMPTZ DEFAULT NULL,
+  p_end_date TIMESTAMPTZ DEFAULT NULL
+)
+RETURNS JSON AS 
+DECLARE
+  result JSON;
+BEGIN
+  SELECT json_build_object(
+    'summary', (
+      SELECT json_build_object(
+        'total_principal_disbursed', COALESCE(SUM(loan_amount), 0),
+        'total_interest_collected', (
+           SELECT COALESCE(SUM(amount), 0) FROM payments 
+           WHERE firm_id = p_firm_id 
+           AND (p_branch_id IS NULL OR branch_id = p_branch_id)
+           AND payment_date >= COALESCE(p_start_date, now() - interval '30 days')
+           AND payment_date <= COALESCE(p_end_date, now())
+        ),
+        'outstanding_principal', (
+           SELECT COALESCE(SUM(loan_amount - amount_paid), 0) FROM loans 
+           WHERE firm_id = p_firm_id AND status IN ('active', 'overdue')
+           AND (p_branch_id IS NULL OR branch_id = p_branch_id)
+        ),
+        'active_count', (
+           SELECT COUNT(*) FROM loans 
+           WHERE firm_id = p_firm_id AND status IN ('active', 'overdue')
+           AND (p_branch_id IS NULL OR branch_id = p_branch_id)
+        )
+      )
+      FROM loans
+      WHERE firm_id = p_firm_id 
+      AND (p_branch_id IS NULL OR branch_id = p_branch_id)
+      AND created_at >= COALESCE(p_start_date, now() - interval '30 days')
+      AND created_at <= COALESCE(p_end_date, now())
+    ),
+    'delinquent_loans', (
+       SELECT COALESCE(json_agg(t), '[]'::json) FROM (
+         SELECT id, loan_number, customer_name, loan_amount, status, due_date
+         FROM loans
+         WHERE firm_id = p_firm_id 
+         AND status = 'overdue'
+         AND (p_branch_id IS NULL OR branch_id = p_branch_id)
+         ORDER BY due_date ASC
+         LIMIT 10
+       ) t
+    ),
+    'daily_earnings', (
+       SELECT COALESCE(json_agg(json_build_object('date', d, 'amount', COALESCE(sum_amount, 0))), '[]'::json) FROM (
+         SELECT date_trunc('day', payment_date) as d, SUM(amount) as sum_amount
+         FROM payments
+         WHERE firm_id = p_firm_id 
+         AND (p_branch_id IS NULL OR branch_id = p_branch_id)
+         AND payment_date >= COALESCE(p_start_date, now() - interval '30 days')
+         AND payment_date <= COALESCE(p_end_date, now())
+         GROUP BY 1
+         ORDER BY 1 ASC
+       ) e
+    )
+  ) INTO result;
+
+  RETURN result;
+END;
+ LANGUAGE plpgsql SECURITY DEFINER;
+

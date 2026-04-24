@@ -16,6 +16,7 @@ export default function LiveRateTicker() {
   useEffect(() => {
     const handleSync = () => {
       setLang(settingsStore.get().language || 'en');
+      fetchRates(); // Re-fetch to show potentially updated Shop Rates
     };
     window.addEventListener('pv_settings_updated', handleSync);
     return () => window.removeEventListener('pv_settings_updated', handleSync);

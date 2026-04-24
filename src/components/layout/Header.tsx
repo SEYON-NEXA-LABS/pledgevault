@@ -89,18 +89,18 @@ export default function Header({ onMenuClick, settings: propSettings }: HeaderPr
   };
 
   const getActiveBranchName = () => {
-    if (settings.activeBranchId === 'firm') return 'All Branches';
-    if (!settings.branches || !Array.isArray(settings.branches)) return 'Main Branch';
+    if (settings.activeBranchId === 'firm') return t.branches.allBranches;
+    if (!settings.branches || !Array.isArray(settings.branches)) return t.branches.mainBranch;
     
     const found = settings.branches.find((b: any) => b.id === settings.activeBranchId);
     if (found) return found.name;
 
     // Fallback: If we have branches but none match the ID, it might be the first one
-    return settings.branches.length > 0 ? settings.branches[0].name : 'Main Branch';
+    return settings.branches.length > 0 ? settings.branches[0].name : t.branches.mainBranch;
   };
 
   const lang: Language = (settings.language || 'en') as Language;
-  const t = translations[lang];
+  const t = translations[lang] || translations.en;
 
   const activeBranchName = getActiveBranchName();
   const canSwitchBranch = (settings.branches?.length || 0) > 0 || isManager || isSuperadmin;

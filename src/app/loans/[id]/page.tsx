@@ -390,10 +390,22 @@ export default function LoanDetailsPage() {
                         style={{ 
                           width: '40px', 
                           height: '40px', 
-                          borderRadius: '6px', 
+                          borderRadius: '8px', 
                           overflow: 'hidden', 
                           cursor: 'pointer',
-                          border: '1px solid var(--border)'
+                          border: '2px solid var(--border)',
+                          transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                          boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.transform = 'scale(1.15)';
+                          e.currentTarget.style.borderColor = 'var(--brand-primary)';
+                          e.currentTarget.style.boxShadow = '0 4px 12px rgba(16, 123, 136, 0.2)';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.transform = 'scale(1)';
+                          e.currentTarget.style.borderColor = 'var(--border)';
+                          e.currentTarget.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
                         }}
                       >
                         <img src={item.photoBase64} alt="Item" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
@@ -526,26 +538,28 @@ export default function LoanDetailsPage() {
       {/* Print Modal */}
       {showPrintModal && settings && customer && (
         <div className="modal-overlay print-modal-overlay">
-          <div className="card print-modal-card" style={{ width: '800px', maxWidth: '95vh', maxHeight: '90vh', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-            <div className="card-header">
-              <h3>Receipt Print Preview</h3>
+          <div className="pv-card" style={{ width: '800px', maxWidth: '95%', maxHeight: '90vh', padding: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column', border: '1px solid var(--brand-primary)', boxShadow: 'var(--shadow-lg)' }}>
+            <div className="modal-header" style={{ background: 'var(--brand-primary)', color: 'white', padding: '16px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h3 style={{ margin: 0, color: 'white', fontSize: '18px' }}>Receipt Print Preview</h3>
               <div style={{ display: 'flex', gap: '8px' }}>
                 <button 
-                  className={`btn btn-sm ${receiptType === 'modern' ? 'btn-primary' : 'btn-outline'}`}
+                  className={`pv-btn pv-btn-sm ${receiptType === 'modern' ? 'pv-btn-primary' : 'pv-btn-outline'}`}
                   onClick={() => setReceiptType('modern')}
+                  style={{ height: '32px', color: receiptType === 'modern' ? 'white' : 'var(--brand-glow)', borderColor: 'rgba(255,255,255,0.3)' }}
                 >
                   Modern (A5)
                 </button>
                 <button 
-                  className={`btn btn-sm ${receiptType === 'thermal' ? 'btn-primary' : 'btn-outline'}`}
+                  className={`pv-btn pv-btn-sm ${receiptType === 'thermal' ? 'pv-btn-primary' : 'pv-btn-outline'}`}
                   onClick={() => setReceiptType('thermal')}
+                  style={{ height: '32px', color: receiptType === 'thermal' ? 'white' : 'var(--brand-glow)', borderColor: 'rgba(255,255,255,0.3)' }}
                 >
                   Thermal (80mm)
                 </button>
-                <button onClick={() => setShowPrintModal(false)} style={{ marginLeft: '12px' }}><X size={20} /></button>
+                <button onClick={() => setShowPrintModal(false)} style={{ marginLeft: '12px', color: 'white' }}><X size={20} /></button>
               </div>
             </div>
-            <div style={{ padding: '16px 24px', borderBottom: '1px solid var(--border-light)', background: '#fff' }}>
+            <div className="no-print" style={{ padding: '16px 24px', borderBottom: '1px solid var(--border-light)', background: '#fff' }}>
               <label style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-tertiary)', display: 'block', marginBottom: '8px', textTransform: 'uppercase' }}>Add Custom Note to Receipt (Optional)</label>
               <textarea 
                 className="pv-input"
@@ -566,43 +580,67 @@ export default function LoanDetailsPage() {
                 />
               </div>
             </div>
-            <div className="card-footer" style={{ padding: '16px 24px', borderTop: '1px solid var(--border-light)', display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
-              <button onClick={() => setShowPrintModal(false)} className="btn btn-outline">Close</button>
+            <div className="modal-footer" style={{ padding: '16px 24px', borderTop: '1px solid var(--border-light)', background: '#f8fafc', display: 'flex', gap: '12px' }}>
+              <button onClick={() => setShowPrintModal(false)} className="pv-btn pv-btn-outline" style={{ flex: 1 }}>Close</button>
               <button 
                 onClick={() => window.print()} 
-                className="btn btn-gold"
+                className="pv-btn pv-btn-gold"
+                style={{ flex: 2 }}
               >
-                <Printer size={18} /> Print Now
+                <Printer size={18} /> Print Receipt
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Photo Lightbox */}
+      {/* Photo Lightbox (Shadcn Style) */}
       {selectedPhoto && (
-        <div className="modal-overlay" onClick={() => setSelectedPhoto(null)} style={{ zIndex: 2000 }}>
+        <div 
+          className="modal-overlay" 
+          onClick={() => setSelectedPhoto(null)} 
+          style={{ 
+            zIndex: 2000, 
+            background: 'rgba(0, 0, 0, 0.8)', 
+            position: 'fixed', 
+            top: 0, left: 0, right: 0, bottom: 0, 
+            display: 'flex', alignItems: 'center', justifyContent: 'center' 
+          }}
+        >
           <div 
             style={{ 
               position: 'relative', 
               maxWidth: '90vw', 
               maxHeight: '90vh', 
-              background: '#fff', 
+              background: 'var(--background)', 
               borderRadius: 'var(--radius-lg)', 
               overflow: 'hidden',
-              boxShadow: '0 20px 50px rgba(0,0,0,0.5)'
+              boxShadow: 'var(--shadow-2xl)',
+              border: '1px solid var(--border)',
+              animation: 'fadeInScale 0.2s ease-out'
             }}
             onClick={e => e.stopPropagation()}
           >
             <button 
               onClick={() => setSelectedPhoto(null)}
-              style={{ position: 'absolute', top: '15px', right: '15px', background: 'rgba(0,0,0,0.5)', color: '#fff', border: 'none', borderRadius: '50%', width: '30px', height: '30px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+              style={{ 
+                position: 'absolute', top: '16px', right: '16px', 
+                background: 'var(--muted)', color: 'var(--muted-foreground)', 
+                border: '1px solid var(--border)', borderRadius: '50%', 
+                width: '32px', height: '32px', display: 'flex', 
+                alignItems: 'center', justifyContent: 'center', cursor: 'pointer', zIndex: 10 
+              }}
             >
-              <X size={18} />
+              <X size={16} />
             </button>
-            <img src={selectedPhoto} alt="Item Preview" style={{ maxWidth: '100%', maxHeight: '80vh', display: 'block' }} />
-            <div style={{ padding: '16px', textAlign: 'center', fontWeight: 600, color: '#1A3C34' }}>
-              Jewelry Item Verification Proof
+            <img 
+              src={selectedPhoto} 
+              alt="Item Preview" 
+              style={{ maxWidth: '100%', maxHeight: '75vh', display: 'block', objectFit: 'contain' }} 
+            />
+            <div style={{ padding: '20px', textAlign: 'center', background: 'var(--card)', borderTop: '1px solid var(--border)' }}>
+              <div style={{ fontSize: '15px', fontWeight: 700, color: 'var(--foreground)', marginBottom: '2px' }}>Item Verification Preview</div>
+              <div style={{ fontSize: '11px', color: 'var(--muted-foreground)', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Captured Proof for Audit Trail</div>
             </div>
           </div>
         </div>
@@ -615,29 +653,65 @@ export default function LoanDetailsPage() {
           left: 0;
           right: 0;
           bottom: 0;
-          background: rgba(0,0,0,0.5);
+          background: rgba(0, 0, 0, 0.4);
           display: flex;
           align-items: center;
           justify-content: center;
-          zIndex: 1000;
-          backdrop-filter: blur(4px);
+          z-index: 1000;
           animation: fadeIn 0.2s ease;
         }
+
+        .print-modal-overlay {
+          z-index: 1500;
+          background: rgba(18, 31, 29, 0.7);
+        }
         
+        @page {
+          margin: 0mm;
+          size: auto;
+        }
+
         @media print {
-          body * {
-            visibility: hidden;
+          /* Hard reset for the whole document */
+          html, body {
+            margin: 0 !important;
+            padding: 0 !important;
+            height: auto !important;
+            overflow: visible !important;
+            background: white !important;
+            visibility: hidden !important;
           }
+          
+          /* Show ONLY the receipt container and its children */
           #receipt-to-print, #receipt-to-print * {
-            visibility: visible;
+            visibility: visible !important;
           }
+          
+          /* Pin the receipt to the absolute top of the page */
           #receipt-to-print {
-            position: absolute;
-            left: 0;
-            top: 0;
-            width: 100%;
+            position: absolute !important;
+            left: 0 !important;
+            top: 0 !important;
+            width: 100% !important;
+            height: auto !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            display: block !important;
           }
-          .modal-overlay, .card-header, .card-footer, .page-header, .content-grid, .card, .sidebar {
+
+          /* Strip all styling from parent containers so they don't show borders/shadows */
+          .modal-overlay, .pv-card, .card-body, .app-layout, .main-content {
+            background: none !important;
+            border: none !important;
+            box-shadow: none !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            display: block !important;
+            visibility: hidden !important;
+          }
+
+          /* Explicitly hide the UI buttons and notes section */
+          .no-print, .modal-header, .modal-footer, .sidebar, .header-bar, .pv-btn {
             display: none !important;
           }
         }
@@ -647,8 +721,8 @@ export default function LoanDetailsPage() {
           to { opacity: 1; }
         }
         @keyframes fadeInScale {
-          from { opacity: 0; transform: scale(0.95); }
-          to { opacity: 1; transform: scale(1); }
+          from { opacity: 0; transform: scale(0.9) translateY(20px); }
+          to { opacity: 1; transform: scale(1) translateY(0); }
         }
         .stat-box {
           padding: 12px;

@@ -1,5 +1,24 @@
-import { PlanTier, PlanLimits } from './types';
+import { PlanTier } from './types';
 import { PLAN_LIMITS, GRACE_PERIOD_DAYS } from './constants';
+ 
+const PLAN_RANKS: Record<PlanTier, number> = {
+  'free': 0,
+  'starter': 1,
+  'pro': 2,
+  'elite': 3
+};
+
+/**
+ * Determines if moving from one plan to another is an upgrade or downgrade.
+ */
+export function getPlanMovement(current: PlanTier, next: PlanTier): 'upgrade' | 'downgrade' | 'none' {
+  const currentRank = PLAN_RANKS[current] ?? 0;
+  const nextRank = PLAN_RANKS[next] ?? 0;
+  
+  if (nextRank > currentRank) return 'upgrade';
+  if (nextRank < currentRank) return 'downgrade';
+  return 'none';
+}
 
 /**
  * Checks if a subscription is within its validity period or the 7-day grace period.

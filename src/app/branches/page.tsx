@@ -59,11 +59,9 @@ export default function BranchesPage() {
       const plan = (profile?.firms?.plan as PlanTier) || 'free';
       setCurrentPlan(plan);
 
-      // 2. Fetch Branches (if elite or just to show what they have)
-      const data = await supabaseService.getSettings(auth.firmId as string);
-      if (data?.branches) {
-        setBranches(data.branches);
-      }
+      // 2. Fetch Branches with real-time metrics
+      const data = await supabaseService.getBranchesWithMetrics(auth.firmId as string);
+      setBranches(data || []);
     } catch (err) {
       console.error('Failed to load branches data:', err);
     } finally {

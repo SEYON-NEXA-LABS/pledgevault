@@ -19,6 +19,7 @@ import {
   ShieldCheck,
   Zap,
   Activity,
+  CircleDollarSign,
 } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase/client';
@@ -32,11 +33,10 @@ const navItems = [
   { href: '/loans', label: 'loans', icon: HandCoins },
   { href: '/customers', label: 'customers', icon: Users },
   { href: '/branches', label: 'branches', icon: Building2 },
+  { href: '/collections', label: 'collections', icon: CircleDollarSign },
   { href: '/reports', label: 'reports', icon: BarChart3 },
   { href: '/settings', label: 'settings', icon: Settings },
 ];
-
-// Removed configGroups constant to calculate dynamically inside Sidebar component
 
 interface SidebarProps {
   isOpen: boolean;
@@ -48,29 +48,27 @@ export default function Sidebar({ isOpen, onToggle, overdueCount = 0 }: SidebarP
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const [lang, setLang] = React.useState<Language>('ta');
   const [expandedGroups, setExpandedGroups] = React.useState<string[]>(['settings']);
 
-  const auth = authStore.get();
-  const settings = settingsStore.get();
-  const lang: Language = (settings as any).language || 'en';
-  const t = translations[lang];
-  const isManager = authStore.isManager() || authStore.isSuperadmin();
+  React.useEffect(() => {
+    // Initial Load
+    const s = settingsStore.get();
+    if (s.language) setLang(s.language as Language);
 
-  const dynamicConfigGroups = [
-    {
-      id: 'settings',
-      label: t.sidebar.settings,
-      icon: Settings,
-      children: [
-        { href: '/settings', label: t.sidebar.settings, icon: User },
-        ...(isManager ? [
-          { href: '/settings?tab=general', label: t.settings.branchSettings, icon: Building2 },
-          { href: '/settings?tab=subscription', label: t.settings.subscription, icon: CreditCard },
-          { href: '/settings?tab=team', label: t.settings.team, icon: Shield },
-        ] : [])
-      ]
-    }
-  ];
+    // Sync listener
+    const sync = () => {
+      const updated = settingsStore.get();
+      if (updated.language) setLang(updated.language as Language);
+    };
+    window.addEventListener('pv_settings_updated', sync);
+    return () => window.removeEventListener('pv_settings_updated', sync);
+  }, []);
+
+  const t = translations[lang] || translations.en;
+  const settings = settingsStore.get();
+  const auth = authStore.get();
+  const isManager = authStore.isManager() || authStore.isSuperadmin();
 
   // Auto-expand settings if we are on a settings page
   React.useEffect(() => {
@@ -81,19 +79,11 @@ export default function Sidebar({ isOpen, onToggle, overdueCount = 0 }: SidebarP
     }
   }, [pathname]);
 
-  const toggleGroup = (groupId: string) => {
-    // Group toggling disabled as we moved to a flat structure
-  };
-
   const handleSignOut = async () => {
     await supabase.auth.signOut();
     router.push('/login');
     router.refresh();
   };
-
-  React.useEffect(() => {
-    // Legacy branding logic removed. System now uses centralized OKLCH engine.
-  }, []);
 
   const isActive = (href: string) => {
     if (href.includes('?')) {

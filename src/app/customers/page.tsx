@@ -41,18 +41,30 @@ export default function CustomersPage() {
     fetchCustomers();
   }, [page]);
 
+  // Debounced search
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (mounted) {
+        setPage(0);
+        fetchCustomers();
+      }
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [search]);
+
   const fetchCustomers = async () => {
     setLoading(true);
     try {
       if (auth.firmId) {
-        const result = await supabaseService.getCustomers(auth.firmId, page, pageSize);
+        const result = await supabaseService.getCustomers(auth.firmId, page, pageSize, search);
         setCustomers(result.data);
         setTotal(result.total);
       } else {
         // Fallback for local/demo
         const allLocal = customerStore.getAll();
-        setCustomers(allLocal.slice(page * pageSize, (page + 1) * pageSize));
-        setTotal(allLocal.length);
+        const filtered = search ? allLocal.filter(c => c.name?.toLowerCase().includes(search.toLowerCase())) : allLocal;
+        setCustomers(filtered.slice(page * pageSize, (page + 1) * pageSize));
+        setTotal(filtered.length);
       }
     } catch (err) {
       console.error('Error fetching customers:', err);
@@ -64,17 +76,6 @@ export default function CustomersPage() {
   if (!mounted) {
     return <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-tertiary)' }}>Loading...</div>;
   }
-
-  const displayCustomers = customers.filter((c) => {
-    if (search) {
-      const q = search.toLowerCase();
-      return (
-        c.name?.toLowerCase().includes(q) ||
-        c.phone?.includes(q)
-      );
-    }
-    return true;
-  });
 
   return (
     <>
@@ -118,7 +119,7 @@ export default function CustomersPage() {
                   <th>{t.customers.idProof}</th>
                   <th>{t.branches.location}</th>
                   <th>{t.common.status}</th>
-                  <th>{t.common.actions}</th>
+                  <th className="text-right">{t.common.actions}</th>
                 </tr>
               </thead>
               <tbody>
@@ -129,7 +130,7 @@ export default function CustomersPage() {
                       <p className="text-sm font-bold text-muted-foreground uppercase tracking-widest opacity-50">Fetching customers...</p>
                     </td>
                   </tr>
-                ) : displayCustomers.map((customer) => {
+                ) : customers.map((customer) => {
                   return (
                     <tr key={customer.id}>
                       <td>
@@ -172,12 +173,12 @@ export default function CustomersPage() {
                         </span>
                       </td>
                       <td>
-                        <div className="flex gap-2">
-                          <Link href={`/customers/${customer.id}`} title="View Profile" className="pv-btn-icon pv-btn-outline">
-                            <User size={14} />
+                        <div className="flex gap-4 items-center">
+                          <Link href={`/customers/${customer.id}`} className="text-[10px] font-black text-primary uppercase tracking-widest hover:underline">
+                            Profile
                           </Link>
-                          <Link href={`/loans/new?customerId=${customer.id}`} title="New Loan" className="pv-btn-icon pv-btn-gold">
-                            <Plus size={14} />
+                          <Link href={`/loans/new?customerId=${customer.id}`} className="text-[10px] font-black text-primary uppercase tracking-widest hover:underline border-l border-border pl-4">
+                            New Loan
                           </Link>
                         </div>
                       </td>
@@ -189,7 +190,7 @@ export default function CustomersPage() {
           </div>
 
           <div className="mobile-cards">
-             {displayCustomers.map((customer) => (
+             {customers.map((customer) => (
                <div key={customer.id} className="pv-card flex flex-col gap-4 p-5 hover:shadow-lg transition-all duration-300">
                  <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
@@ -221,7 +222,7 @@ export default function CustomersPage() {
              ))}
           </div>
 
-          {!loading && displayCustomers.length === 0 && (
+          {!loading && customers.length === 0 && (
             <div className="empty-state" style={{ padding: '80px', textAlign: 'center' }}>
                <User size={32} style={{ color: 'var(--text-tertiary)', marginBottom: '16px' }} />
                <h3 style={{ fontWeight: 800 }}>No customers found</h3>
