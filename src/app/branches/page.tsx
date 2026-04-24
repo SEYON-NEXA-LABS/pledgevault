@@ -12,15 +12,22 @@ import {
   Crown,
   Info,
   Loader2,
-  X
+  X,
+  ArrowLeftRight
 } from 'lucide-react';
 import { supabaseService } from '@/lib/supabase/service';
 import { authStore } from '@/lib/authStore';
 import BranchCard from '@/components/branches/BranchCard';
 import EliteUpgradeGate from '@/components/shared/EliteUpgradeGate';
 import { PlanTier } from '@/lib/types';
+import { PLAN_LIMITS } from '@/lib/constants';
+import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+import { settingsStore } from '@/lib/store';
+import { translations, Language } from '@/lib/i18n/translations';
 
 export default function BranchesPage() {
+  const router = useRouter();
   const [branches, setBranches] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentPlan, setCurrentPlan] = useState<PlanTier>('free');
@@ -34,6 +41,9 @@ export default function BranchesPage() {
   });
 
   const auth = authStore.get();
+  const settings = settingsStore.get();
+  const lang: Language = (settings.language || 'en') as Language;
+  const t = translations[lang];
   const isManager = authStore.isManager() || authStore.isSuperadmin();
 
   useEffect(() => {
@@ -65,6 +75,14 @@ export default function BranchesPage() {
     e.preventDefault();
     if (!newBranch.name || !newBranch.code) return;
 
+    // Plan Limit Check
+    const planLimits = PLAN_LIMITS[currentPlan] || PLAN_LIMITS.free;
+    if (branches.length >= planLimits.maxBranches) {
+      alert(`Your ${currentPlan.toUpperCase()} plan is limited to ${planLimits.maxBranches} branch(es). Please upgrade to add more.`);
+      router.push('/settings?tab=subscription');
+      return;
+    }
+
     setSubmitting(true);
     try {
       const added = await supabaseService.createBranch({
@@ -84,14 +102,19 @@ export default function BranchesPage() {
     }
   };
 
-  const handleDeleteBranch = async (id: string, name: string) => {
-    if (!confirm(`Are you sure you want to delete branch "${name}"?`)) return;
+  const handleToggleArchive = async (id: string, name: string, isArchived: boolean) => {
+    const action = isArchived ? 'unarchive' : 'archive';
+    if (!confirm(`Are you sure you want to ${action} branch "${name}"?`)) return;
     
     try {
-      await supabaseService.deleteBranch(id);
-      setBranches(branches.filter(b => b.id !== id));
+      if (isArchived) {
+        await supabaseService.unarchiveBranch(id);
+      } else {
+        await supabaseService.archiveBranch(id);
+      }
+      setBranches(branches.map(b => b.id === id ? { ...b, isActive: isArchived } : b));
     } catch (err: any) {
-      alert('Delete failed: ' + err.message);
+      alert(`Operation failed: ` + err.message);
     }
   };
 
@@ -104,15 +127,7 @@ export default function BranchesPage() {
     );
   }
 
-  // Elite Plan Gate
-  if (currentPlan !== 'elite') {
-    return (
-      <EliteUpgradeGate 
-        featureName="Multi-Branch Management"
-        featureDescription="The dedicated Branches Dashboard is reserved for Elite partners managing large networks. Centralize your operations, track inter-branch movements, and scale your legacy."
-      />
-    );
-  }
+  // We no longer gate the whole page, but we will gate the "New Branch" action below.
 
   return (
     <div className="branches-page">
@@ -120,13 +135,16 @@ export default function BranchesPage() {
         <div className="page-header-left">
           <h2>
             <Building2 className="header-icon" />
-            Branch Networks
+            {t.branches.title}
           </h2>
-          <p className="subtitle">Managing {branches.length} locations across your firm</p>
+          <p className="subtitle">{t.branches.managingLocations}</p>
         </div>
         <div className="page-header-right">
+          <Link href="/branches/transfers" className="pv-btn pv-btn-outline" style={{ marginRight: '12px' }}>
+            <ArrowLeftRight size={18} /> {t.branches.transfers}
+          </Link>
           <button className="pv-btn pv-btn-gold" onClick={() => setIsModalOpen(true)}>
-            <Plus size={18} /> New Branch
+            <Plus size={18} /> {t.branches.addBranch}
           </button>
         </div>
       </div>
@@ -134,7 +152,7 @@ export default function BranchesPage() {
       <div className="toolbar" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px', gap: '16px' }}>
         <div className="search-box" style={{ flex: 1, maxWidth: '400px', position: 'relative' }}>
           <Search size={18} style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-tertiary)' }} />
-          <input type="text" className="pv-input" style={{ paddingLeft: '44px' }} placeholder="Search by name, code or city..." />
+          <input type="text" className="pv-input" style={{ paddingLeft: '44px' }} placeholder={t.common.search} />
         </div>
         <div className="toolbar-actions" style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
           <button className="pv-btn pv-btn-outline" style={{ width: '44px', padding: 0 }}><Filter size={18} /></button>
@@ -145,13 +163,13 @@ export default function BranchesPage() {
         </div>
       </div>
 
-      <div className="branches-grid">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {branches.map(branch => (
           <BranchCard 
             key={branch.id} 
             branch={branch} 
             isManager={isManager}
-            onDelete={handleDeleteBranch}
+            onDelete={() => handleToggleArchive(branch.id, branch.name, branch.isActive === false)}
           />
         ))}
       </div>
@@ -161,13 +179,13 @@ export default function BranchesPage() {
         <div className="modal-overlay" style={{ position: 'fixed', inset: 0, background: 'rgba(26, 60, 52, 0.6)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }}>
           <div className="pv-card" style={{ width: '100%', maxWidth: '500px', padding: 0, overflow: 'hidden', animation: 'fadeInScale 0.3s ease' }}>
             <div className="modal-header" style={{ padding: '24px 32px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h3 style={{ margin: 0, fontSize: '20px', fontWeight: 800 }}>Register New Branch</h3>
+              <h3 style={{ margin: 0, fontSize: '20px', fontWeight: 800 }}>{t.branches.addBranch}</h3>
               <button onClick={() => setIsModalOpen(false)} style={{ background: 'transparent', border: 'none', color: 'var(--text-tertiary)' }}><X size={20} /></button>
             </div>
             <form onSubmit={handleAddBranch}>
               <div style={{ padding: '32px' }}>
                 <div className="pv-input-group" style={{ marginBottom: '20px' }}>
-                  <label>Official Branch Name</label>
+                  <label>{t.customers.name}</label>
                   <input 
                     className="pv-input"
                     required
@@ -178,7 +196,7 @@ export default function BranchesPage() {
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '20px' }}>
                   <div className="pv-input-group">
-                    <label>Branch Code (Unique)</label>
+                    <label>{t.branches.code}</label>
                     <input 
                       className="pv-input"
                       required
@@ -204,9 +222,9 @@ export default function BranchesPage() {
                 </div>
               </div>
               <div style={{ padding: '24px 32px', background: 'var(--bg-primary)', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
-                <button type="button" className="pv-btn pv-btn-outline" onClick={() => setIsModalOpen(false)}>Cancel</button>
+                <button type="button" className="pv-btn pv-btn-outline" onClick={() => setIsModalOpen(false)}>{t.common.cancel}</button>
                 <button type="submit" className="pv-btn pv-btn-gold" disabled={submitting}>
-                  {submitting ? <Loader2 className="spin" size={18} /> : 'Create Branch'}
+                  {submitting ? <Loader2 className="spin" size={18} /> : t.branches.addBranch}
                 </button>
               </div>
             </form>

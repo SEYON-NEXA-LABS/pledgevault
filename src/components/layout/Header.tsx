@@ -23,6 +23,7 @@ import UniversalSearch from '../common/UniversalSearch';
 import TrialBanner from './TrialBanner';
 import { supabase } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
+import { translations, Language } from '@/lib/i18n/translations';
 
 interface HeaderProps {
   onMenuClick?: () => void;
@@ -98,9 +99,20 @@ export default function Header({ onMenuClick, settings: propSettings }: HeaderPr
     return settings.branches.length > 0 ? settings.branches[0].name : 'Main Branch';
   };
 
+  const lang: Language = (settings.language || 'en') as Language;
+  const t = translations[lang];
+
   const activeBranchName = getActiveBranchName();
   const canSwitchBranch = (settings.branches?.length || 0) > 0 || isManager || isSuperadmin;
-  const roleName = isSuperadmin ? 'Superadmin' : (isManager ? 'Manager' : 'Staff');
+  const roleName = isSuperadmin ? t.sidebar.superadmin : (isManager ? t.sidebar.manager : t.sidebar.staff);
+
+  const handleLanguageChange = (lang: 'en' | 'ta') => {
+    const updated = { ...settings, language: lang };
+    setSettings(updated);
+    settingsStore.save(updated);
+    window.dispatchEvent(new Event('pv_settings_updated'));
+    window.dispatchEvent(new Event('storage'));
+  };
 
   return (
     <>
@@ -149,7 +161,7 @@ export default function Header({ onMenuClick, settings: propSettings }: HeaderPr
                       }}
                     >
                       <LayoutDashboard size={14} />
-                      <span>All Branches</span>
+                      <span>{t.common.all}</span>
                     </button>
                   )}
 
@@ -179,7 +191,7 @@ export default function Header({ onMenuClick, settings: propSettings }: HeaderPr
                     onClick={handleSignOut}
                   >
                     <LogOut size={14} className="flex-shrink-0" />
-                    <span>Sign Out</span>
+                    <span>{t.common.signOut}</span>
                   </button>
                 </div>
               </div>
@@ -193,23 +205,38 @@ export default function Header({ onMenuClick, settings: propSettings }: HeaderPr
           </div>
 
           <div className="flex items-center gap-2">
+            {/* Language Switcher */}
+            <div className="flex bg-muted/50 rounded-xl p-1 mr-1 border border-border/30">
+              <button 
+                className={`px-2.5 py-1 rounded-lg text-[10px] font-black tracking-tighter transition-all cursor-pointer ${settings.language === 'en' ? 'bg-card text-primary shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
+                onClick={() => handleLanguageChange('en')}
+              >
+                EN
+              </button>
+              <button 
+                className={`px-2.5 py-1 rounded-lg text-[10px] font-black tracking-tighter transition-all cursor-pointer ${settings.language === 'ta' ? 'bg-card text-primary shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
+                onClick={() => handleLanguageChange('ta')}
+              >
+                தமிழ்
+              </button>
+            </div>
             <button 
               className="search-trigger"
               onClick={() => setIsSearchOpen(true)}
             >
               <SearchIcon size={14} />
-              <span className="hidden sm:inline">Search...</span>
+              <span className="hidden sm:inline">{t.common.search}</span>
               <kbd className="hidden sm:flex">⌘K</kbd>
             </button>
 
-            <button className="pv-btn pv-btn-ghost pv-btn-icon" title="Notifications">
+            <button className="pv-btn pv-btn-ghost pv-btn-icon" title={t.common.notifications}>
               <Bell size={18} />
             </button>
 
             <div className="relative">
                 <button 
                   className={`pv-btn pv-btn-ghost pv-btn-icon ${showCalendar ? 'active' : ''}`}
-                  title="Tamil Calendar"
+                  title={t.common.calendar}
                   onClick={() => setShowCalendar(!showCalendar)}
                 >
                   <Calendar size={18} />

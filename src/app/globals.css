@@ -49,8 +49,8 @@
 }
 
 :root {
-    --font-sans: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
-    --font-heading: var(--font-sans);
+    --font-sans: var(--font-outfit), var(--font-hind-madurai), ui-sans-serif, system-ui, sans-serif;
+    --font-heading: var(--font-outfit), var(--font-hind-madurai), ui-sans-serif, system-ui, sans-serif;
     --background: oklch(1 0 0);
     --foreground: oklch(0.153 0.006 107.1);
     --card: oklch(1 0 0);
@@ -286,19 +286,19 @@
   @apply w-full overflow-x-auto rounded-xl border border-border/50 bg-card;
 }
 
-.data-table {
+.data-table, .pv-table {
   @apply w-full border-collapse border-spacing-0;
 }
 
-.data-table th {
+.data-table th, .pv-table th {
   @apply text-left p-4 text-[10px] font-black uppercase tracking-widest text-muted-foreground border-b border-border bg-muted/30;
 }
 
-.data-table td {
+.data-table td, .pv-table td {
   @apply p-4 border-b border-border/50 text-[13px] font-medium;
 }
 
-.data-table tr:hover {
+.data-table tr:hover, .pv-table tr:hover {
   @apply bg-muted/20;
 }
 

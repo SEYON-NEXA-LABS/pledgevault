@@ -22,7 +22,8 @@ import {
   Image as ImageIcon,
   Phone,
   MessageCircle,
-  RefreshCw
+  RefreshCw,
+  MessageSquare
 } from 'lucide-react';
 import { loanStore, paymentStore, customerStore, settingsStore } from '@/lib/store';
 import { supabaseService } from '@/lib/supabase/service';
@@ -236,7 +237,7 @@ export default function LoanDetailsPage() {
               </div>
               <div className="info-item">
                 <label style={{ fontSize: '11px', color: 'var(--text-tertiary)', display: 'block' }}>Address</label>
-                <div style={{ fontWeight: 600, fontSize: '13px' }}>{customer?.city}, {customer?.state}</div>
+                <div style={{ fontWeight: 600, fontSize: '13px' }}>{customer?.address || customer?.city}</div>
               </div>
             </div>
           </div>
@@ -297,7 +298,7 @@ export default function LoanDetailsPage() {
                       {formatCurrency(
                         loan.items.reduce((acc, item) => {
                           const rate = item.metalType === 'gold' ? currentRates.gold : currentRates.silver;
-                          const adjustedRate = item.metalType === 'gold' ? (rate * (item.purity / 24)) : rate;
+                          const adjustedRate = item.metalType === 'gold' ? (rate * (Number(item.purity) / 1000)) : rate;
                           return acc + (item.netWeight * adjustedRate);
                         }, 0)
                       )}
@@ -308,7 +309,7 @@ export default function LoanDetailsPage() {
                 {(() => {
                    const currentVal = loan.items.reduce((acc, item) => {
                      const rate = item.metalType === 'gold' ? currentRates.gold : currentRates.silver;
-                     const adjustedRate = item.metalType === 'gold' ? (rate * (item.purity / 24)) : rate;
+                     const adjustedRate = item.metalType === 'gold' ? (rate * (Number(item.purity) / 1000)) : rate;
                      return acc + (item.netWeight * adjustedRate);
                    }, 0);
                    const delta = currentVal - loan.totalAppraisedValue;

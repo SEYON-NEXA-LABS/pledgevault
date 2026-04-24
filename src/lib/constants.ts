@@ -41,8 +41,9 @@ export const DEFAULT_SETTINGS: ShopSettings = {
   shopAddress: '',
   shopPhone: '',
   licenseNumber: '',
-  goldRate24K: 7200, // ₹ per gram (approximate current rate)
-  silverRate999: 90, // ₹ per gram
+  goldRate24K: 15350, // ₹ per gram (Actual April 24, 2026 Rate)
+  goldRate22K: 14070, // ₹ per gram (Actual April 24, 2026 Rate)
+  silverRate999: 260, // ₹ per gram (Actual April 24, 2026 Rate)
   defaultLtvGold: 75,
   defaultLtvSilver: 70,
   defaultInterestRate: 1.5, // 1.5% per month

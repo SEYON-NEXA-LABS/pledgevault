@@ -1,7 +1,20 @@
+import { Outfit, Hind_Madurai } from 'next/font/google';
 import type { Metadata } from "next";
 import "./globals.css";
 import AppShell from "@/components/layout/AppShell";
 import TrialExpiredGate from "@/components/auth/TrialExpiredGate";
+
+const outfit = Outfit({ 
+  subsets: ['latin'], 
+  weight: ['300', '400', '500', '600', '700', '800', '900'],
+  variable: '--font-outfit' 
+});
+
+const hindMadurai = Hind_Madurai({ 
+  weight: ['300', '400', '500', '600', '700'], 
+  subsets: ['tamil'], 
+  variable: '--font-hind-madurai' 
+});
 
 export const metadata: Metadata = {
   title: "PledgeVault — Gold & Silver Loan Management",
@@ -16,7 +29,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" data-scroll-behavior="smooth">
-      <body>
+      <body className={`${outfit.variable} ${hindMadurai.variable} antialiased`}>
         <TrialExpiredGate>
           <AppShell>{children}</AppShell>
         </TrialExpiredGate>

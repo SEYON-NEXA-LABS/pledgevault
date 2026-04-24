@@ -20,6 +20,7 @@ import { supabaseService } from '@/lib/supabase/service';
 import { authStore } from '@/lib/authStore';
 import { Customer } from '@/lib/types';
 import Pagination from '@/components/common/Pagination';
+import { translations, Language } from '@/lib/i18n/translations';
 
 export default function CustomersPage() {
   const [customers, setCustomers] = useState<Partial<Customer>[]>([]);
@@ -32,6 +33,8 @@ export default function CustomersPage() {
 
   const auth = authStore.get();
   const settings = settingsStore.get();
+  const lang: Language = (settings.language || 'en') as Language;
+  const t = translations[lang];
 
   useEffect(() => {
     setMounted(true);
@@ -77,15 +80,15 @@ export default function CustomersPage() {
     <>
       <div className="page-header">
         <div className="page-header-left">
-          <h2 className="text-4xl font-black tracking-tight mb-2">Customers</h2>
+          <h2 className="text-4xl font-black tracking-tight mb-2">{t.customers.title}</h2>
           <p className="text-sm font-bold text-muted-foreground opacity-70">
-            Manage your customer database — {customers.length} total registered
+            {t.customers.totalLoans} — {customers.length} {t.common.all}
           </p>
         </div>
         <div className="page-header-right">
           <Link href="/customers/new" className="pv-btn pv-btn-gold shadow-lg shadow-primary/10" id="add-customer-btn">
             <Plus size={18} />
-            Add Customer
+            {t.customers.addCustomer}
           </Link>
         </div>
       </div>
@@ -110,12 +113,12 @@ export default function CustomersPage() {
             <table className="data-table">
               <thead>
                 <tr>
-                  <th>Customer</th>
-                  <th>Contact Info</th>
-                  <th>KYC Details</th>
-                  <th>Location</th>
-                  <th>Status</th>
-                  <th>Actions</th>
+                  <th>{t.customers.name}</th>
+                  <th>{t.customers.phone}</th>
+                  <th>{t.customers.idProof}</th>
+                  <th>{t.branches.location}</th>
+                  <th>{t.common.status}</th>
+                  <th>{t.common.actions}</th>
                 </tr>
               </thead>
               <tbody>
@@ -165,7 +168,7 @@ export default function CustomersPage() {
                       </td>
                       <td>
                         <span className={`badge ${Number(customer.activeLoansCount) > 0 ? 'active' : 'demo'}`} style={{ fontWeight: 800 }}>
-                          {customer.activeLoansCount || 0} Active
+                          {customer.activeLoansCount || 0} {t.common.active}
                         </span>
                       </td>
                       <td>

@@ -177,13 +177,13 @@ export default function DashboardPage() {
                 <div className="pv-card relative overflow-hidden p-6 border-l-4 border-l-[#D4AF37]">
                    <div className="flex justify-between items-start mb-4">
                       <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">
-                        {t.common.gold} 24K Pulse
+                        {t.common.gold} 22K (916) Pulse
                       </span>
                       <div className={`px-2 py-1 rounded-lg text-[10px] font-black ${marketTrends.goldChange >= 0 ? 'bg-primary/10 text-primary' : 'bg-destructive/10 text-destructive'}`}>
                         {marketTrends.goldChange >= 0 ? '+' : ''}{marketTrends.goldChange}%
                       </div>
                    </div>
-                   <div className="text-3xl font-black mb-4">₹{(settings.goldRate24K || 0).toLocaleString('en-IN')}<small className="text-xs ml-1 opacity-40 font-bold uppercase">/gram</small></div>
+                   <div className="text-3xl font-black mb-4">₹{Math.round((settings.goldRate24K || 0) * (22/24)).toLocaleString('en-IN')}<small className="text-xs ml-1 opacity-40 font-bold uppercase">/gram</small></div>
                    <div className="h-12">
                       <ResponsiveContainer width="100%" height="100%">
                         <AreaChart data={marketTrends.history}>
@@ -227,10 +227,10 @@ export default function DashboardPage() {
            )}
 
            <div className="stats-grid m-0">
-             <StatCard title="Active Loans" value={totalActiveLoanCount.toString()} subtitle={formatCurrency(totalActiveLoanValue)} icon={HandCoins} variant="vibrant" />
-             <StatCard title="Gold Custody" value={formatWeight(totalGoldWeight)} subtitle={`Value: ${formatCurrency(totalGoldWeight * settings.goldRate24K)}`} icon={Scale} variant="vibrant" />
-             <StatCard title="Overdue" value={(cloudStats?.overdueCount ?? 0).toString()} subtitle="Requires attention" icon={AlertTriangle} variant="danger" />
-             <StatCard title="Yield" value={formatCurrency(monthlyInterest)} subtitle="Expected monthly" icon={TrendingUp} variant="primary" />
+             <StatCard title={t.dashboard.activeLoans} value={totalActiveLoanCount.toString()} subtitle={formatCurrency(totalActiveLoanValue)} icon={HandCoins} variant="vibrant" />
+             <StatCard title={t.dashboard.goldCustody} value={formatWeight(totalGoldWeight)} subtitle={`Value: ${formatCurrency(totalGoldWeight * settings.goldRate24K)}`} icon={Scale} variant="vibrant" />
+             <StatCard title={t.dashboard.overdue} value={(cloudStats?.overdueCount ?? 0).toString()} subtitle={t.dashboard.collectionRisk} icon={AlertTriangle} variant="danger" />
+             <StatCard title={t.dashboard.yield} value={formatCurrency(monthlyInterest)} subtitle={t.dashboard.viewAll} icon={TrendingUp} variant="primary" />
            </div>
         </div>
 
@@ -297,8 +297,8 @@ export default function DashboardPage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
         <div className="pv-card p-0 flex flex-col overflow-hidden">
           <div className="flex items-center justify-between p-6 border-b border-border bg-muted/10">
-            <h3 className="text-xs font-black uppercase tracking-[0.2em] text-muted-foreground">Loan Volume</h3>
-            <span className="text-[10px] font-black opacity-40 uppercase tracking-widest">Last 6 Months</span>
+            <h3 className="text-xs font-black uppercase tracking-[0.2em] text-muted-foreground">{t.dashboard.loanVolume}</h3>
+            <span className="text-[10px] font-black opacity-40 uppercase tracking-widest">{t.dashboard.viewAll}</span>
           </div>
           <div className="p-6 h-[320px]">
               <ResponsiveContainer width="100%" height="100%">
@@ -336,8 +336,8 @@ export default function DashboardPage() {
         {isManager && (
           <div className="pv-card p-0 flex flex-col overflow-hidden">
             <div className="flex items-center justify-between p-6 border-b border-border bg-muted/10">
-              <h3 className="text-xs font-black uppercase tracking-[0.2em] text-muted-foreground">Asset Composition</h3>
-              <span className="text-[10px] font-black opacity-40 uppercase tracking-widest">By Weight</span>
+              <h3 className="text-xs font-black uppercase tracking-[0.2em] text-muted-foreground">{t.dashboard.assetComposition}</h3>
+              <span className="text-[10px] font-black opacity-40 uppercase tracking-widest">{t.common.all}</span>
             </div>
             <div className="p-6 h-[320px]">
               {metalData.length > 0 ? (
@@ -386,19 +386,19 @@ export default function DashboardPage() {
       <div className="grid grid-cols-1 gap-8">
         <div className="pv-card p-0 flex flex-col overflow-hidden">
           <div className="flex items-center justify-between p-6 border-b border-border bg-muted/10">
-            <h3 className="text-xs font-black uppercase tracking-[0.2em] text-muted-foreground">Recent Pledges</h3>
+            <h3 className="text-xs font-black uppercase tracking-[0.2em] text-muted-foreground">{t.dashboard.recentPledges}</h3>
             <Link href="/loans" className="pv-btn pv-btn-ghost pv-btn-sm text-[11px] font-black">
-              EXPLORE ALL <ArrowRight size={14} />
+              {t.dashboard.exploreAll} <ArrowRight size={14} />
             </Link>
           </div>
           <div className="data-table-wrapper">
             <table className="data-table">
               <thead>
                 <tr>
-                  <th>Series #</th>
-                  <th>Appraiser / Client</th>
-                  <th>Amount</th>
-                  <th>Status</th>
+                  <th>{t.loans.loanId}</th>
+                  <th>{t.loans.customer}</th>
+                  <th>{t.loans.amount}</th>
+                  <th>{t.common.status}</th>
                 </tr>
               </thead>
               <tbody>
@@ -467,7 +467,8 @@ function getMonthlyData(loans: Loan[]) {
     const d = new Date(dateStr);
     const key = d.toLocaleDateString('en-IN', { month: 'short' });
     if (key in months) {
-      if (loan.metalType === 'silver') {
+      const metalType = (loan as any).metalType || loan.items?.[0]?.metalType || 'gold';
+      if (metalType === 'silver') {
         months[key].silver++;
       } else {
         months[key].gold++;

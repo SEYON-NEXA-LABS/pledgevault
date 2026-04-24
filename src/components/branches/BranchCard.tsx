@@ -1,7 +1,9 @@
 'use client';
 
 import React from 'react';
-import { MapPin, Phone, Hash, ArrowRight, Activity, Building, Trash2 } from 'lucide-react';
+import { MapPin, Phone, Hash, ArrowRight, Activity, Building, Archive, RotateCcw } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { settingsStore } from '@/lib/store';
 
 interface BranchCardProps {
   branch: {
@@ -18,6 +20,13 @@ interface BranchCardProps {
 }
 
 export default function BranchCard({ branch, onDelete, isManager }: BranchCardProps) {
+  const router = useRouter();
+
+  const handleSwitchBranch = () => {
+    settingsStore.save({ activeBranchId: branch.id });
+    window.dispatchEvent(new Event('storage'));
+    router.push('/');
+  };
   return (
     <div className="branch-card">
       <div className="branch-card-header">
@@ -26,17 +35,20 @@ export default function BranchCard({ branch, onDelete, isManager }: BranchCardPr
             <Building size={20} />
           </div>
           <div>
-            <h3>{branch.name}</h3>
+            <div className="flex items-center gap-2">
+              <h3>{branch.name}</h3>
+              {branch.isActive === false && <span className="text-[9px] bg-destructive/10 text-destructive px-1.5 py-0.5 rounded font-black uppercase">Archived</span>}
+            </div>
             <span className="branch-id">{branch.code}</span>
           </div>
         </div>
         {isManager && (
           <button 
-            className="delete-btn" 
+            className={`delete-btn ${branch.isActive === false ? 'text-primary' : 'text-destructive'}`} 
             onClick={() => onDelete?.(branch.id, branch.name)}
-            title="Delete Branch"
+            title={branch.isActive === false ? "Unarchive Branch" : "Archive Branch"}
           >
-            <Trash2 size={16} />
+            {branch.isActive === false ? <RotateCcw size={16} /> : <Archive size={16} />}
           </button>
         )}
       </div>
@@ -48,7 +60,7 @@ export default function BranchCard({ branch, onDelete, isManager }: BranchCardPr
         </div>
         <div className="detail-item">
           <Activity size={14} />
-          <span>{branch.isActive !== false ? 'Operating' : 'Inactive'}</span>
+          <span>{branch.isActive !== false ? 'Operating' : 'Archived'}</span>
         </div>
       </div>
 
@@ -64,7 +76,10 @@ export default function BranchCard({ branch, onDelete, isManager }: BranchCardPr
       </div>
 
       <div className="branch-card-footer">
-        <button className="btn btn-sm btn-outline-teal btn-full">
+        <button 
+          className="pv-btn pv-btn-gold w-full"
+          onClick={handleSwitchBranch}
+        >
           Branch Dashboard <ArrowRight size={14} />
         </button>
       </div>

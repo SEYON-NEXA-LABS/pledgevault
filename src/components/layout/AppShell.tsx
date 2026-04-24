@@ -10,6 +10,7 @@ import Sidebar from './Sidebar';
 import Header from './Header';
 import { subscriptionStore } from '@/lib/subscriptionStore';
 import MobileBottomNav from './MobileBottomNav';
+import { ChevronRight } from 'lucide-react';
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();

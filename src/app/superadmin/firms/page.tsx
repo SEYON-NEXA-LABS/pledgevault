@@ -18,7 +18,8 @@ import {
   CheckCircle,
   X,
   Palette,
-  Fingerprint
+  Fingerprint,
+  Loader2
 } from 'lucide-react';
 import Link from 'next/link';
 import { supabaseService } from '@/lib/supabase/service';

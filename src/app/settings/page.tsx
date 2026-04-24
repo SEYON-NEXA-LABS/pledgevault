@@ -13,6 +13,8 @@ import {
   Coins,
   RefreshCw,
   GitBranch,
+  Archive,
+  RotateCcw,
   Plus,
   CreditCard,
   LayoutDashboard,
@@ -39,6 +41,7 @@ import SubscriptionTab from '@/components/settings/SubscriptionTab';
 import TeamTab from '@/components/settings/TeamTab';
 import ProfileTab from '@/components/settings/ProfileTab';
 import { authStore } from '@/lib/authStore';
+import { translations, Language } from '@/lib/i18n/translations';
 
 type SettingsTab = 'profile' | 'general' | 'subscription' | 'team';
 
@@ -51,6 +54,9 @@ function SettingsContent() {
   const [mounted, setMounted] = useState(false);
   const [saved, setSaved] = useState(false);
   const [syncing, setSyncing] = useState(false);
+  const auth = authStore.get();
+  const lang: Language = (settings.language || 'en') as Language;
+  const t = translations[lang];
   const searchParams = useSearchParams();
 
   useEffect(() => {
@@ -176,24 +182,34 @@ function SettingsContent() {
     }
   };
 
-  const handleDeleteBranch = async (id: string, name: string) => {
-    if (settings.activeBranchId === id) {
-      alert('Cannot delete the currently active branch.');
+  const handleToggleBranchStatus = async (id: string, name: string, currentStatus: boolean) => {
+    const action = currentStatus ? 'archive' : 'activate';
+    if (currentStatus && settings.activeBranchId === id) {
+      alert('Cannot archive the currently active branch.');
       return;
     }
-    if (!confirm(`Are you sure you want to delete branch "${name}"? This will fail if there are active loans in this branch.`)) return;
+    
+    if (!confirm(`Are you sure you want to ${action} branch "${name}"?`)) return;
 
     try {
-      await supabaseService.deleteBranch(id);
+      if (currentStatus) {
+        await supabaseService.archiveBranch(id);
+      } else {
+        await supabaseService.unarchiveBranch(id);
+      }
+
       setSettings(prev => {
-        const updated = { ...prev, branches: prev.branches.filter(b => b.id !== id) };
+        const updatedBranches = prev.branches.map(b => 
+          b.id === id ? { ...b, isActive: !currentStatus } : b
+        );
+        const updated = { ...prev, branches: updatedBranches };
         settingsStore.save(updated);
         return updated;
       });
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
     } catch (err: any) {
-      alert('Delete failed. Ensure branch has no associated records.');
+      alert(`Failed to ${action} branch. ` + err.message);
     }
   };
 
@@ -205,8 +221,8 @@ function SettingsContent() {
     <>
       <div className="page-header" style={{ marginBottom: '32px' }}>
         <div className="page-header-left">
-          <h2 style={{ fontSize: '32px' }}>Settings</h2>
-          <p className="subtitle" style={{ color: 'var(--text-tertiary)', fontWeight: 500 }}>Manage metrics and shop configurations</p>
+          <h2 style={{ fontSize: '32px' }}>{t.settings.title}</h2>
+          <p className="subtitle" style={{ color: 'var(--text-tertiary)', fontWeight: 500 }}>{t.common.management}</p>
         </div>
         {activeTab === 'general' && (
           <div className="page-header-right">
@@ -223,7 +239,7 @@ function SettingsContent() {
           onClick={() => setActiveTab('profile')}
           style={{ height: '44px', borderRadius: '12px 12px 0 0', borderBottom: 'none' }}
         >
-          <User size={18} /> My Profile
+          <User size={18} /> {t.sidebar.settings}
         </button>
         {isManager && (
           <>
@@ -232,21 +248,21 @@ function SettingsContent() {
               onClick={() => setActiveTab('general')}
               style={{ height: '44px', borderRadius: '12px 12px 0 0', borderBottom: 'none' }}
             >
-              <Building size={18} /> General
+              <Building size={18} /> {t.settings.general}
             </button>
             <button 
               className={`pv-btn ${activeTab === 'subscription' ? 'pv-btn-primary' : 'pv-btn-outline'}`}
               onClick={() => setActiveTab('subscription')}
               style={{ height: '44px', borderRadius: '12px 12px 0 0', borderBottom: 'none' }}
             >
-              <CreditCard size={18} /> Subscriptions
+              <CreditCard size={18} /> {t.settings.subscription}
             </button>
             <button 
               className={`pv-btn ${activeTab === 'team' ? 'pv-btn-primary' : 'pv-btn-outline'}`}
               onClick={() => setActiveTab('team')}
               style={{ height: '44px', borderRadius: '12px 12px 0 0', borderBottom: 'none' }}
             >
-              <Users size={18} /> Team & Access
+              <Users size={18} /> {t.settings.team}
             </button>
           </>
         )}
@@ -321,12 +337,22 @@ function SettingsContent() {
             <div className="flex flex-col gap-5">
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                 <div className="pv-input-group">
-                  <label>Gold 24K (₹/g)</label>
+                  <label>Gold 24K (Market Base)</label>
                   <input type="number" name="goldRate24K" className="pv-input" value={settings.goldRate24K} onChange={handleChange} />
                 </div>
                 <div className="pv-input-group">
-                  <label>Silver 999 (₹/kg)</label>
+                  <label>Gold 22K (916 Reference)</label>
+                  <input type="text" className="pv-input bg-muted/30 font-black" readOnly value={`₹${Math.round((settings.goldRate24K || 0) * (22/24)).toLocaleString('en-IN')}`} />
+                </div>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                <div className="pv-input-group">
+                  <label>Silver 999 (Fine Silver)</label>
                   <input type="number" name="silverRate999" className="pv-input" value={settings.silverRate999} onChange={handleChange} />
+                </div>
+                <div className="pv-input-group">
+                  <label>Currency Unit</label>
+                  <input type="text" className="pv-input bg-muted/30" readOnly value="INR (₹)" />
                 </div>
               </div>
               <div style={{ background: 'var(--primary)/5', padding: '16px', borderRadius: '16px', display: 'flex', gap: '12px', color: 'var(--primary)', border: '1px solid var(--primary)/20' }}>
@@ -387,7 +413,7 @@ function SettingsContent() {
             <div className="flex flex-col gap-5">
               <div className="pv-input-group">
                 <label>Manager Context</label>
-                <select name="activeBranchId" className="pv-input" value={settings.activeBranchId} onChange={handleChange}>
+                <select name="activeBranchId" className="pv-input" value={settings.activeBranchId || 'firm'} onChange={handleChange}>
                   <option value="firm">All Branches</option>
                   {settings.branches.map(b => (
                     <option key={b.id} value={b.id}>{b.name}</option>
@@ -396,16 +422,23 @@ function SettingsContent() {
               </div>
               <div className="flex flex-col gap-3">
                 {settings.branches.map(b => (
-                  <div key={b.id} className="flex justify-between items-center p-4 rounded-xl border border-border bg-muted/50">
+                  <div key={b.id} className={`flex justify-between items-center p-4 rounded-xl border ${b.isActive === false ? 'bg-destructive/5 border-destructive/20 opacity-70' : 'bg-muted/50 border-border'}`}>
                     <div>
-                      <div className="font-extrabold text-sm">{b.name}</div>
+                      <div className="flex items-center gap-2">
+                        <div className="font-extrabold text-sm">{b.name}</div>
+                        {b.isActive === false && <span className="text-[9px] bg-destructive/10 text-destructive px-1.5 py-0.5 rounded font-black uppercase">Archived</span>}
+                      </div>
                       <div className="text-[11px] text-muted-foreground font-bold uppercase">{b.code} • {b.location}</div>
                       <div className="text-[10px] text-primary font-bold mt-0.5">{b.phone || 'No phone set'}</div>
                     </div>
                     <div className="flex items-center gap-3">
                       {settings.activeBranchId === b.id && <span className="badge active">Active</span>}
-                      <button onClick={() => handleDeleteBranch(b.id, b.name)} className="text-destructive p-1 hover:bg-destructive/10 rounded-md transition-colors">
-                        <Trash2 size={16} />
+                      <button 
+                        onClick={() => handleToggleBranchStatus(b.id, b.name, b.isActive !== false)} 
+                        className={`p-2 rounded-xl transition-all ${b.isActive === false ? 'bg-primary/10 text-primary hover:bg-primary/20' : 'bg-destructive/10 text-destructive hover:bg-destructive/20'}`}
+                        title={b.isActive === false ? 'Unarchive Branch' : 'Archive Branch'}
+                      >
+                        {b.isActive === false ? <RotateCcw size={16} /> : <Archive size={16} />}
                       </button>
                     </div>
                   </div>

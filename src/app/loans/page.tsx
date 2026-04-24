@@ -12,8 +12,10 @@ import {
   HandCoins,
   Phone,
   MessageCircle,
+  MessageSquare,
 } from 'lucide-react';
 import { loanStore, settingsStore } from '@/lib/store';
+import { translations, Language } from '@/lib/i18n/translations';
 import { supabaseService } from '@/lib/supabase/service';
 import { authStore } from '@/lib/authStore';
 import { ChevronLeft as ChevronLeftIcon, ChevronRight } from 'lucide-react';
@@ -43,6 +45,8 @@ export default function LoansPage() {
 
   const auth = authStore.get();
   const settings = settingsStore.get();
+  const lang: Language = (settings.language || 'en') as Language;
+  const t = translations[lang];
   const activeBranchId = settings.activeBranchId;
 
   useEffect(() => {
@@ -125,15 +129,15 @@ export default function LoansPage() {
     <>
       <div className="page-header">
         <div className="page-header-left">
-          <h2 className="text-4xl font-black tracking-tight mb-2">Loans</h2>
+          <h2 className="text-4xl font-black tracking-tight mb-2">{t.loans.title}</h2>
           <p className="text-sm font-bold text-muted-foreground opacity-70">
-            Manage all pledge loans — {loans.length} total, {loans.filter((l) => l.status === 'active').length} active
+            {t.sidebar.loans} — {loans.length} {t.common.all}, {loans.filter((l) => l.status === 'active').length} {t.common.active}
           </p>
         </div>
         <div className="page-header-right">
           <Link href="/loans/new" className="pv-btn pv-btn-gold shadow-lg shadow-primary/10" id="create-loan-btn">
             <Plus size={18} />
-            New Loan
+            {t.loans.addLoan}
           </Link>
         </div>
       </div>
@@ -144,7 +148,7 @@ export default function LoansPage() {
           <Search size={18} className="text-muted-foreground opacity-50" />
           <input
             type="text"
-            placeholder="Search by loan #, customer..."
+            placeholder={t.common.search}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="bg-transparent border-none outline-none text-sm font-bold w-full"
@@ -211,15 +215,15 @@ export default function LoansPage() {
             <table className="data-table">
               <thead>
                 <tr>
-                  <th>Loan #</th>
-                  <th>Customer</th>
-                  <th>Items</th>
-                  <th>Weight</th>
-                  <th>Principal</th>
-                  <th>Rate</th>
-                  <th>Due Date</th>
-                  <th>Status</th>
-                  <th>Actions</th>
+                  <th>{t.loans.loanId}</th>
+                  <th>{t.loans.customer}</th>
+                  <th>{t.sidebar.dashboard}</th>
+                  <th>{t.loans.weight}</th>
+                  <th>{t.loans.amount}</th>
+                  <th>{t.loans.interest}</th>
+                  <th>{t.loans.dueDate}</th>
+                  <th>{t.common.status}</th>
+                  <th>{t.common.actions}</th>
                 </tr>
               </thead>
               <tbody>
@@ -341,7 +345,7 @@ export default function LoansPage() {
                               className="pv-btn pv-btn-sm pv-btn-outline text-destructive border-destructive/20 font-black text-[10px] uppercase tracking-widest h-8 px-3"
                               onClick={() => handleCloseLoan(loan.id || '')}
                             >
-                              Close
+                              {t.loans.close}
                             </button>
                           )}
                         </div>

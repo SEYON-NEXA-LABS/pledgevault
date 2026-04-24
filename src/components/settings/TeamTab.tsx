@@ -249,7 +249,7 @@ export default function TeamTab() {
                   </div>
                   <div className="pv-input-group">
                     <label>Branch Access</label>
-                    <select className="pv-input" value={formData.branchId} onChange={e => setFormData({...formData, branchId: e.target.value})}>
+                    <select className="pv-input" value={formData.branchId || ''} onChange={e => setFormData({...formData, branchId: e.target.value})}>
                       <option value="">Global Overview</option>
                       {branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
                     </select>
@@ -291,7 +291,7 @@ export default function TeamTab() {
                     <label>Role</label>
                     <select 
                       className="pv-input" 
-                      value={editingMember.role} 
+                      value={editingMember.role || ''} 
                       onChange={e => setEditingMember({...editingMember, role: e.target.value as any})} 
                     >
                       <option value="staff">Staff Member</option>

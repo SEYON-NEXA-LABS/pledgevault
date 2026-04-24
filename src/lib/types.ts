@@ -9,6 +9,7 @@ export interface Branch {
   code: string; // e.g., 'CBE01'
   licenseNumber?: string;
   phone?: string;
+  isActive?: boolean;
 }
 
 export type MetalType = 'gold' | 'silver';
@@ -138,6 +139,7 @@ export interface ShopSettings {
   gstNumber?: string;
   registrationNumber?: string;
   goldRate24K: number; // per gram
+  goldRate22K: number; // per gram
   silverRate999: number; // per gram
   defaultLtvGold: number; // %
   defaultLtvSilver: number; // %

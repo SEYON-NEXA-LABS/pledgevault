@@ -15,7 +15,8 @@ import {
   Sparkles,
   Lock,
   Mail,
-  Globe
+  Globe,
+  Phone
 } from 'lucide-react';
 import { registerTrialAction } from './actions';
 import { supabase } from '@/lib/supabase/client';

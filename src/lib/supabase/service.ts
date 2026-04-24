@@ -309,7 +309,7 @@ export const supabaseService = {
     let finalBranches = [];
     const { data: branches, error: branchError } = await supabase
       .from('branches')
-      .select('id, firm_id, name, code, location, phone, license_number')
+      .select('id, firm_id, name, code, location, phone, license_number, is_active')
       .eq('firm_id', firmId)
       .order('name', { ascending: true });
 
@@ -317,7 +317,7 @@ export const supabaseService = {
       console.warn('⚠️ Standard branch fetch failed (likely schema mismatch), trying fallback:', branchError.message);
       const { data: fallbackData } = await supabase
         .from('branches')
-        .select('id, firm_id, name, code, location, phone, license_number')
+        .select('id, firm_id, name, code, location, phone, license_number, is_active')
         .eq('firm_id', firmId)
         .order('name');
       finalBranches = fallbackData || [];
@@ -345,6 +345,7 @@ export const supabaseService = {
       gstNumber: shopData.gst_number,
       registrationNumber: shopData.registration_number,
       goldRate24K: shopData.gold_rate_24k,
+      goldRate22K: shopData.gold_rate_22k || Math.round(shopData.gold_rate_24k * (22/24)),
       silverRate999: shopData.silver_rate_999,
       defaultLtvGold: shopData.default_ltv_gold,
       defaultLtvSilver: shopData.default_ltv_silver,
@@ -420,6 +421,7 @@ export const supabaseService = {
     if (settings.gstNumber !== undefined) mapped.gst_number = settings.gstNumber;
     if (settings.registrationNumber !== undefined) mapped.registration_number = settings.registrationNumber;
     if (settings.goldRate24K !== undefined) mapped.gold_rate_24k = settings.goldRate24K;
+    if (settings.goldRate22K !== undefined) mapped.gold_rate_22k = settings.goldRate22K;
     if (settings.silverRate999 !== undefined) mapped.silver_rate_999 = settings.silverRate999;
     if (settings.defaultLtvGold !== undefined) mapped.default_ltv_gold = settings.defaultLtvGold;
     if (settings.defaultLtvSilver !== undefined) mapped.default_ltv_silver = settings.defaultLtvSilver;
@@ -451,7 +453,7 @@ export const supabaseService = {
     
     const { data, error } = await supabase
       .from('branches')
-      .select('id, firm_id, name, code, location, phone, license_number')
+      .select('id, firm_id, name, code, location, phone, license_number, is_active')
       .eq('firm_id', firmId)
       .order('name');
     
@@ -460,7 +462,7 @@ export const supabaseService = {
       // Fallback for schema mismatch
       const { data: basic } = await supabase
         .from('branches')
-        .select('id, firm_id, name, code, location, phone, license_number')
+        .select('id, firm_id, name, code, location, phone, license_number, is_active')
         .eq('firm_id', firmId)
         .order('name');
       return toCamel(basic || []) as Branch[];
@@ -479,10 +481,53 @@ export const supabaseService = {
     return toCamel(data) as Branch;
   },
 
-  async deleteBranch(branchId: string) {
+  // ---- INTER-BRANCH TRANSFERS (ELITE) ----
+  
+  async getTransferHistory(firmId: string) {
+    const { data, error } = await supabase
+      .from('branch_transfers')
+      .select('*, from:from_branch_id(name), to:to_branch_id(name)')
+      .eq('firm_id', firmId)
+      .order('created_at', { ascending: false });
+    
+    if (error) throw error;
+    return toCamel(data || []);
+  },
+
+  async createTransfer(transfer: any) {
+    const dbData = toSnake(transfer);
+    const { data, error } = await supabase
+      .from('branch_transfers')
+      .insert(dbData)
+      .select()
+      .single();
+    
+    if (error) throw error;
+
+    // If it's a loan transfer, we also update the loan record itself
+    if (transfer.entityType === 'loan' && transfer.entityId) {
+      await supabase
+        .from('loans')
+        .update({ branch_id: transfer.toBranchId })
+        .eq('id', transfer.entityId);
+    }
+
+    return toCamel(data);
+  },
+
+  async archiveBranch(branchId: string) {
     const { error } = await supabase
       .from('branches')
-      .delete()
+      .update({ is_active: false })
+      .eq('id', branchId);
+    if (error) throw error;
+    return true;
+  },
+
+  async unarchiveBranch(branchId: string) {
+    const { error } = await supabase
+      .from('branches')
+      .update({ is_active: true })
       .eq('id', branchId);
     if (error) throw error;
     return true;

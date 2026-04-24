@@ -28,12 +28,12 @@ import { ChevronDown } from 'lucide-react';
 import { translations, Language } from '@/lib/i18n/translations';
 
 const navItems = [
-  { href: '/', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/loans', label: 'Loans', icon: HandCoins },
-  { href: '/customers', label: 'Customers', icon: Users },
-  { href: '/branches', label: 'Branches', icon: Building2, isElite: true },
-  { href: '/reports', label: 'Reports', icon: BarChart3 },
-  { href: '/settings', label: 'Settings', icon: Settings },
+  { href: '/', label: 'dashboard', icon: LayoutDashboard },
+  { href: '/loans', label: 'loans', icon: HandCoins },
+  { href: '/customers', label: 'customers', icon: Users },
+  { href: '/branches', label: 'branches', icon: Building2 },
+  { href: '/reports', label: 'reports', icon: BarChart3 },
+  { href: '/settings', label: 'settings', icon: Settings },
 ];
 
 // Removed configGroups constant to calculate dynamically inside Sidebar component
@@ -59,14 +59,14 @@ export default function Sidebar({ isOpen, onToggle, overdueCount = 0 }: SidebarP
   const dynamicConfigGroups = [
     {
       id: 'settings',
-      label: 'Configuration',
+      label: t.sidebar.settings,
       icon: Settings,
       children: [
-        { href: '/settings', label: 'My Profile', icon: User },
+        { href: '/settings', label: t.sidebar.settings, icon: User },
         ...(isManager ? [
-          { href: '/settings?tab=general', label: 'Shop Settings', icon: Building2 },
-          { href: '/settings?tab=subscription', label: 'Subscriptions', icon: CreditCard },
-          { href: '/settings?tab=team', label: 'Team & Access', icon: Shield },
+          { href: '/settings?tab=general', label: t.settings.branchSettings, icon: Building2 },
+          { href: '/settings?tab=subscription', label: t.settings.subscription, icon: CreditCard },
+          { href: '/settings?tab=team', label: t.settings.team, icon: Shield },
         ] : [])
       ]
     }
@@ -147,7 +147,7 @@ export default function Sidebar({ isOpen, onToggle, overdueCount = 0 }: SidebarP
                     className={`sidebar-link ${active ? 'active' : ''}`}
                   >
                     <item.icon size={20} />
-                    <span>{item.label}</span>
+                    <span>{(t.sidebar as any)[item.label]}</span>
                     {(item as any).isElite && (
                       <span className="ml-auto bg-primary/10 text-primary text-[9px] font-black px-2 py-0.5 rounded-md">
                         ELITE
@@ -195,11 +195,11 @@ export default function Sidebar({ isOpen, onToggle, overdueCount = 0 }: SidebarP
                 {auth.userName || 'User'}
               </div>
               <div className="text-[10px] font-black text-primary uppercase tracking-wider">
-                {authStore.isSuperadmin() ? 'Superadmin' : (authStore.isManager() ? 'Manager' : 'Staff')}
+                {authStore.isSuperadmin() ? t.sidebar.superadmin : (authStore.isManager() ? t.sidebar.manager : t.sidebar.staff)}
               </div>
             </div>
-            <button className="pv-btn pv-btn-ghost w-9 h-9 p-0 text-muted-foreground hover:text-destructive flex-shrink-0" onClick={handleSignOut} title="Sign Out">
-              <LogOut size={18} className="flex-shrink-0" />
+            <button className="pv-btn pv-btn-ghost w-9 h-9 p-0 text-muted-foreground hover:text-destructive shrink-0" onClick={handleSignOut} title={t.common.signOut}>
+              <LogOut size={18} className="shrink-0" />
             </button>
           </div>
         </div>
