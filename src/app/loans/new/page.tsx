@@ -496,11 +496,11 @@ function NewLoanContent() {
     <>
       <div className="page-header">
         <div className="page-header-left">
-          <Link href="/loans" className="btn btn-ghost btn-sm" style={{ marginBottom: '4px' }}>
+          <Link href="/loans" className="pv-btn pv-btn-outline" style={{ height: '36px', padding: '0 12px', fontSize: '13px', marginBottom: '8px' }}>
             <ArrowLeft size={16} /> Back to Loans
           </Link>
-          <h2>Create New Loan</h2>
-          <p className="subtitle">Enter pledge details and calculate loan amount</p>
+          <h2 style={{ fontSize: '28px', fontWeight: 800 }}>Create New Loan</h2>
+          <p className="subtitle" style={{ color: 'var(--text-tertiary)' }}>Enter pledge details and calculate loan amount</p>
         </div>
 
         {!enforcement.allowed && (
@@ -517,7 +517,7 @@ function NewLoanContent() {
                 }
               </div>
             </div>
-            <Link href="/settings" className="btn btn-sm btn-white" style={{ marginLeft: 'auto' }}>
+            <Link href="/settings" className="pv-btn pv-btn-outline" style={{ marginLeft: 'auto', background: 'white', height: '36px' }}>
               Upgrade Now
             </Link>
           </div>
@@ -528,21 +528,21 @@ function NewLoanContent() {
         {/* Left: Form */}
         <div>
           {/* Customer Selection */}
-          <div className="form-card">
-            <div className="form-card-title">
+          <div className="pv-card" style={{ marginBottom: '24px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px', fontSize: '18px', fontWeight: 700, color: 'var(--brand-primary)' }}>
               <User size={20} /> Customer Details
             </div>
 
             {authStore.isManager() && (
               <div className="form-group" style={{ marginBottom: '24px', padding: '16px', background: 'var(--status-active-bg)', borderRadius: 'var(--radius-md)', border: '1px solid var(--brand-primary)', animation: 'fadeIn 0.3s ease' }}>
-                <label className="form-label" style={{ fontWeight: 700, color: 'var(--brand-deep)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <label className="pv-input-group label" style={{ fontWeight: 700, color: 'var(--brand-deep)', display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <Building2 size={16} /> Select Primary Branch
                 </label>
                 <p style={{ fontSize: '13px', color: 'var(--brand-deep)', marginBottom: '12px', opacity: 0.8 }}>
                   Please confirm which branch is receiving this pledge and holding the cash.
                 </p>
                 <select 
-                  className="form-input" 
+                  className="pv-input" 
                   required 
                   value={selectedBranchId}
                   onChange={e => setSelectedBranchId(e.target.value)}
@@ -559,14 +559,14 @@ function NewLoanContent() {
               </div>
             )}
 
-            <div className="form-group" style={{ position: 'relative' }}>
-              <label className="form-label">Select Customer</label>
-              {!selectedCustomer ? (
+            <div className="pv-input-group" style={{ position: 'relative' }}>
+              <label>Select Customer</label>
+              {!selectedCustomerId ? (
                 <>
                   <div style={{ position: 'relative' }}>
                     <input
                       type="text"
-                      className="form-input"
+                      className="pv-input"
                       placeholder="Search by name or phone..."
                       value={customerSearch}
                       onChange={(e) => {
@@ -648,7 +648,7 @@ function NewLoanContent() {
                       ) : (
                         <div style={{ padding: '24px', textAlign: 'center' }}>
                           <p style={{ color: 'var(--text-tertiary)', fontSize: '13px', marginBottom: '12px' }}>No matches for "{customerSearch}"</p>
-                          <Link href="/customers/new" className="btn btn-sm btn-outline" style={{ borderStyle: 'dashed' }}>
+                          <Link href="/customers/new" className="pv-btn pv-btn-outline" style={{ borderStyle: 'dashed', height: '36px' }}>
                             <UserPlus size={14} /> Add New Customer
                           </Link>
                         </div>
@@ -659,11 +659,11 @@ function NewLoanContent() {
               ) : (
                 <div className="customer-profile-card">
                   <div className="customer-avatar" style={{ width: '56px', height: '56px', fontSize: '20px', background: 'var(--brand-primary)', color: 'white', boxShadow: 'var(--shadow-brand)' }}>
-                    {selectedCustomer.name.charAt(0)}
+                    {selectedCustomer?.name.charAt(0)}
                   </div>
                   <div style={{ flex: 1 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                      <h4 style={{ margin: 0, fontSize: '18px', fontWeight: 700, color: 'var(--brand-deep)' }}>{selectedCustomer.name}</h4>
+                      <h4 style={{ margin: 0, fontSize: '18px', fontWeight: 700, color: 'var(--brand-deep)' }}>{selectedCustomer?.name}</h4>
                       <span style={{ 
                         padding: '2px 8px', 
                         background: 'var(--status-active-bg)', 
@@ -678,18 +678,18 @@ function NewLoanContent() {
                     </div>
                     <div style={{ display: 'flex', gap: '16px', color: 'var(--text-secondary)', fontSize: '13px' }}>
                       <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                        <RefreshCcw size={12} /> {selectedCustomer.phone}
+                        <RefreshCcw size={12} /> {selectedCustomer?.phone}
                       </span>
-                      <span>{selectedCustomer.city}, {(selectedCustomer.primaryIdType || 'ID').toUpperCase()}: {selectedCustomer.primaryIdNumber}</span>
+                      <span>{selectedCustomer?.city}, {(selectedCustomer?.primaryIdType || 'ID').toUpperCase()}: {selectedCustomer?.primaryIdNumber}</span>
                     </div>
                   </div>
                   <button 
-                    className="btn btn-sm btn-outline" 
+                    className="pv-btn pv-btn-outline" 
                     onClick={() => {
                       setSelectedCustomerId('');
                       setCustomerSearch('');
                     }}
-                    style={{ background: 'white' }}
+                    style={{ background: 'white', height: '40px' }}
                   >
                     Change Customer
                   </button>
@@ -700,9 +700,9 @@ function NewLoanContent() {
           </div>
 
           {/* Pledge Items */}
-          <div className="form-card">
-            <div className="form-card-title" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <div className="pv-card" style={{ marginBottom: '24px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '18px', fontWeight: 700, color: 'var(--brand-primary)' }}>
                 <Gem size={20} /> Pledge Items
               </div>
               <RealTimeRateSync 
@@ -733,12 +733,12 @@ function NewLoanContent() {
                     <tr key={item.id}>
                       <td>
                         <select
-                          className="form-select"
+                          className="pv-input"
                           value={item.metalType}
                           onChange={(e) =>
                             updateItem(index, 'metalType', e.target.value)
                           }
-                          style={{ minWidth: '90px' }}
+                          style={{ minWidth: '100px', height: '44px' }}
                         >
                           <option value="gold">🥇 Gold</option>
                           <option value="silver">🥈 Silver</option>
@@ -746,12 +746,12 @@ function NewLoanContent() {
                       </td>
                       <td>
                         <select
-                          className="form-select"
+                          className="pv-input"
                           value={item.itemType}
                           onChange={(e) =>
                             updateItem(index, 'itemType', e.target.value)
                           }
-                          style={{ minWidth: '110px' }}
+                          style={{ minWidth: '120px', height: '44px' }}
                         >
                           {ITEM_TYPES.map((t) => (
                             <option key={t.value} value={t.value}>
@@ -781,12 +781,12 @@ function NewLoanContent() {
                       </td>
                       <td>
                         <select
-                          className="form-select"
+                          className="pv-input"
                           value={item.purity}
                           onChange={(e) =>
                             updateItem(index, 'purity', e.target.value)
                           }
-                          style={{ minWidth: '130px' }}
+                          style={{ minWidth: '140px', height: '44px' }}
                         >
                           {item.metalType === 'gold'
                             ? Object.entries(GOLD_PURITY_MAP).map(([k, v]) => (
@@ -883,28 +883,28 @@ function NewLoanContent() {
             </div>
 
             <button
-              className="btn btn-outline btn-sm"
+              className="pv-btn pv-btn-outline"
               onClick={addItem}
-              style={{ marginTop: '12px' }}
+              style={{ marginTop: '12px', height: '36px' }}
             >
               <Plus size={16} /> Add Item
             </button>
           </div>
 
           {/* Loan Terms */}
-          <div className="form-card">
-            <div className="form-card-title">
+          <div className="pv-card" style={{ marginBottom: '24px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px', fontSize: '18px', fontWeight: 700, color: 'var(--brand-primary)' }}>
               <CircleDollarSign size={20} /> Loan Terms
             </div>
 
-            <div className="form-row">
-              <div className="form-group">
-                <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <div className="form-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '20px' }}>
+              <div className="pv-input-group">
+                <label style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                   LTV % {!canOverrideLtv && <Lock size={12} color="var(--text-tertiary)" />}
                 </label>
                 <input
                   type="number"
-                  className={`form-input ${(parseFloat(ltvPercent) || 0) > 75 ? 'warning' : ''}`}
+                  className="pv-input"
                   value={ltvPercent}
                   onChange={(e) => setLtvPercent(e.target.value)}
                   min="0"
@@ -920,26 +920,27 @@ function NewLoanContent() {
                   {parseFloat(ltvPercent) > 85 ? '✖ Above RBI Limit (85%)' : (parseFloat(ltvPercent) > 75 ? '⚠ High LTV Warning' : `Auto loan: ${formatCurrency(computedLoanAmount)}`)}
                 </span>
               </div>
-              <div className="form-group">
-                <label className="form-label">Loan Amount (₹) Override</label>
+              <div className="pv-input-group">
+                <label>Loan Amount (₹) Override</label>
                 <input
                   type="number"
-                  className="form-input"
+                  className="pv-input"
                   value={loanAmountOverride}
                   onChange={(e) => setLoanAmountOverride(e.target.value)}
                   placeholder={computedLoanAmount.toString()}
                 />
-                <span className="form-helper">Leave blank to use LTV calculation</span>
+                <span className="form-helper" style={{ fontSize: '11px', color: 'var(--text-tertiary)', marginTop: '4px' }}>Leave blank to use LTV calculation</span>
               </div>
             </div>
 
-            <div className="form-row">
-              <div className="form-group">
-                <label className="form-label">Interest Mode</label>
+            <div className="form-row" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px', marginBottom: '20px' }}>
+              <div className="pv-input-group">
+                <label>Interest Mode</label>
                 <select
-                  className="form-select"
+                  className="pv-input"
                   value={interestMode}
                   onChange={(e) => setInterestMode(e.target.value as InterestMode)}
+                  style={{ height: '52px' }}
                 >
                   {Object.entries(INTEREST_MODE_LABELS).map(([k, v]) => (
                     <option key={k} value={k}>
@@ -948,13 +949,13 @@ function NewLoanContent() {
                   ))}
                 </select>
               </div>
-              <div className="form-group">
-                <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  Interest Rate (% / month) {!canOverrideInterest && <Lock size={12} color="var(--text-tertiary)" />}
+              <div className="pv-input-group">
+                <label style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  Interest Rate (% / mo) {!canOverrideInterest && <Lock size={12} color="var(--text-tertiary)" />}
                 </label>
                 <input
                   type="number"
-                  className={`form-input ${(parseFloat(interestRate) || 0) > 1.5 ? 'warning' : ''}`}
+                  className="pv-input"
                   value={interestRate}
                   onChange={(e) => setInterestRate(e.target.value)}
                   step="0.1"
@@ -963,20 +964,19 @@ function NewLoanContent() {
                   title={!canOverrideInterest ? "Managed by shop policy" : (parseFloat(interestRate) > 1.5 ? "Exceeds State Money Lending Cap (1.5%)" : "")}
                   style={{
                     borderColor: (parseFloat(interestRate) || 0) > 1.5 ? '#f59e0b' : '',
-                    boxShadow: (parseFloat(interestRate) || 0) > 2 ? '0 0 0 2px rgba(245, 158, 11, 0.2)' : ''
                   }}
                 />
                 {(parseFloat(interestRate) || 0) > 1.5 && (
-                  <span className="form-helper" style={{ color: '#d97706', fontSize: '11px', display: 'block', marginTop: '4px' }}>
-                    {parseFloat(interestRate) > 2 ? '⚠ High Interest Alert' : '⚠ Near State Cap (1.5%)'}
+                  <span style={{ color: '#d97706', fontSize: '11px', display: 'block', marginTop: '4px' }}>
+                    {parseFloat(interestRate) > 2 ? '⚠ High Interest' : '⚠ Near State Cap'}
                   </span>
                 )}
               </div>
-              <div className="form-group">
-                <label className="form-label">Tenure (months)</label>
+              <div className="pv-input-group">
+                <label>Tenure (mo)</label>
                 <input
                   type="number"
-                  className="form-input"
+                  className="pv-input"
                   value={tenure}
                   onChange={(e) => setTenure(e.target.value)}
                   min="1"
@@ -985,26 +985,26 @@ function NewLoanContent() {
               </div>
             </div>
 
-            <div className="form-group">
-              <label className="form-label">Remarks</label>
+            <div className="pv-input-group">
+              <label>Remarks</label>
               <textarea
-                className="form-input"
+                className="pv-input"
                 value={remarks}
                 onChange={(e) => setRemarks(e.target.value)}
                 placeholder="Any additional notes about this loan..."
                 rows={3}
-                style={{ resize: 'vertical' }}
+                style={{ resize: 'vertical', height: 'auto', padding: '12px 16px' }}
               />
             </div>
           </div>
 
           {/* Save Button */}
           <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
-            <Link href="/loans" className="btn btn-outline">
+            <Link href="/loans" className="pv-btn pv-btn-outline">
               Cancel
             </Link>
             <button 
-              className="btn btn-gold" 
+              className="pv-btn pv-btn-gold" 
               onClick={handleReviewQuote}
               disabled={saving || !enforcement.allowed}
               id="save-loan-btn"
@@ -1016,8 +1016,8 @@ function NewLoanContent() {
         </div>
 
         {/* Right: Loan Summary */}
-        <div className="loan-summary">
-          <h3>
+        <div className="loan-summary pv-card" style={{ height: 'fit-content', position: 'sticky', top: '92px' }}>
+          <h3 style={{ fontSize: '20px', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '10px' }}>
             <Calculator size={18} /> Loan Summary
           </h3>
 
@@ -1123,30 +1123,30 @@ function NewLoanContent() {
           background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center',
           zIndex: 1000, backdropFilter: 'blur(4px)'
         }}>
-          <div className="card" style={{ width: '400px', maxWidth: '95%', animation: 'fadeInScale 0.3s ease' }}>
-            <div className="card-header" style={{ background: 'var(--status-overdue-bg)', color: 'var(--status-overdue)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><AlertCircle size={20} /> <h3 style={{ color: 'var(--status-overdue)' }}>Manager Override Required</h3></div>
+          <div className="pv-card" style={{ width: '400px', maxWidth: '95%', animation: 'fadeInScale 0.3s ease', padding: 0, overflow: 'hidden' }}>
+            <div className="modal-header" style={{ background: 'var(--status-overdue-bg)', color: 'var(--status-overdue)', padding: '20px 24px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><AlertCircle size={20} /> <h3 style={{ color: 'var(--status-overdue)', margin: 0 }}>Manager Override</h3></div>
             </div>
-            <div className="card-body">
+            <div className="modal-body" style={{ padding: '24px' }}>
               <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '16px' }}>
-                This loan amount ({formatCurrency(finalLoanAmount)}) exceeds the staff limit of {formatCurrency(HIGH_VALUE_THRESHOLD)}. A manager's 4-digit PIN is required to proceed.
+                This loan amount ({formatCurrency(finalLoanAmount)}) exceeds staff limit. PIN required.
               </p>
-              <div style={{ marginBottom: '20px' }}>
-                <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '6px' }}>Manager PIN</label>
+              <div className="pv-input-group" style={{ marginBottom: '20px' }}>
+                <label>Manager PIN</label>
                 <input 
                   type="password" 
-                  className="form-input" 
+                  className="pv-input" 
                   value={managerPin}
                   onChange={e => setManagerPin(e.target.value)}
-                  placeholder="Enter 4-digit PIN (e.g. 1234)"
+                  placeholder="••••"
                   maxLength={4}
                   autoFocus
                   style={{ textAlign: 'center', letterSpacing: '8px', fontSize: '20px', fontWeight: 700 }}
                 />
               </div>
               <div style={{ display: 'flex', gap: '12px' }}>
-                <button className="btn btn-outline" style={{ flex: 1 }} onClick={() => setShowManagerOverrideModal(false)}>Cancel</button>
-                <button className="btn btn-gold" style={{ flex: 1 }} onClick={() => {
+                <button className="pv-btn pv-btn-outline" style={{ flex: 1 }} onClick={() => setShowManagerOverrideModal(false)}>Cancel</button>
+                <button className="pv-btn pv-btn-gold" style={{ flex: 1 }} onClick={() => {
                   if (managerPin === '1234') {
                     setShowManagerOverrideModal(false);
                     handleSave(true);
@@ -1180,9 +1180,9 @@ function NewLoanContent() {
         }
 
         @keyframes pulse {
-          0% { box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.4); }
-          70% { box-shadow: 0 0 0 10px rgba(220, 53, 69, 0); }
-          100% { box-shadow: 0 0 0 0 rgba(220, 53, 69, 0); }
+          0% { box-shadow: 0 0 0 0 rgba(18, 98, 76, 0.4); }
+          70% { box-shadow: 0 0 0 10px rgba(18, 98, 76, 0); }
+          100% { box-shadow: 0 0 0 0 rgba(18, 98, 76, 0); }
         }
         .animate-pulse {
           animation: pulse 2s infinite;
@@ -1205,11 +1205,11 @@ function NewLoanContent() {
           background: 'rgba(18, 31, 29, 0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center',
           zIndex: 1100, backdropFilter: 'blur(8px)'
         }}>
-          <div className="card" style={{ width: '500px', maxWidth: '95%', border: '1px solid var(--brand-primary)', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)' }}>
-            <div className="card-header" style={{ background: 'var(--brand-primary)', color: 'white' }}>
+          <div className="pv-card" style={{ width: '500px', maxWidth: '95%', padding: 0, overflow: 'hidden', border: '1px solid var(--brand-primary)', boxShadow: 'var(--shadow-lg)' }}>
+            <div className="modal-header" style={{ background: 'var(--brand-primary)', color: 'white', padding: '20px 24px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <CircleDollarSign size={20} /> 
-                <h3 style={{ color: 'white', margin: 0 }}>Finalize Disbursement</h3>
+                <h3 style={{ color: 'white', margin: 0, fontSize: '18px' }}>Finalize Disbursement</h3>
               </div>
             </div>
             <div className="card-body" style={{ padding: '24px' }}>
@@ -1252,24 +1252,24 @@ function NewLoanContent() {
               </div>
 
               {payoutMethod !== 'cash' && (
-                <div className="form-group" style={{ marginBottom: '24px' }}>
-                  <label className="form-label" style={{ fontWeight: 700 }}>
-                    {payoutMethod === 'bank' ? 'Bank Name / Reference #' : 'UPI Transaction ID'}
-                  </label>
-                  <input
-                    className="form-input"
-                    value={payoutReference}
-                    onChange={e => setPayoutReference(e.target.value)}
-                    placeholder={payoutMethod === 'bank' ? 'e.g. HDFC NEFT #12345' : 'e.g. UPI#987654321'}
-                    autoFocus
-                  />
-                </div>
+                  <div className="pv-input-group" style={{ marginBottom: '24px' }}>
+                    <label>
+                      {payoutMethod === 'bank' ? 'Bank Name / Reference #' : 'UPI Transaction ID'}
+                    </label>
+                    <input
+                      className="pv-input"
+                      value={payoutReference}
+                      onChange={e => setPayoutReference(e.target.value)}
+                      placeholder={payoutMethod === 'bank' ? 'e.g. HDFC NEFT #12345' : 'e.g. UPI#987654321'}
+                      autoFocus
+                    />
+                  </div>
               )}
 
               <div style={{ display: 'flex', gap: '12px', marginTop: '32px' }}>
-                <button className="btn btn-outline" style={{ flex: 1 }} onClick={() => setIsPayoutStage(false)}>Back</button>
+                <button className="pv-btn pv-btn-outline" style={{ flex: 1 }} onClick={() => setIsPayoutStage(false)}>Back</button>
                 <button 
-                  className="btn btn-gold" 
+                  className="pv-btn pv-btn-gold" 
                   style={{ flex: 2 }} 
                   onClick={() => handleSave(true)}
                   disabled={saving}

@@ -183,7 +183,12 @@ export default function TamilCalendarPopup({ onClose }: TamilCalendarPopupProps)
           <div className="month-view animate-fade-in">
             <div className="month-nav">
               <button onClick={prevMonth}><ChevronLeft size={18} /></button>
-              <span className="month-title">{currentDate.toLocaleString('default', { month: 'long', year: 'numeric' })}</span>
+              <div className="month-title-group" style={{ textAlign: 'center' }}>
+                <div className="month-title">{currentDate.toLocaleString('default', { month: 'long', year: 'numeric' })}</div>
+                <div className="month-subtitle" style={{ fontSize: '11px', opacity: 0.6, fontWeight: 700 }}>
+                   {t.months[getTamilMonthIndex(currentDate)]} Month
+                </div>
+              </div>
               <button onClick={nextMonth}><ChevronRight size={18} /></button>
             </div>
             <div className="calendar-grid">

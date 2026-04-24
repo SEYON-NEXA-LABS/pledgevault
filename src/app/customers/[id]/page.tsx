@@ -77,13 +77,13 @@ export default function CustomerDetailsPage() {
     <div className="page-content">
       <div className="page-header">
         <div className="page-header-left">
-          <button onClick={() => router.back()} className="btn btn-outline btn-sm" style={{ marginBottom: '12px' }}>
+          <button onClick={() => router.back()} className="pv-btn pv-btn-outline" style={{ height: '36px', padding: '0 12px', fontSize: '13px', marginBottom: '12px' }}>
             <ArrowLeft size={16} /> Back
           </button>
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
             <div 
               className="customer-avatar" 
-              style={{ width: '80px', height: '80px', fontSize: '32px', cursor: customer.selfiePhoto ? 'pointer' : 'default', overflow: 'hidden' }}
+              style={{ width: '80px', height: '80px', fontSize: '32px', cursor: customer.selfiePhoto ? 'pointer' : 'default', overflow: 'hidden', border: '3px solid var(--gold)' }}
               onClick={() => customer.selfiePhoto && setSelectedIdPhoto(customer.selfiePhoto)}
             >
               {customer.selfiePhoto ? (
@@ -94,21 +94,21 @@ export default function CustomerDetailsPage() {
             </div>
             <div>
               <h2 style={{ fontSize: '28px' }}>{customer.name}</h2>
-              <p className="subtitle">Customer since {formatDate(customer.createdAt)}</p>
+              <p className="subtitle" style={{ color: 'var(--text-tertiary)' }}>Customer since {formatDate(customer.createdAt)}</p>
             </div>
           </div>
         </div>
         <div className="page-header-right">
-          <Link href={`/loans/new?customerId=${customer.id}`} className="btn btn-gold">
+          <Link href={`/loans/new?customerId=${customer.id}`} className="pv-btn pv-btn-gold">
             <Plus size={18} /> New Loan
           </Link>
         </div>
       </div>
 
-      <div className="content-grid">
-        <div className="card">
-          <div className="card-header">
-            <h3>Contact & KYC Details</h3>
+      <div className="content-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
+        <div className="pv-card">
+          <div style={{ marginBottom: '20px' }}>
+            <h3 style={{ fontSize: '18px', display: 'flex', alignItems: 'center', gap: '10px' }}>Contact & KYC Details</h3>
           </div>
           <div className="card-body">
             <div className="info-grid">
@@ -135,17 +135,17 @@ export default function CustomerDetailsPage() {
                   <div>{customer.address}, {customer.city}</div>
                 </div>
               </div>
-              <div className="info-row" style={{ borderTop: '1px solid var(--border-light)', paddingTop: '16px', marginTop: '8px' }}>
+              <div className="info-row" style={{ borderTop: '1px solid var(--border-light)', paddingTop: '16px', marginTop: '8px', display: 'flex', gap: '12px' }}>
                 <ShieldCheck size={18} color="var(--status-active)" />
                 <div style={{ flex: 1 }}>
-                  <label>{customer.primaryIdType?.toUpperCase() || 'PRIMARY ID'} (Mandatory)</label>
+                  <label style={{ fontSize: '11px', color: 'var(--text-tertiary)', textTransform: 'uppercase', marginBottom: '4px', display: 'block' }}>{customer.primaryIdType?.toUpperCase() || 'PRIMARY ID'} (Mandatory)</label>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <div style={{ fontWeight: 600 }}>{customer.primaryIdNumber || <span style={{ color: 'var(--status-overdue)' }}>Pending</span>}</div>
                     {customer.primaryIdPhoto && (
                       <button 
-                        className="btn btn-sm btn-ghost" 
+                        className="pv-btn pv-btn-outline" 
                         onClick={() => setSelectedIdPhoto(customer.primaryIdPhoto!)}
-                        style={{ padding: '4px', color: 'var(--gold-dark)' }}
+                        style={{ height: '32px', padding: '0 8px', fontSize: '12px' }}
                       >
                         <Camera size={14} /> View
                       </button>
@@ -153,17 +153,17 @@ export default function CustomerDetailsPage() {
                   </div>
                 </div>
               </div>
-              <div className="info-row">
+              <div className="info-row" style={{ display: 'flex', gap: '12px', marginTop: '12px' }}>
                 <ShieldCheck size={18} color={customer.secondaryIdNumber ? 'var(--status-active)' : 'var(--text-tertiary)'} />
                 <div style={{ flex: 1 }}>
-                  <label>{customer.secondaryIdType?.toUpperCase() || 'SECONDARY ID'} (Elective)</label>
+                  <label style={{ fontSize: '11px', color: 'var(--text-tertiary)', textTransform: 'uppercase', marginBottom: '4px', display: 'block' }}>{customer.secondaryIdType?.toUpperCase() || 'SECONDARY ID'} (Elective)</label>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <div style={{ fontWeight: 600 }}>{customer.secondaryIdNumber || <span style={{ color: 'var(--text-tertiary)' }}>Not Provided</span>}</div>
                     {customer.secondaryIdPhoto && (
                       <button 
-                        className="btn btn-sm btn-ghost" 
+                        className="pv-btn pv-btn-outline" 
                         onClick={() => setSelectedIdPhoto(customer.secondaryIdPhoto!)}
-                        style={{ padding: '4px', color: 'var(--gold-dark)' }}
+                        style={{ height: '32px', padding: '0 8px', fontSize: '12px' }}
                       >
                         <Camera size={14} /> View
                       </button>
@@ -175,9 +175,9 @@ export default function CustomerDetailsPage() {
           </div>
         </div>
 
-        <div className="card">
-          <div className="card-header">
-            <h3>Loan Summary</h3>
+        <div className="pv-card">
+          <div style={{ marginBottom: '20px' }}>
+            <h3 style={{ fontSize: '18px', display: 'flex', alignItems: 'center', gap: '10px' }}>Loan Summary</h3>
           </div>
           <div className="card-body">
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
@@ -202,9 +202,9 @@ export default function CustomerDetailsPage() {
         </div>
       </div>
 
-      <div className="card" style={{ marginTop: '24px' }}>
-        <div className="card-header">
-          <h3><History size={18} /> Loan History</h3>
+      <div className="pv-card" style={{ marginTop: '24px' }}>
+        <div style={{ marginBottom: '20px' }}>
+          <h3 style={{ fontSize: '18px', display: 'flex', alignItems: 'center', gap: '10px' }}><History size={18} /> Loan History</h3>
         </div>
         <div className="card-body no-padding">
           {loans.length > 0 ? (
@@ -237,8 +237,8 @@ export default function CustomerDetailsPage() {
                     <td><span className={`badge ${loan.status}`}>{LOAN_STATUS_LABELS[loan.status]}</span></td>
                     <td>{formatDate(loan.dueDate)}</td>
                     <td>
-                      <Link href={`/loans/${loan.id}`}>
-                        <button className="btn btn-sm btn-outline"><Eye size={14} /></button>
+                      <Link href={`/loans/${loan.id}`} className="pv-btn pv-btn-outline" style={{ height: '32px', width: '32px', padding: 0 }}>
+                        <Eye size={14} />
                       </Link>
                     </td>
                   </tr>
@@ -284,56 +284,7 @@ export default function CustomerDetailsPage() {
         </div>
       )}
 
-      {/* ... style jsx ... */}
 
-      <style jsx>{`
-        .info-grid {
-          display: flex;
-          flex-direction: column;
-          gap: 16px;
-        }
-        .info-row {
-          display: flex;
-          align-items: flex-start;
-          gap: 12px;
-        }
-        .info-row svg {
-          margin-top: 4px;
-          color: var(--text-tertiary);
-          flex-shrink: 0;
-        }
-        .info-row label {
-          display: block;
-          font-size: 11px;
-          color: var(--text-tertiary);
-          text-transform: uppercase;
-          letter-spacing: 0.5px;
-          margin-bottom: 2px;
-        }
-        .info-row div {
-          font-size: 15px;
-          font-weight: 500;
-          color: var(--text-primary);
-        }
-        .stat-box {
-          padding: 16px;
-          background: var(--bg-input);
-          border-radius: var(--radius-md);
-          border: 1px solid var(--border-light);
-        }
-        .stat-box span {
-          display: block;
-          font-size: 12px;
-          color: var(--text-secondary);
-          margin-bottom: 4px;
-        }
-        .stat-box h4 {
-          font-size: 22px;
-          font-weight: 800;
-          color: var(--sidebar-bg);
-          font-family: var(--font-display);
-        }
-      `}</style>
     </div>
   );
 }

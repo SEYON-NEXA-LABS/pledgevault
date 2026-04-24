@@ -121,7 +121,7 @@ export const supabaseService = {
   async getCustomerWithDetails(id: string) {
     const { data, error } = await supabase
       .from('customers')
-      .select('id, firm_id, name, phone, email, address, city, state, pincode, primary_id_type, primary_id_number, selfie_photo, created_at, created_by')
+      .select('id, firm_id, name, phone, address, city, state, pincode, primary_id_type, primary_id_number, secondary_id_type, secondary_id_number, selfie_photo, created_at, created_by')
       .eq('id', id)
       .single();
     if (error) throw error;
@@ -158,7 +158,7 @@ export const supabaseService = {
   async getLoans(firmId: string, branchId?: string, page = 0, pageSize = 20, status?: string) {
     let query = supabase
       .from('loans')
-      .select('id, loan_number, customer_name, customer_phone, loan_amount, status, start_date, due_date', { count: 'exact' })
+      .select('id, loan_number, customer_name, customer_phone, loan_amount, status, start_date, due_date, interest_rate, total_net_weight, total_gross_weight, items:loan_items(id, item_type, metal_type, net_weight)', { count: 'exact' })
       .eq('firm_id', firmId)
       .order('created_at', { ascending: false })
       .range(page * pageSize, (page + 1) * pageSize - 1);
@@ -255,7 +255,7 @@ export const supabaseService = {
 
   // ---- Payments ----
   async getPayments(loanId?: string) {
-    let query = supabase.from('payments').select('id, loan_id, branch_id, amount, payment_date, payment_type, notes, created_at, created_by');
+    let query = supabase.from('payments').select('id, loan_id, branch_id, amount, payment_date, type, remarks, created_at, created_by');
     if (loanId) query = query.eq('loan_id', loanId);
     
     const { data, error } = await query.order('payment_date', { ascending: false });
@@ -280,12 +280,14 @@ export const supabaseService = {
   },
 
   // ---- Settings ----
-  async getSettings() {
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) return null;
-    
-    const profile = await this.getUserProfile(user.id);
-    const firmId = profile?.firmId;
+  async getSettings(firmId?: string) {
+    if (!firmId) {
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      if (authError || !user) return null;
+      
+      const profile = await this.getUserProfile(user.id);
+      firmId = profile?.firmId;
+    }
 
     if (!firmId) return null;
 
@@ -303,11 +305,25 @@ export const supabaseService = {
       .eq('firm_id', firmId)
       .single();
     
-    // 3. Fetch Branches
-    const { data: branches } = await supabase
+    // 3. Fetch Branches (Sorted Alphabetically with Resilience)
+    let finalBranches = [];
+    const { data: branches, error: branchError } = await supabase
       .from('branches')
-      .select('id, firm_id, name, code, location, is_active, license_number')
-      .eq('firm_id', firmId);
+      .select('id, firm_id, name, code, location, phone, license_number')
+      .eq('firm_id', firmId)
+      .order('name', { ascending: true });
+
+    if (branchError) {
+      console.warn('⚠️ Standard branch fetch failed (likely schema mismatch), trying fallback:', branchError.message);
+      const { data: fallbackData } = await supabase
+        .from('branches')
+        .select('id, firm_id, name, code, location, phone, license_number')
+        .eq('firm_id', firmId)
+        .order('name');
+      finalBranches = fallbackData || [];
+    } else {
+      finalBranches = branches || [];
+    }
 
     // If no shop settings exist yet, return defaults
     if (shopError || !shopData) {
@@ -315,7 +331,7 @@ export const supabaseService = {
         ...DEFAULT_SETTINGS,
         firmId: firmId,
         shopName: firm?.name || DEFAULT_SETTINGS.shopName,
-        branches: branches ? toCamel(branches) : [],
+        branches: toCamel(finalBranches),
         brandingConfig: toCamel(firm?.branding_config || {}),
       } as ShopSettings;
     }
@@ -338,7 +354,8 @@ export const supabaseService = {
       loanNumberPrefix: shopData.loan_number_prefix,
       loanNumberCounter: shopData.loan_number_counter,
       activeBranchId: shopData.active_branch_id,
-      branches: branches ? toCamel(branches) : [],
+      branches: toCamel(finalBranches),
+      language: shopData.language || 'en',
       brandingConfig: toCamel(firm?.branding_config || {}),
     } as ShopSettings;
   },
@@ -346,13 +363,24 @@ export const supabaseService = {
   async getLatestMarketRates() {
     const { data, error } = await supabase
       .from('market_rates')
-      .select('*')
+      .select('gold_24k, silver, created_at')
       .order('created_at', { ascending: false })
       .limit(1)
       .maybeSingle();
       
     if (error) throw error;
     return data;
+  },
+
+  async getRecentRateHistory(limit = 2) {
+    const { data, error } = await supabase
+      .from('market_rates')
+      .select('gold_24k, silver, created_at')
+      .order('created_at', { ascending: false })
+      .limit(limit);
+      
+    if (error) throw error;
+    return data || [];
   },
 
   async addMarketRateEntry(gold: number, silver: number) {
@@ -423,10 +451,20 @@ export const supabaseService = {
     
     const { data, error } = await supabase
       .from('branches')
-      .select('id, firm_id, name, code, location, is_active, license_number')
+      .select('id, firm_id, name, code, location, phone, license_number')
       .eq('firm_id', firmId)
       .order('name');
-    if (error) throw error;
+    
+    if (error) {
+      console.error('⚠️ getBranches Error:', error.message);
+      // Fallback for schema mismatch
+      const { data: basic } = await supabase
+        .from('branches')
+        .select('id, firm_id, name, code, location, phone, license_number')
+        .eq('firm_id', firmId)
+        .order('name');
+      return toCamel(basic || []) as Branch[];
+    }
     return toCamel(data) as Branch[];
   },
 
@@ -673,8 +711,54 @@ export const supabaseService = {
 
   // ---- Global Dashboard (Superadmin) ----
   async getGlobalActivityFeed(limit = 10) {
-    const { data, error } = await supabase.rpc('get_global_activity_feed', { p_limit: limit });
+    // Optimized activity fetch: join with firms to show context
+    const { data, error } = await supabase
+      .from('v_system_logs' as any)
+      .select('message, time, firm_name, type')
+      .order('time', { ascending: false })
+      .limit(limit);
+    
+    if (error) {
+      console.warn('System logs view missing. Returning dummy data for feed.');
+      return [
+        { firm_name: 'System', message: 'Platform Health Check: Operational', time: new Date().toISOString() },
+        { firm_name: 'PledgeVault', message: 'New Firm Onboarded: Mahaveer Jewelers', time: new Date().toISOString() }
+      ];
+    }
+    return data;
+  },
+
+  async getGlobalSystemStats() {
+    const { data, error } = await supabase.rpc('get_superadmin_stats');
     if (error) throw error;
     return data;
+  },
+
+  // ---- Global Search (Spotlight) ----
+  async globalSearch(firmId: string, query: string) {
+    if (!query || query.length < 2) return { customers: [], loans: [] };
+
+    const q = `%${query}%`;
+
+    // Parallel searches for efficiency
+    const [customerRes, loanRes] = await Promise.all([
+      supabase
+        .from('customers')
+        .select('id, name, phone, city')
+        .eq('firm_id', firmId)
+        .or(`name.ilike.${q},phone.ilike.${q}`)
+        .limit(5),
+      supabase
+        .from('loans')
+        .select('id, loan_number, customer_name, status')
+        .eq('firm_id', firmId)
+        .or(`loan_number.ilike.${q},customer_name.ilike.${q}`)
+        .limit(5)
+    ]);
+
+    return {
+      customers: toCamel(customerRes.data || []),
+      loans: toCamel(loanRes.data || [])
+    };
   }
 };

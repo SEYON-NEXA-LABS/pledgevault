@@ -42,6 +42,7 @@ CREATE TABLE branches (
   code TEXT NOT NULL,
   is_active BOOLEAN DEFAULT true,
   license_number TEXT,
+  phone TEXT,
   created_at TIMESTAMPTZ DEFAULT now(),
   UNIQUE(firm_id, code) -- Code unique within a firm
 );

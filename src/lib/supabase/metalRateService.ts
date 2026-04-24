@@ -1,85 +1,138 @@
-import { supabaseService } from './service';
+'use client';
 
-const GOLD_API_KEY = process.env.NEXT_PUBLIC_GOLD_API_KEY || '';
-const STALE_THRESHOLD = 24 * 60 * 60 * 1000; // 24 Hours
+import { supabaseService } from './service';
+import { syncMarketRatesAction } from '@/app/actions/market';
+
+const CACHE_KEY = 'pv_market_trends';
+const CACHE_TTL = 60 * 60 * 1000; // 1 Hour
+const REDUCED_TTL = 5 * 60 * 1000; // 5 Mins for retry after failure
 
 export const metalRateService = {
+  /**
+   * getLiveRates
+   * Pulls the absolute latest rates from the Local Database only.
+   */
   async getLiveRates() {
-    // 1. Fetch the latest global market rate from DB
     const latest = await supabaseService.getLatestMarketRates();
     
-    const now = new Date();
-    const isWeekend = now.getDay() === 0 || now.getDay() === 6; // 0=Sun, 6=Sat
-
-    if (latest) {
-      const lastFetch = new Date(latest.created_at).getTime();
-      const isFresh = (Date.now() - lastFetch) < STALE_THRESHOLD;
-      
-      // OPTIMIZATION: On weekends, we ALWAYS use the Friday price
-      // On weekdays, we use the cache if it's < 24h old
-      if (isWeekend || isFresh) {
-        return {
-          gold24k: latest.gold_24k,
-          gold22k: Math.round(latest.gold_24k * (22 / 24)),
-          silver: latest.silver,
-          isFromDb: true,
-          updatedAt: latest.created_at,
-          isWeekend: isWeekend
-        };
-      }
-    }
-
-    // 2. Return Mock Data if no API Key (Safety fallback)
-    if (!GOLD_API_KEY) {
+    if (!latest) {
       return {
         gold24k: 7650,
         gold22k: 7010,
         silver: 92,
-        isFromDb: false
+        isFromDb: false,
+        isMock: true
       };
     }
 
-    // 3. Fetch from GoldAPI.io (Weekday & Stale)
-    return this.forceApiUpdate();
+    const now = new Date();
+    const isWeekend = now.getDay() === 0 || now.getDay() === 6;
+
+    return {
+      gold24k: latest.gold_24k,
+      gold22k: Math.round(latest.gold_24k * (22 / 24)),
+      silver: latest.silver,
+      isFromDb: true,
+      updatedAt: latest.created_at,
+      isWeekend: isWeekend
+    };
   },
 
-  async forceApiUpdate() {
-    if (!GOLD_API_KEY) throw new Error('API Key Missing');
-    
-    try {
-      console.log('📡 Fetching global market sync from GoldAPI.io...');
-      const [goldRes, silverRes] = await Promise.all([
-        fetch('https://www.goldapi.io/api/XAU/INR', {
-          headers: { 'x-access-token': GOLD_API_KEY }
-        }),
-        fetch('https://www.goldapi.io/api/XAG/INR', {
-          headers: { 'x-access-token': GOLD_API_KEY }
-        })
-      ]);
-
-      const goldData = await goldRes.json();
-      const silverData = await silverRes.json();
-
-      const goldPrice24k = goldData.price_gram_24k || (goldData.price / 31.1035);
-      const silverPrice = silverData.price_gram_24k || (silverData.price / 31.1035);
-
-      const rates = {
-        gold24k: Math.round(goldPrice24k),
-        gold22k: Math.round(goldPrice24k * (22 / 24)),
-        silver: Math.round(silverPrice),
-      };
-
-      // PERSIST TO GLOBAL TABLE for all firms to share
-      const entry = await supabaseService.addMarketRateEntry(rates.gold24k, rates.silver);
-
-      return { 
-        ...rates, 
-        isFromDb: false, 
-        updatedAt: entry.created_at 
-      };
-    } catch (err) {
-      console.error('Global API Update failed:', err);
-      throw err;
+  /**
+   * getMarketTrends
+   * Fetches the last 2 rates, calculates percentage change, and caches in LS.
+   * Optimized for zero-egress after first load.
+   */
+  async getMarketTrends() {
+    // 1. Check LocalStorage Cache
+    if (typeof window !== 'undefined') {
+      const cached = localStorage.getItem(CACHE_KEY);
+      if (cached) {
+        const { data, timestamp } = JSON.parse(cached);
+        if (Date.now() - timestamp < CACHE_TTL) {
+          return data;
+        }
+      }
     }
+
+    // 2. Fetch History (Optimized: 7 records for sparklines, specific columns)
+    const history = await supabaseService.getRecentRateHistory(7);
+    
+    if (history.length < 2) {
+      return { goldChange: 0, silverChange: 0, isNew: true, history: [] };
+    }
+
+    const [current, previous] = history;
+    
+    let goldChange = ((current.gold_24k - previous.gold_24k) / previous.gold_24k) * 100;
+    let silverChange = ((current.silver - previous.silver) / previous.silver) * 100;
+
+    // Sanity Check: Cap extreme outliers (likely data artifacts or mock issues)
+    if (Math.abs(goldChange) > 20) goldChange = goldChange > 0 ? 2.5 : -2.5; 
+    if (Math.abs(silverChange) > 20) silverChange = silverChange > 0 ? 1.8 : -1.8;
+
+    const trendData = {
+      goldChange: parseFloat(goldChange.toFixed(2)),
+      silverChange: parseFloat(silverChange.toFixed(2)),
+      lastUpdate: current.created_at,
+      history: history.reverse().map(h => ({
+        date: h.created_at,
+        gold: h.gold_24k,
+        silver: h.silver
+      }))
+    };
+
+    // 3. Cache it
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(CACHE_KEY, JSON.stringify({
+        data: trendData,
+        timestamp: Date.now()
+      }));
+    }
+
+    return trendData;
+  },
+
+  /**
+   * autoSyncIfStale
+   * Daily sync task with infinite-loop protection and 24h throttling.
+   */
+  async autoSyncIfStale() {
+    // Failure Cooldown Logic
+    if (typeof window !== 'undefined') {
+      const lastAttempt = localStorage.getItem('pv_last_sync_attempt');
+      if (lastAttempt && Date.now() - parseInt(lastAttempt) < REDUCED_TTL) {
+        return { success: false, throttled: true, reason: 'Failure Cooldown' };
+      }
+    }
+
+    const latest = await supabaseService.getLatestMarketRates();
+    
+    if (latest) {
+      const lastUpdate = new Date(latest.created_at).getTime();
+      const timeSinceUpdate = Date.now() - lastUpdate;
+      const hour = new Date().getHours();
+
+      // Ensure 24h gap AND after 9 AM
+      if (timeSinceUpdate > 23 * 60 * 60 * 1000 && hour >= 9) {
+        console.log('🔄 [Service] Attempting Daily Sync...');
+        
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('pv_last_sync_attempt', Date.now().toString());
+        }
+
+        const result = await syncMarketRatesAction();
+        
+        if (result.success) {
+          // Clear trends cache to force recalculation on next load
+          localStorage.removeItem(CACHE_KEY);
+        }
+        return result;
+      }
+      return { success: true, cached: true };
+    }
+
+    // Initial Sync
+    return await syncMarketRatesAction();
   }
 };

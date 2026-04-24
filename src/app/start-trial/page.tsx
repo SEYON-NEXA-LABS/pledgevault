@@ -34,7 +34,8 @@ export default function StartTrial() {
     location: '',
     fullName: '',
     email: '',
-    password: ''
+    password: '',
+    phone: ''
   });
 
   const handleRegister = async () => {
@@ -76,8 +77,7 @@ export default function StartTrial() {
           // Redirect to Dashboard
           setStep(3); // Success Step
           setTimeout(() => {
-            router.push('/');
-            router.refresh();
+            window.location.href = '/'; // Hard redirect to ensure clean state with new session
           }, 2000);
         }
       } catch (err: any) {
@@ -112,7 +112,7 @@ export default function StartTrial() {
         <div className="trial-header">
           <div className="trial-badge">
             <Gem size={14} />
-            <span>14-Day Elite Trial</span>
+            <span>30-Day Elite Trial</span>
           </div>
           <h1>{step === 1 ? 'Tell us about your shop' : step === 2 ? 'Create your owner account' : 'Welcome to the inner circle!'}</h1>
           <p>
@@ -154,7 +154,19 @@ export default function StartTrial() {
               </div>
             </div>
 
-            <button className="btn btn-gold btn-full" onClick={() => formData.name && setStep(2)}>
+            <div className="form-group">
+              <label>Business Phone Number</label>
+              <div className="input-box">
+                <Phone size={18} />
+                <input 
+                  placeholder="e.g., +91 98765 43210" 
+                  value={formData.phone}
+                  onChange={e => setFormData({...formData, phone: e.target.value})}
+                />
+              </div>
+            </div>
+
+            <button className="btn btn-gold btn-full" onClick={() => formData.name && formData.phone && setStep(2)}>
               Next: Owner Details <ArrowRight size={18} />
             </button>
           </div>
@@ -215,7 +227,7 @@ export default function StartTrial() {
               <Sparkles size={48} className="sparkle-anim" />
             </div>
             <h2>Registration Successful</h2>
-            <p>Your 14-day Elite Trial has been initialized. You are being redirected to your dashboard.</p>
+            <p>Your 30-day Elite Trial has been initialized. You are being redirected to your dashboard.</p>
             <div className="loading-dots">
               <span>.</span><span>.</span><span>.</span>
             </div>

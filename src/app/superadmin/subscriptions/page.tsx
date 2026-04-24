@@ -124,62 +124,70 @@ export default function SuperadminSubscriptions() {
   }
 
   return (
-    <div className="admin-page">
-      <div className="admin-header">
-        <div className="header-info">
-          <Link href="/superadmin" className="btn-back">
-            <ChevronLeft size={16} /> Back to Dashboard
+    <div className="page-content">
+      <div className="page-header" style={{ marginBottom: '40px' }}>
+        <div className="page-header-left">
+          <Link href="/superadmin" style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--text-tertiary)', fontSize: '13px', textDecoration: 'none', marginBottom: '8px', fontWeight: 600 }}>
+            <ChevronLeft size={16} /> Dashboard
           </Link>
-          <h1>Subscription Management</h1>
+          <h1 style={{ fontSize: '32px' }}>Subscription Management</h1>
         </div>
-        <div className="header-actions">
-          <button className="btn btn-gold" onClick={() => setShowManualModal(true)}>
+        <div className="page-header-right">
+          <button className="pv-btn pv-btn-gold" onClick={() => setShowManualModal(true)}>
             <HandCoins size={18} /> Record Payment
           </button>
         </div>
       </div>
 
-      <div className="stats-grid">
-        <div className="stat-card">
-          <div className="stat-icon"><TrendingUp /></div>
-          <div className="stat-body">
-            <span className="stat-label">Estimated MRR</span>
-            <div className="stat-value">{formatCurrency(calculateMRR())}</div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '24px', marginBottom: '40px' }}>
+        <div className="pv-card pv-glass" style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
+          <div style={{ width: '48px', height: '48px', background: 'var(--brand-primary)', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}>
+            <TrendingUp size={24} />
+          </div>
+          <div>
+            <span style={{ fontSize: '11px', color: 'var(--text-tertiary)', fontWeight: 800, textTransform: 'uppercase' }}>Estimated MRR</span>
+            <div style={{ fontSize: '24px', fontWeight: 900 }}>{formatCurrency(calculateMRR())}</div>
           </div>
         </div>
-        <div className="stat-card">
-          <div className="stat-icon"><Users /></div>
-          <div className="stat-body">
-            <span className="stat-label">Active Firms</span>
-            <div className="stat-value">{data.length}</div>
+        <div className="pv-card pv-glass" style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
+          <div style={{ width: '48px', height: '48px', background: 'var(--brand-deep)', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--gold)' }}>
+            <Users size={24} />
+          </div>
+          <div>
+            <span style={{ fontSize: '11px', color: 'var(--text-tertiary)', fontWeight: 800, textTransform: 'uppercase' }}>Active Firms</span>
+            <div style={{ fontSize: '24px', fontWeight: 900 }}>{data.length}</div>
           </div>
         </div>
-        <div className="stat-card">
-          <div className="stat-icon"><AlertCircle /></div>
-          <div className="stat-body">
-            <span className="stat-label">Expiring Soon</span>
-            <div className="stat-value">3</div>
+        <div className="pv-card pv-glass" style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
+          <div style={{ width: '48px', height: '48px', background: 'var(--status-overdue-bg)', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--status-overdue)' }}>
+            <AlertCircle size={24} />
+          </div>
+          <div>
+            <span style={{ fontSize: '11px', color: 'var(--text-tertiary)', fontWeight: 800, textTransform: 'uppercase' }}>Expiring Soon</span>
+            <div style={{ fontSize: '24px', fontWeight: 900 }}>3</div>
           </div>
         </div>
       </div>
 
-      <div className="content-card">
-        <div className="card-header">
-          <div className="search-box">
-            <Search size={18} />
+      <div className="pv-card" style={{ padding: 0 }}>
+        <div style={{ padding: '24px 32px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ position: 'relative', width: '300px' }}>
+            <Search size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-tertiary)' }} />
             <input 
+               className="pv-input"
+               style={{ paddingLeft: '40px', height: '40px' }}
               placeholder="Filter by firm name..." 
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
           </div>
-          <button className="btn-refresh" onClick={fetchData}>
+          <button style={{ background: 'transparent', border: 'none', color: 'var(--text-tertiary)', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 700, cursor: 'pointer' }} onClick={fetchData}>
             <RefreshCw size={16} /> Refresh
           </button>
         </div>
 
-        <div className="table-container">
-          <table className="admin-table">
+        <div>
+          <table className="pv-table">
             <thead>
               <tr>
                 <th>Business Name</th>
@@ -197,11 +205,11 @@ export default function SuperadminSubscriptions() {
                 return (
                   <tr key={firm.id}>
                     <td>
-                      <div className="firm-name">{firm.name}</div>
-                      <div className="firm-id">{(firm.id || '').slice(0,8).toUpperCase()}</div>
+                      <div style={{ fontWeight: 800 }}>{firm.name}</div>
+                      <div style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>{(firm.id || '').slice(0,8).toUpperCase()}</div>
                     </td>
                     <td>
-                      <span className={`plan-badge ${firm.plan || 'free'}`}>{(firm.plan || 'free').toUpperCase()}</span>
+                      <span className={`badge ${firm.plan || 'free'}`}>{(firm.plan || 'free').toUpperCase()}</span>
                     </td>
                     <td>
                       {latestSub ? (
@@ -220,12 +228,12 @@ export default function SuperadminSubscriptions() {
                       ) : '—'}
                     </td>
                     <td>
-                      <span className="status-badge" style={{ background: `${status.color}15`, color: status.color }}>
+                      <span className="pv-badge" style={{ background: `${status.color}15`, color: status.color, fontWeight: 800 }}>
                         {status.label}
                       </span>
                     </td>
                     <td>
-                      <button className="action-link" onClick={() => handleExtend(firm.id)}>Extend 7 Days</button>
+                      <button className="pv-btn pv-btn-outline pv-btn-sm" onClick={() => handleExtend(firm.id)}>Extend 7 Days</button>
                     </td>
                   </tr>
                 );
@@ -234,326 +242,60 @@ export default function SuperadminSubscriptions() {
           </table>
         </div>
       </div>
-
       {showManualModal && (
         <div className="modal-overlay">
-          <div className="modal-card">
-            <div className="modal-header">
-              <h2>Record Manual Payment</h2>
-              <button onClick={() => setShowManualModal(false)}>&times;</button>
+          <div className="pv-card" style={{ width: '500px', padding: '32px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+              <h2 style={{ fontSize: '20px', fontWeight: 800 }}>Record Manual Payment</h2>
+              <button onClick={() => setShowManualModal(false)} style={{ background: 'transparent', border: 'none', fontSize: '24px', cursor: 'pointer' }}>&times;</button>
             </div>
             <form onSubmit={handleManualSubmit}>
-              <div className="form-group">
+              <div className="pv-input-group">
                 <label>Select Firm</label>
-                <select name="firmId" required className="modal-input">
+                <select name="firmId" required className="pv-input">
                   <option value="">-- Choose Business --</option>
                   {data.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
                 </select>
               </div>
-              <div className="modal-grid">
-                <div className="form-group">
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                <div className="pv-input-group">
                   <label>Plan</label>
-                  <select name="planId" required className="modal-input">
+                  <select name="planId" required className="pv-input">
                     {SUBSCRIPTION_PLANS.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                   </select>
                 </div>
-                <div className="form-group">
+                <div className="pv-input-group">
                   <label>Interval</label>
-                  <select name="interval" required className="modal-input">
+                  <select name="interval" required className="pv-input">
                     <option value="monthly">Monthly</option>
                     <option value="yearly">Yearly</option>
                   </select>
                 </div>
               </div>
-              <div className="modal-grid">
-                <div className="form-group">
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                <div className="pv-input-group">
                   <label>Amount (₹)</label>
-                  <input type="number" name="amount" required placeholder="0" className="modal-input" />
+                  <input type="number" name="amount" required placeholder="0" className="pv-input" />
                 </div>
-                <div className="form-group">
+                <div className="pv-input-group">
                   <label>Payment Method</label>
-                  <select name="method" required className="modal-input">
+                  <select name="method" required className="pv-input">
                     <option value="cash">Cash</option>
                     <option value="netbanking">Bank Transfer</option>
                     <option value="upi">UPI (Manual)</option>
                   </select>
                 </div>
               </div>
-              <div className="modal-footer">
-                <button type="button" className="btn btn-outline" onClick={() => setShowManualModal(false)}>Cancel</button>
-                <button type="submit" className="btn btn-gold">Activate Subscription</button>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '12px' }}>
+                <button type="button" className="pv-btn pv-btn-outline" onClick={() => setShowManualModal(false)}>Cancel</button>
+                <button type="submit" className="pv-btn pv-btn-gold">Activate Subscription</button>
               </div>
             </form>
           </div>
         </div>
       )}
 
-      <style jsx>{`
-        .admin-page {
-          padding: 40px;
-          background: #f8f8f5;
-          min-height: 100vh;
-        }
 
-        .btn-back {
-          display: flex;
-          align-items: center;
-          gap: 6px;
-          color: #888;
-          font-size: 13px;
-          text-decoration: none;
-          margin-bottom: 8px;
-        }
-
-        .admin-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: flex-end;
-          margin-bottom: 40px;
-        }
-
-        .admin-header h1 {
-          font-size: 32px;
-          color: #1A3C34;
-          letter-spacing: -1px;
-          margin: 0;
-        }
-
-        .stats-grid {
-          display: grid;
-          grid-template-columns: repeat(3, 1fr);
-          gap: 24px;
-          margin-bottom: 40px;
-        }
-
-        .stat-card {
-          background: #fff;
-          padding: 24px;
-          border-radius: 20px;
-          display: flex;
-          gap: 16px;
-          align-items: center;
-          border: 1px solid #E8E8E3;
-        }
-
-        .stat-icon {
-          width: 48px;
-          height: 48px;
-          border-radius: 12px;
-          background: #1A3C34;
-          color: var(--gold);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-        }
-
-        .stat-label {
-          display: block;
-          font-size: 12px;
-          color: #888;
-          text-transform: uppercase;
-          font-weight: 700;
-        }
-
-        .stat-value {
-          font-size: 24px;
-          font-weight: 800;
-          color: #1A3C34;
-        }
-
-        .content-card {
-          background: #fff;
-          border-radius: 24px;
-          border: 1px solid #E8E8E3;
-          overflow: hidden;
-        }
-
-        .card-header {
-          padding: 24px;
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          border-bottom: 1px solid #F4F4F2;
-        }
-
-        .search-box {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-          background: #F4F4F2;
-          padding: 8px 16px;
-          border-radius: 30px;
-          width: 300px;
-        }
-
-        .search-box input {
-          border: none;
-          background: transparent;
-          outline: none;
-          font-size: 14px;
-          width: 100%;
-        }
-
-        .btn-refresh {
-          background: transparent;
-          border: none;
-          color: #888;
-          display: flex;
-          align-items: center;
-          gap: 6px;
-          font-size: 13px;
-          cursor: pointer;
-        }
-
-        .table-container {
-          overflow-x: auto;
-        }
-
-        .admin-table {
-          width: 100%;
-          border-collapse: collapse;
-        }
-
-        .admin-table th {
-          text-align: left;
-          padding: 16px 24px;
-          font-size: 12px;
-          text-transform: uppercase;
-          color: #888;
-          background: #FAF9F6;
-          border-bottom: 1px solid #F4F4F2;
-        }
-
-        .admin-table td {
-          padding: 16px 24px;
-          border-bottom: 1px solid #F4F4F2;
-          font-size: 14px;
-        }
-
-        .firm-name {
-          font-weight: 700;
-          color: #1A3C34;
-        }
-
-        .firm-id {
-          font-size: 11px;
-          color: #888;
-        }
-
-        .plan-badge {
-          padding: 4px 10px;
-          border-radius: 6px;
-          font-size: 10px;
-          font-weight: 800;
-        }
-
-        .plan-badge.free { background: #F4F4F2; color: #6F767E; }
-        .plan-badge.starter { background: rgba(52, 224, 161, 0.1); color: #1A3C34; }
-        .plan-badge.pro { background: rgba(212, 168, 67, 0.1); color: var(--gold-dark); }
-        .plan-badge.elite { background: #1A3C34; color: #fff; }
-
-        .status-badge {
-          padding: 4px 12px;
-          border-radius: 20px;
-          font-size: 11px;
-          font-weight: 700;
-        }
-
-        .action-link {
-          color: var(--gold-dark);
-          background: transparent;
-          border: none;
-          font-weight: 700;
-          font-size: 13px;
-          cursor: pointer;
-          text-decoration: underline;
-        }
-
-        .modal-overlay {
-          position: fixed;
-          top: 0;
-          left: 0;
-          width: 100%;
-          height: 100%;
-          background: rgba(0,0,0,0.5);
-          backdrop-filter: blur(4px);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          z-index: 1000;
-        }
-
-        .modal-card {
-          background: #fff;
-          width: 500px;
-          padding: 32px;
-          border-radius: 24px;
-          box-shadow: 0 20px 50px rgba(0,0,0,0.1);
-        }
-
-        .modal-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-bottom: 24px;
-        }
-
-        .modal-header h2 {
-          margin: 0;
-          font-size: 20px;
-          color: #1A3C34;
-        }
-
-        .modal-header button {
-          background: transparent;
-          border: none;
-          font-size: 24px;
-          cursor: pointer;
-        }
-
-        .modal-grid {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 16px;
-        }
-
-        .modal-input {
-          width: 100%;
-          background: #F4F4F2;
-          border: 1px solid #E8E8E3;
-          padding: 12px;
-          border-radius: 10px;
-          margin-top: 8px;
-          outline: none;
-        }
-
-        .form-group {
-          margin-bottom: 20px;
-        }
-
-        .form-group label {
-          font-size: 12px;
-          font-weight: 700;
-          color: #9A9FA5;
-          text-transform: uppercase;
-        }
-
-        .modal-footer {
-          display: flex;
-          justify-content: flex-end;
-          gap: 12px;
-          margin-top: 12px;
-        }
-
-        .loading-state {
-          height: 100vh;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          color: #1A3C34;
-          font-weight: 700;
-        }
-      `}</style>
     </div>
   );
 }

@@ -100,42 +100,42 @@ export default function FirmManagementPage() {
   });
 
   return (
-    <div className="admin-page" style={{ padding: '32px' }}>
-      <div className="admin-header" style={{ marginBottom: '32px' }}>
-        <div className="header-info">
-          <Link href="/superadmin" className="btn btn-ghost btn-sm" style={{ marginBottom: '12px' }}>
+    <div style={{ padding: '32px' }}>
+      <div style={{ marginBottom: '32px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+        <div>
+          <Link href="/superadmin" className="pv-btn pv-btn-outline pv-btn-sm" style={{ marginBottom: '12px' }}>
             <ArrowLeft size={16} /> Back to Dashboard
           </Link>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-             <h1 style={{ fontSize: '28px', fontWeight: 800, letterSpacing: '-1px' }}>Firm Management</h1>
-             <span className="badge" style={{ verticalAlign: 'middle' }}>{firms.length} Total Shops</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '8px' }}>
+             <h1 style={{ fontSize: '28px', fontWeight: 800, letterSpacing: '-1px', margin: 0 }}>Firm Management</h1>
+             <span className="pv-badge" style={{ verticalAlign: 'middle', background: 'var(--brand-deep)', color: 'white' }}>{firms.length} Total Shops</span>
           </div>
-          <p className="subtitle">Oversee all registered pawn shops, monitor growth, and manage accounts.</p>
+          <p style={{ color: 'var(--text-tertiary)', fontSize: '15px', marginTop: '4px', fontWeight: 600 }}>Oversee all registered pawn shops, monitor growth, and manage accounts.</p>
         </div>
-        <div className="header-actions">
-           <Link href="/superadmin/onboarding" className="btn btn-gold">
+        <div>
+           <Link href="/superadmin/onboarding" className="pv-btn pv-btn-gold">
              <Plus size={18} /> Onboard New Firm
            </Link>
         </div>
       </div>
 
       {/* Filters Bar */}
-      <div className="filters-container card" style={{ padding: '16px', marginBottom: '24px', display: 'flex', gap: '16px', alignItems: 'center' }}>
-        <div className="search-box" style={{ flex: 1, position: 'relative' }}>
+      <div className="pv-card" style={{ padding: '16px', marginBottom: '24px', display: 'flex', gap: '16px', alignItems: 'center' }}>
+        <div style={{ flex: 1, position: 'relative' }}>
           <Search size={18} style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-tertiary)' }} />
           <input 
             type="text" 
             placeholder="Search firms by name..." 
-            className="form-input"
+            className="pv-input"
             style={{ paddingLeft: '48px', width: '100%' }}
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
           />
         </div>
-        <div className="filter-group" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-           <Filter size={18} color="var(--text-tertiary)" />
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+           <Filter size={18} style={{ color: 'var(--text-tertiary)' }} />
            <select 
-             className="form-input" 
+             className="pv-input" 
              style={{ width: '160px' }}
              value={filterPlan}
              onChange={e => setFilterPlan(e.target.value)}
@@ -150,16 +150,16 @@ export default function FirmManagementPage() {
 
       {loading ? (
         <div style={{ padding: '100px', textAlign: 'center' }}>
-          <div className="spin-box"><Activity className="spin" size={32} color="var(--accent)" /></div>
-          <p style={{ marginTop: '16px', color: 'var(--text-tertiary)' }}>Syncing firm directory...</p>
+          <Loader2 className="spin" size={32} style={{ color: 'var(--brand-primary)' }} />
+          <p style={{ marginTop: '16px', color: 'var(--text-tertiary)', fontWeight: 700 }}>Syncing firm directory...</p>
         </div>
       ) : (
-        <div className="firms-grid">
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(380px, 1fr))', gap: '24px' }}>
           {filteredFirms.length === 0 ? (
-            <div className="card" style={{ padding: '80px', textAlign: 'center', gridColumn: '1 / -1' }}>
-              <Building2 size={48} color="var(--border)" style={{ marginBottom: '16px' }} />
-              <h3>No firms found</h3>
-              <p style={{ color: 'var(--text-tertiary)' }}>Adjust your search or filter to find specific shops.</p>
+            <div className="pv-card" style={{ padding: '80px', textAlign: 'center', gridColumn: '1 / -1' }}>
+              <Building2 size={48} style={{ color: 'var(--border)', marginBottom: '16px', marginInline: 'auto' }} />
+              <h3 style={{ fontSize: '20px', fontWeight: 800 }}>No firms found</h3>
+              <p style={{ color: 'var(--text-tertiary)', fontWeight: 600 }}>Adjust your search or filter to find specific shops.</p>
             </div>
           ) : (
             filteredFirms.map((firm) => {
@@ -167,79 +167,83 @@ export default function FirmManagementPage() {
               const extensionStatus = supabaseService.canExtendSubscription(activeSub);
               
               return (
-              <div key={firm.id} className="firm-mgmt-card card animate-in">
-                <div className="card-top">
+              <div key={firm.id} className="pv-card anim-fade-in" style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                    <div style={{ display: 'flex', gap: '16px', alignItems: 'flex-start' }}>
-                      <div className="firm-initials">
+                      <div style={{ width: '48px', height: '48px', background: 'var(--bg-primary)', color: 'var(--brand-primary)', borderRadius: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '800', fontSize: '20px', border: '1px solid var(--border)' }}>
                         {firm.name?.charAt(0) || '?'}
                       </div>
                       <div>
-                        <h3 style={{ margin: 0, fontSize: '18px' }}>{firm.name}</h3>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', color: 'var(--text-tertiary)', marginTop: '4px' }}>
+                        <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 800 }}>{firm.name}</h3>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', color: 'var(--text-tertiary)', marginTop: '4px', fontWeight: 500 }}>
                           <MapPin size={14} /> Coimbatore, TN
                         </div>
                       </div>
                    </div>
-                   <div className={`plan-badge ${firm.plan || 'free'}`}>
+                   <div className="pv-badge" style={{ 
+                     background: firm.plan === 'enterprise' ? '#E0F2FE' : (firm.plan === 'pro' ? 'var(--status-active-bg)' : 'var(--bg-primary)'),
+                     color: firm.plan === 'enterprise' ? '#0369A1' : (firm.plan === 'pro' ? 'var(--status-active)' : 'var(--text-tertiary)'),
+                     fontWeight: 800
+                   }}>
                      {(firm.plan || 'free').toUpperCase()}
                    </div>
                 </div>
 
-                <div className="card-metrics">
-                   <div className="metric">
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', padding: '16px', background: 'var(--bg-primary)', borderRadius: '12px', border: '1px solid var(--border)' }}>
+                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 600 }}>
                       <Layers size={14} />
                       <span>{firm.branches?.[0]?.count || 0} Branches</span>
                    </div>
-                   <div className="metric">
+                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 600 }}>
                       <Users size={14} />
                       <span>{firm.profiles?.[0]?.count || 0} Staff</span>
                    </div>
-                   <div className="metric">
+                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 600 }}>
                       <ShieldCheck size={14} />
-                      <span className="date-cell">{formatDate(firm.createdAt)}</span>
+                      <span>{formatDate(firm.createdAt)}</span>
                    </div>
                    {activeSub && (activeSub.plan_id === 'elite' || activeSub.plan_id === 'pro') && (
-                     <div className="metric" style={{ color: '#047857', fontWeight: 600 }}>
+                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: 'var(--status-active)', fontWeight: 800 }}>
                         <Zap size={14} />
-                        <span>Ends {formatDate(activeSub.end_date)} {activeSub.extension_count > 0 && `(+${activeSub.extension_count})`}</span>
+                        <span>Ends {formatDate(activeSub.end_date)}</span>
                      </div>
                    )}
                 </div>
 
-                <div className="card-footer-actions">
-                   <Link href={`/superadmin/subscriptions?firmId=${firm.id}`} className="mini-action">
-                      <Zap size={14} /> Subscription
+                <div style={{ display: 'flex', gap: '12px', alignItems: 'center', paddingTop: '16px', borderTop: '1px solid var(--border)' }}>
+                   <Link href={`/superadmin/subscriptions?firmId=${firm.id}`} className="pv-btn pv-btn-outline pv-btn-sm" style={{ padding: '6px 10px', fontSize: '12px' }}>
+                      <Zap size={14} /> Sub
                    </Link>
                    <button 
-                     className="mini-action" 
-                     style={{ background: 'var(--bg-gold-light)', color: 'var(--gold-dark)', borderColor: 'var(--gold-light)' }} 
+                     className="pv-btn pv-btn-outline pv-btn-sm" 
+                     style={{ padding: '6px 10px', fontSize: '12px', color: 'var(--gold)', borderColor: 'var(--gold)' }} 
                      onClick={() => {
                        setEditingFirm(firm);
                        setShowEditModal(true);
                      }}
                    >
-                      <Palette size={14} /> Edit Identity
+                      <Palette size={14} /> Style
                    </button>
                    <button 
-                     className="mini-action" 
+                     className="pv-btn pv-btn-outline pv-btn-sm" 
                      style={{ 
-                       background: extensionStatus.allowed ? '#F0FDF4' : '#F9FAFB', 
-                       color: extensionStatus.allowed ? '#15803D' : '#9CA3AF', 
-                       borderColor: extensionStatus.allowed ? '#DCFCE7' : '#E5E7EB',
+                       padding: '6px 10px', fontSize: '12px',
+                       background: extensionStatus.allowed ? 'var(--status-active-bg)' : 'var(--bg-primary)', 
+                       color: extensionStatus.allowed ? 'var(--status-active)' : 'var(--text-tertiary)', 
+                       borderColor: extensionStatus.allowed ? 'var(--status-active)' : 'var(--border)',
                        cursor: extensionStatus.allowed ? 'pointer' : 'not-allowed'
                      }}
                      onClick={() => handleExtendTrial(firm.id)}
                      disabled={extendingId === firm.id || !extensionStatus.allowed}
-                     title={extensionStatus.reason}
                    >
                       {extendingId === firm.id ? (
-                        <Activity size={14} className="spin" />
+                        <Loader2 size={14} className="spin" />
                       ) : (
                         <Zap size={14} />
                       )}
-                      {extensionStatus.allowed ? 'Extend 7D' : 'Limit Reached'}
+                      {extensionStatus.allowed ? 'Ext 7D' : 'Limit'}
                    </button>
-                   <Link href="/superadmin/integrity" className="mini-action" style={{ marginLeft: 'auto' }}>
+                   <Link href="/superadmin/integrity" className="pv-btn pv-btn-outline pv-btn-sm" style={{ padding: '6px 10px', fontSize: '12px', marginLeft: 'auto' }}>
                       <Activity size={14} />
                    </Link>
                 </div>
@@ -250,40 +254,39 @@ export default function FirmManagementPage() {
         </div>
       )}
 
-      {/* Edit Identity Modal */}
       {showEditModal && editingFirm && (
         <div className="modal-overlay">
-          <div className="modal-content animate-in" style={{ maxWidth: '500px' }}>
-             <div className="modal-header">
-                <h3>Edit Business Identity</h3>
-                <button className="btn-close" onClick={() => setShowEditModal(false)}><X size={20} /></button>
+          <div className="pv-card" style={{ maxWidth: '500px', padding: 0 }}>
+             <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <h3 style={{ margin: 0, fontSize: '20px', fontWeight: 800 }}>Edit Business Identity</h3>
+                <button style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--text-tertiary)' }} onClick={() => setShowEditModal(false)}><X size={20} /></button>
              </div>
              
              <form onSubmit={handleUpdateBranding}>
-                <div className="form-body" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
                    
-                   <div className="form-group">
-                      <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)' }}>FIRM NAME</label>
+                   <div className="pv-input-group">
+                      <label>Firm Name</label>
                       <input 
-                        className="form-input" 
+                        className="pv-input" 
                         value={editingFirm.name || ''} 
                         onChange={e => setEditingFirm({...editingFirm, name: e.target.value})}
                       />
                    </div>
 
                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                      <div className="form-group">
-                        <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)' }}>URL SLUG</label>
+                      <div className="pv-input-group">
+                        <label>URL Slug</label>
                         <input 
-                          className="form-input" 
+                          className="pv-input" 
                           value={editingFirm.slug || ''} 
                           onChange={e => setEditingFirm({...editingFirm, slug: e.target.value.toLowerCase().replace(/\s+/g, '-')})}
                         />
                       </div>
-                      <div className="form-group">
-                        <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)' }}>SHORT CODE</label>
+                      <div className="pv-input-group">
+                        <label>Short Code</label>
                         <input 
-                          className="form-input" 
+                          className="pv-input" 
                           maxLength={4}
                           value={editingFirm.shortCode || ''} 
                           onChange={e => setEditingFirm({...editingFirm, shortCode: e.target.value.toUpperCase()})}
@@ -291,8 +294,8 @@ export default function FirmManagementPage() {
                       </div>
                    </div>
 
-                   <div className="form-group">
-                      <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)' }}>PRIMARY BRAND COLOR</label>
+                   <div className="pv-input-group">
+                      <label>Primary Brand Color</label>
                       <div style={{ display: 'flex', gap: '8px', marginTop: '8px', flexWrap: 'wrap' }}>
                         {[
                           { name: 'Pacific', color: '#107B88' },
@@ -319,7 +322,7 @@ export default function FirmManagementPage() {
                               border: editingFirm.brandingConfig?.primary_color === theme.color ? '2px solid var(--gold)' : '1px solid var(--border)'
                             }}
                           >
-                            {editingFirm.brandingConfig?.primary_color === theme.color && <CheckCircle size={14} color="white" />}
+                            {editingFirm.brandingConfig?.primary_color === theme.color && <CheckCircle size={14} style={{ color: 'white' }} />}
                           </div>
                         ))}
                         <input 
@@ -329,15 +332,15 @@ export default function FirmManagementPage() {
                             ...editingFirm, 
                             brandingConfig: { ...editingFirm.brandingConfig, primary_color: e.target.value }
                           })}
-                          style={{ width: '32px', height: '32px', border: 'none', background: 'none' }}
+                          style={{ width: '32px', height: '32px', border: 'none', background: 'none', cursor: 'pointer' }}
                         />
                       </div>
                    </div>
 
-                   <div className="form-group">
-                      <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)' }}>LOGIN GREETING</label>
+                   <div className="pv-input-group">
+                      <label>Login Greeting</label>
                       <input 
-                        className="form-input" 
+                        className="pv-input" 
                         value={editingFirm.brandingConfig?.login_greeting || ''} 
                         onChange={e => setEditingFirm({
                           ...editingFirm, 
@@ -346,15 +349,15 @@ export default function FirmManagementPage() {
                       />
                    </div>
 
-                   <div style={{ background: '#FFF9EB', padding: '12px', borderRadius: '8px', fontSize: '12px', color: '#B8922F', border: '1px solid #FFEBB8' }}>
-                      <b>Warning:</b> Changing Slugs or Short Codes may impact existing links and loan numbering formats.
+                   <div style={{ background: 'var(--status-overdue-bg)', padding: '12px', borderRadius: '8px', fontSize: '13px', color: 'var(--status-overdue)', border: '1px solid var(--status-overdue)', fontWeight: 700 }}>
+                      Warning: Changing Slugs or Short Codes impact loan numbering.
                    </div>
                 </div>
 
-                <div className="form-footer" style={{ padding: '20px', background: 'var(--bg-hover)', display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
-                   <button type="button" className="btn btn-ghost" onClick={() => setShowEditModal(false)}>Cancel</button>
-                   <button type="submit" className="btn btn-gold" disabled={updating}>
-                      {updating ? 'Saving...' : 'Apply Identity Changes'}
+                <div style={{ padding: '20px 24px', background: 'var(--bg-primary)', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
+                   <button type="button" className="pv-btn pv-btn-outline" onClick={() => setShowEditModal(false)}>Cancel</button>
+                   <button type="submit" className="pv-btn pv-btn-gold" disabled={updating}>
+                      {updating ? <Loader2 className="spin" size={18} /> : 'Apply Identity Changes'}
                    </button>
                 </div>
              </form>
@@ -362,175 +365,7 @@ export default function FirmManagementPage() {
         </div>
       )}
 
-      <style jsx>{`
-        .firms-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
-          gap: 24px;
-        }
 
-        .firm-mgmt-card {
-          padding: 24px;
-          transition: transform 0.2s, box-shadow 0.2s;
-          display: flex;
-          flex-direction: column;
-          gap: 20px;
-        }
-
-        .firm-mgmt-card:hover {
-          transform: translateY(-4px);
-          box-shadow: 0 20px 40px -10px rgba(0,0,0,0.08);
-          border-color: var(--accent-light);
-        }
-
-        .card-top {
-          display: flex;
-          justify-content: space-between;
-          align-items: flex-start;
-        }
-
-        .firm-initials {
-          width: 48px;
-          height: 48px;
-          background: var(--bg-gold-light);
-          color: var(--gold-dark);
-          border-radius: 14px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-weight: 800;
-          font-size: 20px;
-          border: 1px solid var(--gold-light);
-        }
-
-        .plan-badge {
-          padding: 4px 10px;
-          border-radius: 8px;
-          font-size: 11px;
-          font-weight: 800;
-          letter-spacing: 0.5px;
-        }
-
-        .plan-badge.enterprise { background: #E0F2FE; color: #0369A1; }
-        .plan-badge.pro { background: #F0FDF4; color: #15803D; }
-        .plan-badge.free { background: #F4F4F2; color: #666; }
-
-        .card-metrics {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 12px;
-          padding: 16px;
-          background: var(--bg-hover);
-          border-radius: 12px;
-        }
-
-        .metric {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          font-size: 13px;
-          color: var(--text-secondary);
-        }
-
-        .card-footer-actions {
-          display: flex;
-          gap: 12px;
-          align-items: center;
-          padding-top: 16px;
-          border-top: 1px solid var(--border);
-        }
-
-        .mini-action {
-          display: flex;
-          align-items: center;
-          gap: 6px;
-          font-size: 13px;
-          color: var(--text-tertiary);
-          text-decoration: none;
-          padding: 6px 10px;
-          border-radius: 8px;
-          transition: all 0.2s;
-          background: #fff;
-          border: 1px solid var(--border);
-        }
-
-        .mini-action:hover {
-          color: var(--accent);
-          border-color: var(--accent);
-          background: var(--bg-hover);
-        }
-
-        .icon-btn.mini {
-          margin-left: auto;
-          background: transparent;
-          border: none;
-          padding: 4px;
-          color: var(--text-tertiary);
-          cursor: pointer;
-        }
-
-        .spin { animation: rotate 1.5s linear infinite; }
-        @keyframes rotate { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-        
-        .animate-in {
-          animation: slideUp 0.4s ease-out;
-        }
-        @keyframes slideUp {
-          from { opacity: 0; transform: translateY(10px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        
-        .modal-overlay {
-          position: fixed;
-          inset: 0;
-          background: rgba(0,0,0,0.5);
-          backdrop-filter: blur(4px);
-          z-index: 1000;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          padding: 20px;
-        }
-
-        .modal-content {
-          background: #fff;
-          border-radius: 20px;
-          width: 100%;
-          box-shadow: 0 30px 60px -12px rgba(0,0,0,0.25);
-          overflow: hidden;
-        }
-
-        .modal-header {
-          padding: 20px 24px;
-          border-bottom: 1px solid var(--border);
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-        }
-
-        .btn-close {
-          background: none;
-          border: none;
-          color: var(--text-tertiary);
-          cursor: pointer;
-        }
-
-        .form-input {
-          width: 100%;
-          padding: 10px 16px;
-          border: 1px solid var(--border);
-          border-radius: 10px;
-          font-size: 14px;
-        }
-
-        .btn-ghost {
-          background: transparent;
-          border: 1px solid var(--border);
-          padding: 10px 20px;
-          border-radius: 10px;
-          font-weight: 600;
-        }
-      `}</style>
     </div>
   );
 }

@@ -9,24 +9,32 @@ import { metalRateService } from '@/lib/supabase/metalRateService';
 import Sidebar from './Sidebar';
 import Header from './Header';
 import { subscriptionStore } from '@/lib/subscriptionStore';
+import MobileBottomNav from './MobileBottomNav';
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
   const [overdueCount, setOverdueCount] = useState(0);
   const [mounted, setMounted] = useState(false);
   const [isHydrating, setIsHydrating] = useState(true);
   const [showMandatorySelector, setShowMandatorySelector] = useState(false);
   const [branches, setBranches] = useState<any[]>([]);
 
-  const isLoginPage = pathname === '/login';
+  const isPublicPage = pathname === '/login' || pathname === '/start-trial';
 
   useEffect(() => {
     setMounted(true);
     
+    // Check for persisted sidebar state
+    const savedSidebarState = localStorage.getItem('pv_sidebar_open');
+    if (savedSidebarState !== null) {
+      setSidebarOpen(savedSidebarState === 'true');
+    } else if (typeof window !== 'undefined' && window.innerWidth < 1024) {
+      setSidebarOpen(false);
+    }
+    
     async function initializeLiveState() {
-      // Prevent logic from running on login page or if not authenticated
-      if (isLoginPage) {
+      if (isPublicPage) {
         setIsHydrating(false);
         return;
       }
@@ -39,27 +47,21 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
       try {
         setIsHydrating(true);
-        // 1. Fetch User Profile for Role & Branch Defaulting
         const profile = await supabaseService.getUserProfile(auth.userId as string);
-        
-        // 2. Hydrate Global Settings (Branches, Rates, Shop Name)
-        const liveSettings = await supabaseService.getSettings();
+        const liveSettings = await supabaseService.getSettings(auth.firmId as string);
+
         if (liveSettings) {
           const allBranches = liveSettings.branches || [];
           setBranches(allBranches);
 
-          // 3. Logic: Managers default to ALL, Staff default to assigned branch
           let targetBranchId = settingsStore.get().activeBranchId;
 
           if (auth.role === 'manager' || auth.role === 'superadmin') {
-            // Managers default to "firm" (All Branches) unless they've already picked one
             if (!targetBranchId) targetBranchId = 'firm';
           } else if (auth.role === 'staff') {
-            // Staff default to their specific assigned branch
             if (profile?.defaultBranchId) {
               targetBranchId = profile.defaultBranchId;
             } else if (!targetBranchId || targetBranchId === 'firm') {
-              // Staff MUST pick a branch if no default exists
               setShowMandatorySelector(true);
             }
           }
@@ -69,25 +71,16 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             activeBranchId: targetBranchId 
           });
 
-          // 3b. White-Labeling Injection: Override brand colors if firm has custom branding
-          const primaryColor = liveSettings.brandingConfig?.primaryColor;
-          if (primaryColor) {
-            const root = document.documentElement;
-            root.style.setProperty('--brand-primary', primaryColor);
-            root.style.setProperty('--primary-brand', primaryColor);
-            root.style.setProperty('--brand-deep', primaryColor); // Simpler fallback for now
-            // Add a soft glow version
-            root.style.setProperty('--brand-glow', `${primaryColor}26`); // 15% opacity hex hack
-          }
-          if (authStore.isManager()) {
-             metalRateService.getLiveRates().catch(e => console.warn('Global market sync failed:', e));
+          // Single Theme Logic (Always Emerald/Gold)
+          document.documentElement.setAttribute('data-theme', 'emerald');
+
+          if (authStore.isManager() || authStore.isSuperadmin()) {
+             metalRateService.autoSyncIfStale().catch(e => console.warn('Daily market sync check failed:', e));
           }
 
-          // 5. Fetch Live Dashboard Metrics (like Overdue Count)
           const stats = await supabaseService.getDashboardStats(auth.firmId as string, targetBranchId);
           setOverdueCount(stats.overdueCount || 0);
 
-          // 6. Hydrate Subscription Status
           if (auth.firmId) {
             const subscription = await supabaseService.getActiveSubscription(auth.firmId);
             if (subscription) {
@@ -97,7 +90,6 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                 endDate: subscription.endDate
               });
             } else {
-              // Fallback to free if no active sub found (shouldn't happen for trialists)
               subscriptionStore.set({ planId: 'free', status: 'active', endDate: null });
             }
           }
@@ -110,32 +102,32 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     }
 
     initializeLiveState();
-  }, [pathname, isLoginPage]);
+  }, [pathname, isPublicPage]);
 
   if (!mounted) return null;
 
   // Hydration / Loading Splash Screen
-  if (isHydrating && !isLoginPage) {
+  if (isHydrating && !isPublicPage) {
     return (
-      <div style={{ 
-        height: '100vh', width: '100vw', display: 'flex', flexDirection: 'column',
-        alignItems: 'center', justifyContent: 'center', background: 'var(--bg-primary)', gap: '24px'
-      }}>
-        <div style={{ position: 'relative', width: '80px', height: '80px' }}>
-          <div className="spin" style={{ 
-            position: 'absolute', inset: 0, border: '4px solid var(--border-light)',
-            borderTopColor: 'var(--primary-brand)', borderRadius: '50%'
-          }} />
-          <div style={{ 
-            position: 'absolute', inset: '12px', background: 'var(--bg-card)', borderRadius: '50%',
-            display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px'
-          }}>
-            🪙
+      <div className="flex flex-col items-center justify-center h-screen w-screen bg-background gap-8 animate-in fade-in duration-700">
+        <div className="relative">
+          <div className="w-24 h-24 border-2 border-primary/10 border-t-primary rounded-full animate-spin" />
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="w-16 h-16 bg-primary rounded-2xl flex items-center justify-center text-3xl shadow-xl shadow-primary/20">
+               🪙
+            </div>
           </div>
         </div>
-        <div style={{ textAlign: 'center' }}>
-          <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '20px', margin: '0 0 4px 0' }}>Unlocking Vault</h2>
-          <p style={{ fontSize: '14px', color: 'var(--text-tertiary)', margin: 0 }}>Preparing your secure workspace...</p>
+        <div className="text-center">
+          <h2 className="text-2xl font-black tracking-tight mb-2">PledgeVault</h2>
+          <div className="flex items-center gap-2 justify-center">
+            <div className="w-1.5 h-1.5 bg-primary rounded-full animate-bounce [animation-delay:-0.3s]" />
+            <div className="w-1.5 h-1.5 bg-primary rounded-full animate-bounce [animation-delay:-0.15s]" />
+            <div className="w-1.5 h-1.5 bg-primary rounded-full animate-bounce" />
+          </div>
+          <p className="text-[10px] text-muted-foreground font-black uppercase tracking-[0.2em] mt-4 opacity-40">
+            Secure Workspace Initialization
+          </p>
         </div>
       </div>
     );
@@ -146,37 +138,43 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="app-layout">
-      {!isLoginPage && (
+      {!isPublicPage && (
         <Sidebar
           isOpen={sidebarOpen}
           onToggle={() => setSidebarOpen(!sidebarOpen)}
           overdueCount={overdueCount}
         />
       )}
-      <main className={`main-content ${isLoginPage ? 'full-width' : ''}`}>
-        {!isLoginPage && <Header settings={currentSettings} onMenuClick={() => setSidebarOpen(!sidebarOpen)} />}
-        <div className={isLoginPage ? '' : 'page-content'}>
+      <main className={`main-content ${isPublicPage ? 'full-width' : (sidebarOpen ? 'expanded' : 'collapsed')}`}>
+        {!isPublicPage && (
+          <Header 
+            settings={currentSettings} 
+            onMenuClick={() => {
+              const newState = !sidebarOpen;
+              setSidebarOpen(newState);
+              localStorage.setItem('pv_sidebar_open', String(newState));
+            }} 
+          />
+        )}
+        <div className={isPublicPage ? '' : 'page-content'}>
           {children}
         </div>
       </main>
+      {!isPublicPage && <MobileBottomNav />}
 
-      {/* Mandatory Branch Selector for Staff (Replaces obsolete Modal) */}
-      {showMandatorySelector && !isLoginPage && (
-        <div className="modal-overlay" style={{ backdropFilter: 'blur(20px)', background: 'rgba(16, 123, 136, 0.4)', zIndex: 9999 }}>
-          <div className="card anim-fade-in" style={{ maxWidth: '400px', padding: '40px', textAlign: 'center', borderRadius: '32px', boxShadow: '0 20px 40px rgba(0,0,0,0.2)' }}>
-            <div style={{ 
-              width: '64px', height: '64px', background: 'var(--status-active-bg)', color: 'var(--primary-teal-dark)', 
-              borderRadius: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', 
-              margin: '0 auto 24px auto', fontSize: '24px' 
-            }}>
-              🏠
+      {/* Mandatory Branch Selector for Staff */}
+      {showMandatorySelector && !isPublicPage && (
+        <div className="fixed inset-0 z-[100] bg-background/80 backdrop-blur-xl flex items-center justify-center p-6 animate-in fade-in duration-500">
+          <div className="pv-card sm:max-w-[440px] w-full text-center p-12 shadow-2xl border-primary/20">
+            <div className="w-20 h-20 bg-primary/10 text-primary rounded-3xl flex items-center justify-center text-4xl mx-auto mb-8 shadow-inner">
+                🏠
             </div>
-            <h2 style={{ fontSize: '24px', fontWeight: 800, margin: '0 0 12px 0' }}>Assign Your Branch</h2>
-            <p style={{ color: 'var(--text-tertiary)', fontSize: '15px', marginBottom: '32px', lineHeight: 1.6 }}>
-              Welcome back! Please select your current reporting branch to access the dashboard.
+            <h2 className="text-3xl font-black tracking-tight mb-3">Branch Identity</h2>
+            <p className="text-muted-foreground font-bold text-sm leading-relaxed mb-10 opacity-70">
+              Please select your current reporting branch to initialize your session.
             </p>
             
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <div className="flex flex-col gap-3">
               {branches.map(branch => (
                 <button
                   key={branch.id}
@@ -185,14 +183,15 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                     window.dispatchEvent(new Event('storage'));
                     setShowMandatorySelector(false);
                   }}
-                  className="btn btn-outline"
-                  style={{ 
-                    justifyContent: 'space-between', padding: '16px 20px', borderRadius: '16px', border: '1px solid var(--border)',
-                    background: 'var(--bg-primary)', transition: 'all 0.2s', fontWeight: 700
-                  }}
+                  className="pv-btn pv-btn-outline w-full justify-between h-auto py-5 px-6 rounded-2xl group transition-all hover:bg-primary/5 hover:border-primary/30 hover:scale-[1.02]"
                 >
-                  <span>{branch.name}</span>
-                  <span style={{ fontSize: '10px', opacity: 0.6, fontWeight: 400 }}>{branch.code}</span>
+                  <div className="flex flex-col items-start">
+                    <span className="font-black text-base">{branch.name}</span>
+                    <span className="text-[10px] text-muted-foreground font-black uppercase tracking-widest mt-0.5">{branch.location}</span>
+                  </div>
+                  <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center group-hover:bg-primary/10 group-hover:text-primary transition-colors">
+                    <ChevronRight size={16} />
+                  </div>
                 </button>
               ))}
             </div>

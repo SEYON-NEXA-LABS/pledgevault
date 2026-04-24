@@ -120,20 +120,20 @@ export default function TeamTab() {
   };
 
   return (
-    <div className="team-tab-content anim-fade-in">
-      <div className="tab-section-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
+    <div className="anim-fade-in">
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
         <div>
-          <h3 style={{ margin: 0 }}>Team & Access</h3>
-          <p style={{ color: 'var(--text-tertiary)', fontSize: '14px', margin: '4px 0 0 0' }}>Manage staff accounts and permissions</p>
+          <h3 style={{ margin: 0, fontSize: '20px', fontWeight: 800 }}>Team & Access</h3>
+          <p style={{ color: 'var(--text-tertiary)', fontSize: '14px', margin: '4px 0 0 0', fontWeight: 600 }}>Manage staff accounts and permissions</p>
         </div>
-        <button className="btn btn-teal" onClick={() => setShowAddModal(true)}>
+        <button className="pv-btn pv-btn-gold" onClick={() => setShowAddModal(true)}>
           <UserPlus size={18} /> Add Team Member
         </button>
       </div>
 
-      <div className="card" style={{ padding: 0, borderRadius: '24px', overflow: 'hidden' }}>
+      <div className="pv-card" style={{ padding: 0 }}>
         <div style={{ overflowX: 'auto' }}>
-          <table className="data-table">
+          <table className="pv-table">
             <thead>
               <tr>
                 <th>Member</th>
@@ -169,12 +169,10 @@ export default function TeamTab() {
                     </div>
                   </td>
                   <td>
-                    <div className={`role-badge ${member.role}`} style={{ 
-                      padding: '4px 10px', borderRadius: '8px', fontSize: '9px', fontWeight: '900', display: 'flex', alignItems: 'center', gap: '4px',
-                      background: member.role === 'manager' ? 'var(--sidebar-bg-dark)' : 'var(--bg-primary)',
-                      color: member.role === 'manager' ? 'var(--primary-brand)' : 'var(--text-tertiary)',
-                      border: `1px solid ${member.role === 'manager' ? 'var(--primary-brand)' : 'var(--border-light)'}`,
-                      width: 'fit-content'
+                    <div className={`pv-badge`} style={{ 
+                      background: member.role === 'manager' ? 'var(--brand-deep)' : 'var(--bg-primary)',
+                      color: member.role === 'manager' ? 'var(--gold)' : 'var(--text-tertiary)',
+                      fontWeight: 800
                     }}>
                        {member.role === 'manager' ? <Shield size={10} /> : <User size={10} />}
                        {member.role.toUpperCase()}
@@ -189,19 +187,13 @@ export default function TeamTab() {
                   <td>
                     <button 
                       onClick={() => handleToggleStatus(member)}
+                      className="pv-badge"
                       style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '8px',
-                        background: member.isActive === false ? '#fff1f0' : 'var(--status-active-bg)',
-                        color: member.isActive === false ? '#cf1322' : 'var(--status-active)',
-                        padding: '6px 12px',
-                        borderRadius: '20px',
-                        border: 'none',
-                        fontSize: '11px',
-                        fontWeight: 700,
+                        background: member.isActive === false ? 'var(--status-overdue-bg)' : 'var(--status-active-bg)',
+                        color: member.isActive === false ? 'var(--status-overdue)' : 'var(--status-active)',
                         cursor: 'pointer',
-                        transition: 'all 0.2s'
+                        border: 'none',
+                        fontWeight: 800
                       }}
                     >
                       <Power size={12} />
@@ -210,10 +202,10 @@ export default function TeamTab() {
                   </td>
                   <td style={{ textAlign: 'right' }}>
                     <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
-                      <button className="btn-icon-sm" onClick={() => setViewingMember(member)} title="View Details"><Eye size={16} /></button>
-                      <button className="btn-icon-sm" onClick={() => setEditingMember(member)} title="Edit Member"><Edit2 size={16} /></button>
+                      <button className="pv-btn pv-btn-outline pv-btn-sm" onClick={() => setViewingMember(member)} title="View Details"><Eye size={16} /></button>
+                      <button className="pv-btn pv-btn-outline pv-btn-sm" onClick={() => setEditingMember(member)} title="Edit Member"><Edit2 size={16} /></button>
                       {member.role !== 'manager' && (
-                        <button className="btn-icon-sm danger" onClick={() => handleRemove(member.id, member.fullName)} title="Remove"><Trash2 size={16} /></button>
+                        <button className="pv-btn pv-btn-outline pv-btn-sm" style={{ color: 'var(--status-overdue)', borderColor: 'var(--status-overdue)' }} onClick={() => handleRemove(member.id, member.fullName)} title="Remove"><Trash2 size={16} /></button>
                       )}
                     </div>
                   </td>
@@ -227,46 +219,46 @@ export default function TeamTab() {
       {/* Add Member Modal */}
       {showAddModal && (
         <div className="modal-overlay">
-          <div className="modal" style={{ maxWidth: '440px', borderRadius: '32px', padding: '32px' }}>
-            <div className="modal-header" style={{ marginBottom: '24px' }}>
+          <div className="pv-card" style={{ maxWidth: '440px', padding: '32px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
               <h3 style={{ fontSize: '24px', fontWeight: '800' }}>Add Team Member</h3>
-              <button className="btn-icon" onClick={() => setShowAddModal(false)}><X size={20} /></button>
+              <button style={{ background: 'transparent', border: 'none', cursor: 'pointer' }} onClick={() => setShowAddModal(false)}><X size={20} /></button>
             </div>
             <form onSubmit={handleAddMember}>
-              <div className="modal-body" style={{ gap: '20px', display: 'flex', flexDirection: 'column' }}>
-                {error && <div className="alert error" style={{ borderRadius: '14px' }}>{error}</div>}
-                <div className="form-group">
-                  <label className="form-label">Full Name</label>
-                  <input className="form-input" required value={formData.fullName} onChange={e => setFormData({...formData, fullName: e.target.value})} style={{ borderRadius: '12px' }} />
+              <div style={{ gap: '20px', display: 'flex', flexDirection: 'column' }}>
+                {error && <div className="pv-badge" style={{ background: 'var(--status-overdue-bg)', color: 'var(--status-overdue)', width: '100%', justifyContent: 'center', padding: '12px' }}>{error}</div>}
+                <div className="pv-input-group">
+                  <label>Full Name</label>
+                  <input className="pv-input" required value={formData.fullName} onChange={e => setFormData({...formData, fullName: e.target.value})} />
                 </div>
-                <div className="form-group">
-                  <label className="form-label">Email Address</label>
-                  <input className="form-input" type="email" required value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} style={{ borderRadius: '12px' }} />
+                <div className="pv-input-group">
+                  <label>Email Address</label>
+                  <input className="pv-input" type="email" required value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} />
                 </div>
-                <div className="form-group">
-                  <label className="form-label">Password</label>
-                  <input className="form-input" type="password" required value={formData.password} onChange={e => setFormData({...formData, password: e.target.value})} style={{ borderRadius: '12px' }} />
+                <div className="pv-input-group">
+                  <label>Password</label>
+                  <input className="pv-input" type="password" required value={formData.password} onChange={e => setFormData({...formData, password: e.target.value})} />
                 </div>
-                <div className="form-row">
-                  <div className="form-group">
-                    <label className="form-label">Role</label>
-                    <select className="form-input" value={formData.role} onChange={e => setFormData({...formData, role: e.target.value as any})} style={{ borderRadius: '12px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                  <div className="pv-input-group">
+                    <label>Role</label>
+                    <select className="pv-input" value={formData.role} onChange={e => setFormData({...formData, role: e.target.value as any})}>
                       <option value="staff">Staff Member</option>
                       <option value="manager">Lead Manager</option>
                     </select>
                   </div>
-                  <div className="form-group">
-                    <label className="form-label">Branch Access</label>
-                    <select className="form-input" value={formData.branchId} onChange={e => setFormData({...formData, branchId: e.target.value})} style={{ borderRadius: '12px' }}>
+                  <div className="pv-input-group">
+                    <label>Branch Access</label>
+                    <select className="pv-input" value={formData.branchId} onChange={e => setFormData({...formData, branchId: e.target.value})}>
                       <option value="">Global Overview</option>
                       {branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
                     </select>
                   </div>
                 </div>
               </div>
-              <div className="modal-footer" style={{ marginTop: '32px', gap: '12px' }}>
-                <button type="button" className="btn btn-outline" onClick={() => setShowAddModal(false)}>Cancel</button>
-                <button type="submit" className="btn btn-teal" disabled={submitting}>
+              <div style={{ marginTop: '32px', display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
+                <button type="button" className="pv-btn pv-btn-outline" onClick={() => setShowAddModal(false)}>Cancel</button>
+                <button type="submit" className="pv-btn pv-btn-gold" disabled={submitting}>
                   {submitting ? <Loader2 className="spin" size={18} /> : 'Invite Member'}
                 </button>
               </div>
@@ -284,37 +276,34 @@ export default function TeamTab() {
               <button className="btn-icon" onClick={() => setEditingMember(null)}><X size={20} /></button>
             </div>
             <form onSubmit={handleUpdateMember}>
-              <div className="modal-body" style={{ gap: '20px', display: 'flex', flexDirection: 'column' }}>
-                <div className="form-group">
-                  <label className="form-label">Full Name</label>
+              <div style={{ gap: '20px', display: 'flex', flexDirection: 'column' }}>
+                <div className="pv-input-group">
+                  <label>Full Name</label>
                   <input 
-                    className="form-input" 
+                    className="pv-input" 
                     required 
                     value={editingMember.fullName} 
                     onChange={e => setEditingMember({...editingMember, fullName: e.target.value})} 
-                    style={{ borderRadius: '12px' }} 
                   />
                 </div>
-                <div className="form-row">
-                  <div className="form-group">
-                    <label className="form-label">Role</label>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                  <div className="pv-input-group">
+                    <label>Role</label>
                     <select 
-                      className="form-input" 
+                      className="pv-input" 
                       value={editingMember.role} 
                       onChange={e => setEditingMember({...editingMember, role: e.target.value as any})} 
-                      style={{ borderRadius: '12px' }}
                     >
                       <option value="staff">Staff Member</option>
                       <option value="manager">Lead Manager</option>
                     </select>
                   </div>
-                  <div className="form-group">
-                    <label className="form-label">Branch Access</label>
+                  <div className="pv-input-group">
+                    <label>Branch Access</label>
                     <select 
-                      className="form-input" 
+                      className="pv-input" 
                       value={editingMember.defaultBranchId || ''} 
                       onChange={e => setEditingMember({...editingMember, defaultBranchId: e.target.value})} 
-                      style={{ borderRadius: '12px' }}
                     >
                       <option value="">Global Overview</option>
                       {branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
@@ -322,9 +311,9 @@ export default function TeamTab() {
                   </div>
                 </div>
               </div>
-              <div className="modal-footer" style={{ marginTop: '32px', gap: '12px' }}>
-                <button type="button" className="btn btn-outline" onClick={() => setEditingMember(null)}>Cancel</button>
-                <button type="submit" className="btn btn-teal" disabled={submitting}>
+              <div style={{ marginTop: '32px', display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
+                <button type="button" className="pv-btn pv-btn-outline" onClick={() => setEditingMember(null)}>Cancel</button>
+                <button type="submit" className="pv-btn pv-btn-gold" disabled={submitting}>
                   {submitting ? <Loader2 className="spin" size={18} /> : 'Save Changes'}
                 </button>
               </div>
@@ -336,46 +325,46 @@ export default function TeamTab() {
       {/* View Member Modal */}
       {viewingMember && (
         <div className="modal-overlay">
-          <div className="modal" style={{ maxWidth: '440px', borderRadius: '32px', padding: '32px' }}>
-            <div className="modal-header" style={{ marginBottom: '24px' }}>
+          <div className="pv-card" style={{ maxWidth: '440px', padding: '32px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
               <h3 style={{ fontSize: '24px', fontWeight: '800' }}>Member Profile</h3>
-              <button className="btn-icon" onClick={() => setViewingMember(null)}><X size={20} /></button>
+              <button style={{ background: 'transparent', border: 'none', cursor: 'pointer' }} onClick={() => setViewingMember(null)}><X size={20} /></button>
             </div>
-            <div className="modal-body" style={{ gap: '24px', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ gap: '24px', display: 'flex', flexDirection: 'column' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
                 <div style={{ 
                   width: '64px', height: '64px', borderRadius: '20px', 
-                  background: 'var(--status-active-bg)', color: 'var(--primary-teal-dark)', 
+                  background: 'var(--status-active-bg)', color: 'var(--status-active)', 
                   display: 'flex', alignItems: 'center', justifyContent: 'center', 
                   fontSize: '24px', fontWeight: '800' 
                 }}>
                   {viewingMember.fullName?.[0]}
                 </div>
                 <div>
-                  <h4 style={{ margin: 0, fontSize: '20px' }}>{viewingMember.fullName}</h4>
-                  <p style={{ margin: 0, color: 'var(--text-tertiary)', fontSize: '14px' }}>{viewingMember.email}</p>
+                  <h4 style={{ margin: 0, fontSize: '20px', fontWeight: 800 }}>{viewingMember.fullName}</h4>
+                  <p style={{ margin: 0, color: 'var(--text-tertiary)', fontSize: '14px', fontWeight: 600 }}>{viewingMember.email}</p>
                 </div>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                 <div style={{ padding: '16px', background: 'var(--bg-primary)', borderRadius: '16px' }}>
-                   <div style={{ fontSize: '11px', color: 'var(--text-tertiary)', fontWeight: 700, marginBottom: '4px' }}>ROLE</div>
-                   <div style={{ fontSize: '14px', fontWeight: 700, textTransform: 'capitalize' }}>{viewingMember.role}</div>
+                 <div style={{ padding: '16px', background: 'var(--bg-primary)', borderRadius: '16px', border: '1px solid var(--border)' }}>
+                   <div style={{ fontSize: '11px', color: 'var(--text-tertiary)', fontWeight: 800, marginBottom: '4px', textTransform: 'uppercase' }}>Role</div>
+                   <div style={{ fontSize: '14px', fontWeight: 800, textTransform: 'capitalize' }}>{viewingMember.role}</div>
                  </div>
-                 <div style={{ padding: '16px', background: 'var(--bg-primary)', borderRadius: '16px' }}>
-                   <div style={{ fontSize: '11px', color: 'var(--text-tertiary)', fontWeight: 700, marginBottom: '4px' }}>MEMBER SINCE</div>
-                   <div style={{ fontSize: '14px', fontWeight: 700 }}>{formatDate(viewingMember.createdAt)}</div>
+                 <div style={{ padding: '16px', background: 'var(--bg-primary)', borderRadius: '16px', border: '1px solid var(--border)' }}>
+                   <div style={{ fontSize: '11px', color: 'var(--text-tertiary)', fontWeight: 800, marginBottom: '4px', textTransform: 'uppercase' }}>Member Since</div>
+                   <div style={{ fontSize: '14px', fontWeight: 800 }}>{formatDate(viewingMember.createdAt)}</div>
                  </div>
-                 <div style={{ padding: '16px', background: 'var(--bg-primary)', borderRadius: '16px', gridColumn: 'span 2' }}>
-                   <div style={{ fontSize: '11px', color: 'var(--text-tertiary)', fontWeight: 700, marginBottom: '4px' }}>ASSIGNED BRANCH</div>
-                   <div style={{ fontSize: '14px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px' }}>
-                     <Building2 size={16} style={{ color: 'var(--primary-brand)' }} />
+                 <div style={{ padding: '16px', background: 'var(--bg-primary)', borderRadius: '16px', gridColumn: 'span 2', border: '1px solid var(--border)' }}>
+                   <div style={{ fontSize: '11px', color: 'var(--text-tertiary)', fontWeight: 800, marginBottom: '4px', textTransform: 'uppercase' }}>Assigned Branch</div>
+                   <div style={{ fontSize: '14px', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                     <Building2 size={16} style={{ color: 'var(--brand-primary)' }} />
                      {viewingMember.branches?.name || 'All Branches'}
                    </div>
                  </div>
               </div>
             </div>
-            <div className="modal-footer" style={{ marginTop: '32px' }}>
-              <button className="btn btn-teal" style={{ width: '100%' }} onClick={() => setViewingMember(null)}>Close Profile</button>
+            <div style={{ marginTop: '32px' }}>
+              <button className="pv-btn pv-btn-gold" style={{ width: '100%' }} onClick={() => setViewingMember(null)}>Close Profile</button>
             </div>
           </div>
         </div>

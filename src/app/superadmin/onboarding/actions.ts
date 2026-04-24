@@ -127,9 +127,9 @@ export async function onboardFirmAction(formData: any) {
 
     if (settingsError) throw settingsError;
 
-    // 7. Initialize 14-Day Elite Trial
+    // 7. Initialize 30-Day Elite Trial
     const trialEndDate = new Date();
-    trialEndDate.setDate(trialEndDate.getDate() + 14);
+    trialEndDate.setDate(trialEndDate.getDate() + 30);
 
     const { error: trialError } = await adminClient
       .from('subscriptions')

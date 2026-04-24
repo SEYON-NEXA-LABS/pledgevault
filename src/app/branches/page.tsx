@@ -50,7 +50,7 @@ export default function BranchesPage() {
       setCurrentPlan(plan);
 
       // 2. Fetch Branches (if elite or just to show what they have)
-      const data = await supabaseService.getSettings();
+      const data = await supabaseService.getSettings(auth.firmId as string);
       if (data?.branches) {
         setBranches(data.branches);
       }
@@ -125,22 +125,22 @@ export default function BranchesPage() {
           <p className="subtitle">Managing {branches.length} locations across your firm</p>
         </div>
         <div className="page-header-right">
-          <button className="btn btn-gold btn-lg" onClick={() => setIsModalOpen(true)}>
+          <button className="pv-btn pv-btn-gold" onClick={() => setIsModalOpen(true)}>
             <Plus size={18} /> New Branch
           </button>
         </div>
       </div>
 
-      <div className="toolbar">
-        <div className="search-box">
-          <Search size={18} />
-          <input type="text" placeholder="Search by name, code or city..." />
+      <div className="toolbar" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px', gap: '16px' }}>
+        <div className="search-box" style={{ flex: 1, maxWidth: '400px', position: 'relative' }}>
+          <Search size={18} style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-tertiary)' }} />
+          <input type="text" className="pv-input" style={{ paddingLeft: '44px' }} placeholder="Search by name, code or city..." />
         </div>
-        <div className="toolbar-actions">
-          <button className="btn-icon"><Filter size={18} /></button>
-          <div className="view-toggle">
-            <button className="view-btn active"><LayoutGrid size={18} /></button>
-            <button className="view-btn"><ListIcon size={18} /></button>
+        <div className="toolbar-actions" style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+          <button className="pv-btn pv-btn-outline" style={{ width: '44px', padding: 0 }}><Filter size={18} /></button>
+          <div className="view-toggle" style={{ display: 'flex', background: 'var(--bg-primary)', padding: '4px', borderRadius: '12px' }}>
+            <button className="view-btn active" style={{ height: '36px', width: '36px', borderRadius: '8px', border: 'none', background: 'white', color: 'var(--brand-primary)', boxShadow: 'var(--shadow-sm)' }}><LayoutGrid size={18} /></button>
+            <button className="view-btn" style={{ height: '36px', width: '36px', borderRadius: '8px', border: 'none', background: 'transparent', color: 'var(--text-tertiary)' }}><ListIcon size={18} /></button>
           </div>
         </div>
       </div>
@@ -158,27 +158,29 @@ export default function BranchesPage() {
 
       {/* Add Branch Modal */}
       {isModalOpen && (
-        <div className="modal-overlay">
-          <div className="modal-card anim-slide-up">
-            <div className="modal-header">
-              <h3>Register New Branch</h3>
-              <button className="close-btn" onClick={() => setIsModalOpen(false)}><X size={20} /></button>
+        <div className="modal-overlay" style={{ position: 'fixed', inset: 0, background: 'rgba(26, 60, 52, 0.6)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }}>
+          <div className="pv-card" style={{ width: '100%', maxWidth: '500px', padding: 0, overflow: 'hidden', animation: 'fadeInScale 0.3s ease' }}>
+            <div className="modal-header" style={{ padding: '24px 32px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h3 style={{ margin: 0, fontSize: '20px', fontWeight: 800 }}>Register New Branch</h3>
+              <button onClick={() => setIsModalOpen(false)} style={{ background: 'transparent', border: 'none', color: 'var(--text-tertiary)' }}><X size={20} /></button>
             </div>
             <form onSubmit={handleAddBranch}>
-              <div className="modal-body">
-                <div className="form-group">
+              <div style={{ padding: '32px' }}>
+                <div className="pv-input-group" style={{ marginBottom: '20px' }}>
                   <label>Official Branch Name</label>
                   <input 
+                    className="pv-input"
                     required
                     placeholder="e.g., Coimbatore West"
                     value={newBranch.name}
                     onChange={e => setNewBranch({...newBranch, name: e.target.value})}
                   />
                 </div>
-                <div className="form-row">
-                  <div className="form-group">
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '20px' }}>
+                  <div className="pv-input-group">
                     <label>Branch Code (Unique)</label>
                     <input 
+                      className="pv-input"
                       required
                       placeholder="e.g., CBE01"
                       maxLength={6}
@@ -186,23 +188,24 @@ export default function BranchesPage() {
                       onChange={e => setNewBranch({...newBranch, code: e.target.value})}
                     />
                   </div>
-                  <div className="form-group">
+                  <div className="pv-input-group">
                     <label>Primary Location</label>
                     <input 
+                      className="pv-input"
                       placeholder="City or Area"
                       value={newBranch.location}
                       onChange={e => setNewBranch({...newBranch, location: e.target.value})}
                     />
                   </div>
                 </div>
-                <div className="info-box">
+                <div style={{ background: 'var(--bg-primary)', padding: '16px', borderRadius: '16px', display: 'flex', gap: '12px', color: 'var(--brand-primary)', fontSize: '12px', marginBottom: '24px' }}>
                   <Info size={16} />
                   <span>The branch code is used as a suffix for loan numbers and financial records.</span>
                 </div>
               </div>
-              <div className="modal-footer">
-                <button type="button" className="btn btn-outline" onClick={() => setIsModalOpen(false)}>Cancel</button>
-                <button type="submit" className="btn btn-teal" disabled={submitting}>
+              <div style={{ padding: '24px 32px', background: 'var(--bg-primary)', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
+                <button type="button" className="pv-btn pv-btn-outline" onClick={() => setIsModalOpen(false)}>Cancel</button>
+                <button type="submit" className="pv-btn pv-btn-gold" disabled={submitting}>
                   {submitting ? <Loader2 className="spin" size={18} /> : 'Create Branch'}
                 </button>
               </div>
@@ -211,210 +214,7 @@ export default function BranchesPage() {
         </div>
       )}
 
-      <style jsx>{`
-        .branches-page {
-          padding-bottom: 60px;
-        }
 
-        .loading-state {
-          height: 60vh;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          gap: 16px;
-          color: #9A9FA5;
-        }
-
-        .header-icon {
-          margin-right: 12px;
-          color: #107B88;
-        }
-
-        .toolbar {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-bottom: 32px;
-          gap: 16px;
-        }
-
-        .search-box {
-          flex: 1;
-          max-width: 400px;
-          background: #fff;
-          border: 1px solid #E8E8E3;
-          border-radius: 14px;
-          display: flex;
-          align-items: center;
-          padding: 0 16px;
-          gap: 12px;
-          color: #9A9FA5;
-        }
-
-        .search-box input {
-          border: none;
-          padding: 12px 0;
-          width: 100%;
-          outline: none;
-          font-size: 14px;
-          color: #1A3C34;
-        }
-
-        .toolbar-actions {
-          display: flex;
-          gap: 12px;
-          align-items: center;
-        }
-
-        .view-toggle {
-          display: flex;
-          background: #F4F4F2;
-          padding: 4px;
-          border-radius: 10px;
-        }
-
-        .view-btn {
-          width: 36px;
-          height: 36px;
-          border: none;
-          background: transparent;
-          color: #9A9FA5;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          cursor: pointer;
-          border-radius: 8px;
-        }
-
-        .view-btn.active {
-          background: #fff;
-          color: #107B88;
-          box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-        }
-
-        .branches-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-          gap: 24px;
-        }
-
-        /* Modal Styles */
-        .modal-overlay {
-          position: fixed;
-          inset: 0;
-          background: rgba(26, 60, 52, 0.4);
-          backdrop-filter: blur(8px);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          z-index: 1000;
-          padding: 20px;
-        }
-
-        .modal-card {
-          background: #fff;
-          width: 100%;
-          max-width: 500px;
-          border-radius: 32px;
-          overflow: hidden;
-          box-shadow: 0 32px 64px -16px rgba(0,0,0,0.2);
-        }
-
-        .modal-header {
-          padding: 32px;
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          border-bottom: 1px solid #F4F4F2;
-        }
-
-        .modal-header h3 {
-          margin: 0;
-          font-size: 20px;
-          font-weight: 800;
-          color: #1A3C34;
-        }
-
-        .close-btn {
-          background: transparent;
-          border: none;
-          color: #9A9FA5;
-          cursor: pointer;
-        }
-
-        .modal-body {
-          padding: 32px;
-          display: flex;
-          flex-direction: column;
-          gap: 24px;
-        }
-
-        .modal-body label {
-          display: block;
-          font-size: 13px;
-          font-weight: 700;
-          color: #6F767E;
-          margin-bottom: 8px;
-        }
-
-        .modal-body input {
-          width: 100%;
-          padding: 12px 16px;
-          border: 1px solid #E8E8E3;
-          border-radius: 12px;
-          background: #F8F8F5;
-          outline: none;
-          transition: border-color 0.2s;
-        }
-
-        .modal-body input:focus {
-          border-color: #107B88;
-        }
-
-        .form-row {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 16px;
-        }
-
-        .info-box {
-          background: #F0FBFC;
-          padding: 16px;
-          border-radius: 16px;
-          display: flex;
-          gap: 12px;
-          color: #107B88;
-          font-size: 12px;
-          line-height: 1.5;
-        }
-
-        .modal-footer {
-          padding: 24px 32px;
-          background: #F8F8F5;
-          border-top: 1px solid #F4F4F2;
-          display: flex;
-          justify-content: flex-end;
-          gap: 12px;
-        }
-
-        .spin {
-          animation: spin 1s linear infinite;
-        }
-
-        @keyframes spin {
-          to { transform: rotate(360deg); }
-        }
-
-        @keyframes slideUp {
-          from { transform: translateY(20px); opacity: 0; }
-          to { transform: translateY(0); opacity: 1; }
-        }
-
-        .anim-slide-up {
-          animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-        }
-      `}</style>
     </div>
   );
 }

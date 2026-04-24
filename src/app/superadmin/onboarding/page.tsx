@@ -97,56 +97,59 @@ export default function SuperadminOnboarding() {
   };
 
   return (
-    <div className="onboarding-page">
-      <div className="onboarding-card">
-        <div className="onboarding-sidebar">
-          <div className="sidebar-logo">
-            <span>🪙</span> PledgeVault <sup>Admin</sup>
+    <div className="page-content" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '80vh' }}>
+      <div className="pv-card" style={{ width: '100%', maxWidth: '1000px', padding: 0, display: 'grid', gridTemplateColumns: '320px 1fr', overflow: 'hidden', height: '650px' }}>
+        <div style={{ background: 'var(--brand-deep)', color: 'white', padding: '48px', display: 'flex', flexDirection: 'column' }}>
+          <div style={{ fontSize: '24px', fontWeight: 800, marginBottom: '64px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div style={{ width: '32px', height: '32px', background: 'var(--gold)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>🪙</div>
+            <span>PledgeVault <small style={{ fontSize: '10px', opacity: 0.7, verticalAlign: 'top' }}>ADMIN</small></span>
           </div>
-          <div className="steps-list">
-            <div className={`step-item ${step >= 1 ? 'active' : ''}`}>
-              <div className="step-num">{step > 1 ? <CheckCircle size={16} /> : '1'}</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '28px' }}>
+            <div style={{ display: 'flex', gap: '16px', opacity: step >= 1 ? 1 : 0.4 }}>
+              <div style={{ width: '28px', height: '28px', borderRadius: '50%', border: '2px solid white', borderColor: step >= 1 ? 'var(--gold)' : 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: 800, color: step >= 1 ? 'var(--gold)' : 'white' }}>{step > 1 ? <CheckCircle size={16} /> : '1'}</div>
               <div>
-                <div className="step-title">Shop Details</div>
-                <div className="step-desc">Business information & plan</div>
+                <div style={{ fontWeight: 700, fontSize: '15px' }}>Shop Details</div>
+                <div style={{ fontSize: '12px', opacity: 0.6 }}>Business & Plan</div>
               </div>
             </div>
-            <div className={`step-item ${step >= 2 ? 'active' : ''}`}>
-              <div className="step-num">{step > 2 ? <CheckCircle size={16} /> : '2'}</div>
+            <div style={{ display: 'flex', gap: '16px', opacity: step >= 2 ? 1 : 0.4 }}>
+              <div style={{ width: '28px', height: '28px', borderRadius: '50%', border: '2px solid white', borderColor: step >= 2 ? 'var(--gold)' : 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: 800, color: step >= 2 ? 'var(--gold)' : 'white' }}>{step > 2 ? <CheckCircle size={16} /> : '2'}</div>
               <div>
-                <div className="step-title">Manager Account</div>
-                <div className="step-desc">Shop owner credentials</div>
+                <div style={{ fontWeight: 700, fontSize: '15px' }}>Manager Root</div>
+                <div style={{ fontSize: '12px', opacity: 0.6 }}>Root Admin Account</div>
               </div>
             </div>
-            <div className={`step-item ${step >= 3 ? 'active' : ''}`}>
-              <div className="step-num">{step > 3 ? <CheckCircle size={16} /> : '3'}</div>
+            <div style={{ display: 'flex', gap: '16px', opacity: step >= 3 ? 1 : 0.4 }}>
+              <div style={{ width: '28px', height: '28px', borderRadius: '50%', border: '2px solid white', borderColor: step >= 3 ? 'var(--gold)' : 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: 800, color: step >= 3 ? 'var(--gold)' : 'white' }}>{step > 3 ? <CheckCircle size={16} /> : '3'}</div>
               <div>
-                <div className="step-title">Staff Members</div>
-                <div className="step-desc">Add shop employees</div>
+                <div style={{ fontWeight: 700, fontSize: '15px' }}>Staff List</div>
+                <div style={{ fontSize: '12px', opacity: 0.6 }}>Initial Directory</div>
               </div>
             </div>
-            <div className={`step-item ${step >= 4 ? 'active' : ''}`}>
-              <div className="step-num">{step >= 4 ? <CheckCircle size={16} /> : '4'}</div>
+            <div style={{ display: 'flex', gap: '16px', opacity: step >= 4 ? 1 : 0.4 }}>
+              <div style={{ width: '28px', height: '28px', borderRadius: '50%', border: '2px solid white', borderColor: step >= 4 ? 'var(--gold)' : 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: 800, color: step >= 4 ? 'var(--gold)' : 'white' }}>{step >= 4 ? <CheckCircle size={16} /> : '4'}</div>
               <div>
-                <div className="step-title">Initialization</div>
-                <div className="step-desc">Finalizing setup</div>
+                <div style={{ fontWeight: 700, fontSize: '15px' }}>Deployment</div>
+                <div style={{ fontSize: '12px', opacity: 0.6 }}>Shop Initialization</div>
               </div>
             </div>
           </div>
         </div>
 
-        <div className="onboarding-content">
+        <div style={{ padding: '48px 64px', background: 'white', overflowY: 'auto' }}>
           {step === 1 && (
-            <div className="step-view">
-              <h2>New Business Registration</h2>
-              <p>Onboard a new pawn shop into the PledgeVault ecosystem.</p>
+            <div style={{ animation: 'fadeInScale 0.3s ease' }}>
+              <h2 style={{ fontSize: '32px', letterSpacing: '-1px', marginBottom: '8px' }}>Business Registration</h2>
+              <p style={{ color: 'var(--text-tertiary)', marginBottom: '32px' }}>Onboard a new partner shop into the ecosystem.</p>
               
               <div className="form-grid">
-                <div className="form-group">
+                <div className="pv-input-group">
                   <label>Official Shop Name</label>
-                  <div className="input-box">
-                    <Building2 size={18} />
+                  <div style={{ position: 'relative' }}>
+                    <Building2 size={18} style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-tertiary)' }} />
                     <input 
+                      className="pv-input"
+                      style={{ paddingLeft: '44px' }}
                       placeholder="e.g., Sri Ganesh Jewel Loans" 
                       value={firmData.name}
                       onChange={e => {
@@ -161,34 +164,40 @@ export default function SuperadminOnboarding() {
                     />
                   </div>
                 </div>
-                <div className="form-group">
+                <div className="pv-input-group">
                   <label>Business Location</label>
-                  <div className="input-box">
-                    <Globe size={18} />
+                  <div style={{ position: 'relative' }}>
+                    <Globe size={18} style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-tertiary)' }} />
                     <input 
+                      className="pv-input"
+                      style={{ paddingLeft: '44px' }}
                       placeholder="City, State" 
                       value={firmData.location}
                       onChange={e => setFirmData({...firmData, location: e.target.value})}
                     />
                   </div>
                 </div>
-                <div className="form-group">
-                  <label>URL Slug (for branding)</label>
-                  <div className="input-box">
-                    <Settings size={18} />
+                <div className="pv-input-group">
+                  <label>URL Slug (Branding)</label>
+                  <div style={{ position: 'relative' }}>
+                    <Settings size={18} style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-tertiary)' }} />
                     <input 
+                      className="pv-input"
+                      style={{ paddingLeft: '44px' }}
                       placeholder="e.g., emerald-gold" 
                       value={firmData.slug}
                       onChange={e => setFirmData({...firmData, slug: e.target.value.toLowerCase().replace(/\s+/g, '-')})}
                     />
                   </div>
                 </div>
-                <div className="form-group">
-                  <label>Short Code (for Loan ID)</label>
-                  <div className="input-box">
-                    <ShieldCheck size={18} />
+                <div className="pv-input-group">
+                  <label>Short Code (Loan ID)</label>
+                  <div style={{ position: 'relative' }}>
+                    <ShieldCheck size={18} style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-tertiary)' }} />
                     <input 
-                      placeholder="e.g., EG (2-4 chars)" 
+                      className="pv-input"
+                      style={{ paddingLeft: '44px' }}
+                      placeholder="e.g., EG" 
                       value={firmData.shortCode}
                       maxLength={4}
                       onChange={e => setFirmData({...firmData, shortCode: e.target.value.toUpperCase()})}
@@ -237,59 +246,65 @@ export default function SuperadminOnboarding() {
                   </div>
                 </div>
 
-                <div className="form-group">
+                <div className="pv-input-group">
                   <label>Subscription Tier</label>
                   <select 
-                    className="form-select"
+                    className="pv-input"
                     value={firmData.plan}
                     onChange={e => setFirmData({...firmData, plan: e.target.value})}
                   >
                     <option value="free">Standard (Free)</option>
                     <option value="pro">Premium (Growth)</option>
-                    <option value="enterprise">Multi-Store (Enterprise)</option>
+                    <option value="elite">Elite (Enterprise)</option>
                   </select>
                 </div>
 
-                <div className="form-group">
+                <div className="pv-input-group">
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                    <label style={{ margin: 0 }}>GSTIN (Firm)</label>
+                    <label style={{ margin: 0 }}>GSTIN</label>
                     <a 
                       href="https://razorpay.com/gst-number-search/" 
                       target="_blank" 
                       rel="noopener noreferrer"
-                      style={{ fontSize: '11px', color: 'var(--brand-primary)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '4px', fontWeight: 600 }}
+                      style={{ fontSize: '11px', color: 'var(--brand-primary)', textDecoration: 'none', fontWeight: 800 }}
                     >
-                      Verify <ExternalLink size={10} />
+                      Verify Ext.
                     </a>
                   </div>
-                  <div className="input-box">
-                    <CreditCard size={18} />
+                  <div style={{ position: 'relative' }}>
+                    <CreditCard size={18} style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-tertiary)' }} />
                     <input 
-                      placeholder="e.g., 33AAAAA0000A1Z5" 
+                      className="pv-input"
+                      style={{ paddingLeft: '44px' }}
+                      placeholder="33AAAAA0000A1Z5" 
                       value={firmData.gstNumber}
                       onChange={e => setFirmData({...firmData, gstNumber: e.target.value.toUpperCase()})}
                     />
                   </div>
                 </div>
 
-                <div className="form-group">
-                  <label>Registration Number (Firm)</label>
-                  <div className="input-box">
-                    <FileText size={18} />
+                <div className="pv-input-group">
+                  <label>Registration Number</label>
+                  <div style={{ position: 'relative' }}>
+                    <FileText size={18} style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-tertiary)' }} />
                     <input 
-                      placeholder="e.g., REG-123456" 
+                      className="pv-input"
+                      style={{ paddingLeft: '44px' }}
+                      placeholder="REG-123456" 
                       value={firmData.registrationNumber}
                       onChange={e => setFirmData({...firmData, registrationNumber: e.target.value.toUpperCase()})}
                     />
                   </div>
                 </div>
 
-                <div className="form-group">
-                  <label>Main Branch License (Branch)</label>
-                  <div className="input-box">
-                    <ShieldCheck size={18} />
+                <div className="pv-input-group">
+                  <label>Branch License</label>
+                  <div style={{ position: 'relative' }}>
+                    <ShieldCheck size={18} style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-tertiary)' }} />
                     <input 
-                      placeholder="e.g., JL-TN-456" 
+                      className="pv-input"
+                      style={{ paddingLeft: '44px' }}
+                      placeholder="JL-TN-456" 
                       value={firmData.licenseNumber}
                       onChange={e => setFirmData({...firmData, licenseNumber: e.target.value.toUpperCase()})}
                     />
@@ -297,50 +312,56 @@ export default function SuperadminOnboarding() {
                 </div>
               </div>
 
-              <div className="onboarding-footer">
-                <button className="btn btn-gold" onClick={() => setStep(2)}>
-                  Next Step: Owner Access <ArrowRight size={18} />
+              <div style={{ marginTop: '32px', display: 'flex', justifyContent: 'flex-end', paddingTop: '24px', borderTop: '1px solid var(--border)' }}>
+                <button className="pv-btn pv-btn-gold" onClick={() => setStep(2)}>
+                  Manager Root <ArrowRight size={18} />
                 </button>
               </div>
             </div>
           )}
 
           {step === 2 && (
-            <div className="step-view">
-              <h2>Owner Credentials</h2>
-              <p>Create the first administrative account for this shop.</p>
+            <div style={{ animation: 'anim-fade-in 0.3s' }}>
+              <h2 style={{ fontSize: '32px', letterSpacing: '-1px', marginBottom: '8px' }}>Owner Credentials</h2>
+              <p style={{ color: 'var(--text-tertiary)', marginBottom: '32px' }}>Create the first administrative account for this shop.</p>
               
-              <div className="form-grid">
-                <div className="form-group">
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+                <div className="pv-input-group" style={{ gridColumn: 'span 2' }}>
                   <label>Full Name</label>
-                  <div className="input-box">
-                    <UserPlus size={18} />
+                  <div style={{ position: 'relative' }}>
+                    <UserPlus size={18} style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-tertiary)' }} />
                     <input 
+                      className="pv-input"
+                      style={{ paddingLeft: '44px' }}
                       placeholder="Owner / Manager Name" 
                       value={managerData.fullName}
                       onChange={e => setManagerData({...managerData, fullName: e.target.value})}
                     />
                   </div>
                 </div>
-                <div className="form-group">
+                <div className="pv-input-group">
                   <label>Email Address</label>
-                  <div className="input-box">
-                    <Settings size={18} />
+                  <div style={{ position: 'relative' }}>
+                    <Mail size={18} style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-tertiary)' }} />
                     <input 
                       type="email" 
+                      className="pv-input"
+                      style={{ paddingLeft: '44px' }}
                       placeholder="owner@shop.com" 
                       value={managerData.email}
                       onChange={e => setManagerData({...managerData, email: e.target.value})}
                     />
                   </div>
                 </div>
-                <div className="form-group">
+                <div className="pv-input-group">
                   <label>Initial Password</label>
-                  <div className="input-box">
-                    <ShieldCheck size={18} />
+                  <div style={{ position: 'relative' }}>
+                    <ShieldCheck size={18} style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-tertiary)' }} />
                     <input 
                       type="password" 
-                      placeholder="Minimum 8 characters" 
+                      className="pv-input"
+                      style={{ paddingLeft: '44px' }}
+                      placeholder="Min 8 chars" 
                       value={managerData.password}
                       onChange={e => setManagerData({...managerData, password: e.target.value})}
                     />
@@ -348,376 +369,101 @@ export default function SuperadminOnboarding() {
                 </div>
               </div>
 
-              {error && <div className="error-pill"><AlertCircle size={14} /> {error}</div>}
+              {error && <div className="pv-badge" style={{ background: 'var(--status-overdue-bg)', color: 'var(--status-overdue)', marginTop: '20px', width: '100%', justifyContent: 'center' }}><AlertCircle size={14} /> {error}</div>}
 
-              <div className="onboarding-footer">
-                <button className="btn btn-outline" onClick={() => setStep(1)}>Back</button>
-                <button className="btn btn-gold" onClick={() => setStep(3)}>
-                  Next Step: Add Staff <ArrowRight size={18} />
+              <div style={{ marginTop: '32px', display: 'flex', justifyContent: 'space-between', paddingTop: '24px', borderTop: '1px solid var(--border)' }}>
+                <button className="pv-btn pv-btn-outline" onClick={() => setStep(1)}>Back</button>
+                <button className="pv-btn pv-btn-gold" onClick={() => setStep(3)}>
+                  Add Staff <ArrowRight size={18} />
                 </button>
               </div>
             </div>
           )}
 
           {step === 3 && (
-            <div className="step-view">
-              <div className="header-with-action">
+            <div style={{ animation: 'anim-fade-in 0.3s' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                 <div>
-                  <h2>Staff Directory</h2>
-                  <p>Add employees who will manage daily operations.</p>
+                  <h2 style={{ fontSize: '32px', letterSpacing: '-1px', margin: 0 }}>Staff Directory</h2>
+                  <p style={{ color: 'var(--text-tertiary)' }}>Add employees to manage daily operations.</p>
                 </div>
-                <button className="btn btn-outline btn-sm" onClick={addStaffRow}>
-                  <Plus size={16} /> Add Staff Member
+                <button className="pv-btn pv-btn-outline pv-btn-sm" onClick={addStaffRow}>
+                  <Plus size={16} /> Add Staff
                 </button>
               </div>
               
-              <div className="staff-list-onboarding">
+              <div style={{ marginTop: '24px', display: 'flex', flexDirection: 'column', gap: '12px', maxHeight: '350px', overflowY: 'auto', paddingRight: '4px' }}>
                 {staffMembers.length === 0 && (
-                  <div className="empty-staff">
-                    <Users size={32} />
-                    <p>No staff added yet. All shops must have at least one manager (created in Step 2).</p>
+                  <div style={{ textAlign: 'center', padding: '40px', background: 'var(--bg-primary)', borderRadius: '16px', border: '1px dashed var(--border)' }}>
+                    <Users size={32} style={{ color: 'var(--text-tertiary)', marginBottom: '12px' }} />
+                    <p style={{ fontSize: '13px', color: 'var(--text-tertiary)', fontWeight: 600 }}>No staff added yet. Root manager will be created in deployment.</p>
                   </div>
                 )}
                 {staffMembers.map((staff, idx) => (
-                  <div key={idx} className="staff-onboarding-row">
-                    <div className="form-group no-margin">
-                      <input 
-                        className="form-input-sm" 
-                        placeholder="Full Name" 
-                        value={staff.fullName}
-                        onChange={e => updateStaff(idx, 'fullName', e.target.value)}
-                      />
-                    </div>
-                    <div className="form-group no-margin">
-                      <input 
-                        className="form-input-sm" 
-                        placeholder="Email" 
-                        value={staff.email}
-                        onChange={e => updateStaff(idx, 'email', e.target.value)}
-                      />
-                    </div>
-                    <div className="form-group no-margin">
-                      <input 
-                        className="form-input-sm" 
-                        type="password"
-                        placeholder="Password" 
-                        value={staff.password}
-                        onChange={e => updateStaff(idx, 'password', e.target.value)}
-                      />
-                    </div>
-                    <button className="remove-staff-btn" onClick={() => removeStaff(idx)}>
+                  <div key={idx} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 120px 40px', gap: '8px', alignItems: 'center' }}>
+                    <input 
+                      className="pv-input" 
+                      style={{ height: '36px', fontSize: '13px' }}
+                      placeholder="Full Name" 
+                      value={staff.fullName}
+                      onChange={e => updateStaff(idx, 'fullName', e.target.value)}
+                    />
+                    <input 
+                      className="pv-input" 
+                      style={{ height: '36px', fontSize: '13px' }}
+                      placeholder="Email" 
+                      value={staff.email}
+                      onChange={e => updateStaff(idx, 'email', e.target.value)}
+                    />
+                    <input 
+                      className="pv-input" 
+                      style={{ height: '36px', fontSize: '13px' }}
+                      type="password"
+                      placeholder="Pass" 
+                      value={staff.password}
+                      onChange={e => updateStaff(idx, 'password', e.target.value)}
+                    />
+                    <button style={{ background: 'transparent', border: 'none', color: 'var(--status-overdue)', cursor: 'pointer' }} onClick={() => removeStaff(idx)}>
                       <Trash2 size={16} />
                     </button>
                   </div>
                 ))}
               </div>
 
-              {error && <div className="error-pill"><AlertCircle size={14} /> {error}</div>}
+              {error && <div className="pv-badge" style={{ background: 'var(--status-overdue-bg)', color: 'var(--status-overdue)', marginTop: '20px', width: '100%', justifyContent: 'center' }}><AlertCircle size={14} /> {error}</div>}
 
-              <div className="onboarding-footer">
-                <button className="btn btn-outline" onClick={() => setStep(2)}>Back</button>
-                <button className="btn btn-gold" onClick={handleOnboard} disabled={loading}>
-                  {loading ? <Loader2 className="spin" /> : 'Finalize & Onboard Firm'}
+              <div style={{ marginTop: '32px', display: 'flex', justifyContent: 'space-between', paddingTop: '24px', borderTop: '1px solid var(--border)' }}>
+                <button className="pv-btn pv-btn-outline" onClick={() => setStep(2)}>Back</button>
+                <button className="pv-btn pv-btn-gold" onClick={handleOnboard} disabled={loading}>
+                  {loading ? <Loader2 className="spin" size={18} /> : 'Finalize & Onboard Firm'}
                 </button>
               </div>
             </div>
           )}
 
           {step === 4 && (
-            <div className="success-view">
-              <div className="success-icon">
-                <CheckCircle size={64} color="var(--gold)" />
+            <div style={{ textAlign: 'center', animation: 'anim-fade-in 0.4s' }}>
+              <div style={{ width: '80px', height: '80px', background: 'var(--status-active-bg)', color: 'var(--status-active)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px' }}>
+                <CheckCircle size={40} />
               </div>
-              <h2>Onboarding Complete!</h2>
-              <p>
+              <h2 style={{ fontSize: '32px', letterSpacing: '-1px', marginBottom: '8px' }}>Onboarding Complete!</h2>
+              <p style={{ color: 'var(--text-tertiary)', maxWidth: '400px', margin: '0 auto 32px' }}>
                 <strong>{firmData.name}</strong> has been successfully registered. 
-                An invitation has been sent to <strong>{managerData.email}</strong>.
+                Invitation sent to <strong>{managerData.email}</strong>.
               </p>
-              <div className="info-summary">
-                <div className="info-row"><span>ID</span> <span>FIRM_{Date.now().toString(36).toUpperCase()}</span></div>
-                <div className="info-row"><span>Role</span> <span className="badge active">Firm Manager</span></div>
-                <div className="info-row"><span>Staff Onboarded</span> <span>{staffMembers.length} Employees</span></div>
-                <div className="info-row"><span>Status</span> <span className="badge active">Synced</span></div>
+              <div style={{ background: 'var(--bg-primary)', padding: '24px', borderRadius: '20px', border: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: '12px', textAlign: 'left', marginBottom: '32px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}><span style={{ color: 'var(--text-tertiary)', fontWeight: 600 }}>Instance ID</span> <span style={{ fontWeight: 800, fontFamily: 'var(--font-mono)' }}>FIRM_{Date.now().toString(36).toUpperCase()}</span></div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}><span style={{ color: 'var(--text-tertiary)', fontWeight: 600 }}>Root Role</span> <span className="pv-badge" style={{ background: 'var(--brand-deep)', color: 'white', fontWeight: 800 }}>FIRM_MANAGER</span></div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}><span style={{ color: 'var(--text-tertiary)', fontWeight: 600 }}>Staff Count</span> <span style={{ fontWeight: 800 }}>{staffMembers.length} Members</span></div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}><span style={{ color: 'var(--text-tertiary)', fontWeight: 600 }}>Sync Status</span> <span className="pv-badge" style={{ background: 'var(--status-active-bg)', color: 'var(--status-active)', fontWeight: 800 }}>ACTIVE</span></div>
               </div>
-              <button className="btn btn-gold" onClick={() => window.location.reload()}>Onboard Another Shop</button>
+              <button className="pv-btn pv-btn-gold" style={{ width: '100%' }} onClick={() => window.location.reload()}>Onboard Another Shop</button>
             </div>
           )}
         </div>
       </div>
 
-      <style jsx>{`
-        .onboarding-page {
-          min-height: 100vh;
-          background: #f8f8f5;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          padding: 40px;
-        }
 
-        .header-with-action {
-          display: flex;
-          justify-content: space-between;
-          align-items: flex-start;
-          margin-bottom: 24px;
-        }
-
-        .onboarding-card {
-          width: 100%;
-          max-width: 1000px;
-          height: 650px;
-          background: #fff;
-          border-radius: 32px;
-          box-shadow: 0 40px 100px -20px rgba(0,0,0,0.1);
-          display: grid;
-          grid-template-columns: 320px 1fr;
-          overflow: hidden;
-        }
-
-        .onboarding-sidebar {
-          background: #1A3C34;
-          padding: 48px;
-          color: #fff;
-          display: flex;
-          flex-direction: column;
-        }
-
-        .sidebar-logo {
-          font-size: 24px;
-          font-weight: 800;
-          margin-bottom: 64px;
-        }
-
-        .steps-list {
-          display: flex;
-          flex-direction: column;
-          gap: 28px;
-        }
-
-        .step-item {
-          display: flex;
-          gap: 16px;
-          opacity: 0.4;
-          transition: all 0.3s;
-        }
-
-        .step-item.active {
-          opacity: 1;
-        }
-
-        .step-num {
-          width: 28px;
-          height: 28px;
-          border-radius: 50%;
-          border: 2px solid rgba(255,255,255,0.2);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 12px;
-          font-weight: 700;
-          flex-shrink: 0;
-        }
-
-        .step-item.active .step-num {
-          border-color: var(--gold);
-          color: var(--gold);
-        }
-
-        .step-title {
-          font-weight: 700;
-          font-size: 15px;
-        }
-
-        .step-desc {
-          font-size: 12px;
-          color: rgba(255,255,255,0.5);
-        }
-
-        .onboarding-content {
-          padding: 48px 64px;
-          background: #fff;
-          display: flex;
-          flex-direction: column;
-          overflow-y: auto;
-        }
-
-        .step-view h2 {
-          font-size: 32px;
-          letter-spacing: -1px;
-          margin-bottom: 12px;
-          color: #1A3C34;
-        }
-
-        .step-view p {
-          color: #6F767E;
-          margin-bottom: 24px;
-        }
-
-        .form-grid {
-          display: grid;
-          gap: 24px;
-        }
-
-        .input-box {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-          background: #F4F4F2;
-          border: 1px solid #E8E8E3;
-          border-radius: 12px;
-          padding: 4px 16px;
-          color: #1A3C34;
-        }
-
-        .input-box input {
-          border: none;
-          background: transparent;
-          padding: 12px 0;
-          width: 100%;
-          font-size: 15px;
-          outline: none;
-        }
-
-        .form-select {
-          width: 100%;
-          background: #F4F4F2;
-          border: 1px solid #E8E8E3;
-          border-radius: 12px;
-          padding: 12px 16px;
-          outline: none;
-        }
-
-        .onboarding-footer {
-          margin-top: 32px;
-          display: flex;
-          justify-content: flex-end;
-          gap: 16px;
-          padding-top: 24px;
-          border-top: 1px solid #F4F4F2;
-        }
-
-        /* Staff List Styles */
-        .staff-list-onboarding {
-          display: flex;
-          flex-direction: column;
-          gap: 12px;
-          max-height: 280px;
-          overflow-y: auto;
-          margin-bottom: 20px;
-        }
-
-        .staff-onboarding-row {
-          display: grid;
-          grid-template-columns: 1fr 1fr 1fr 40px;
-          gap: 10px;
-          align-items: center;
-          background: #F8F8F5;
-          padding: 8px;
-          border-radius: 10px;
-        }
-
-        .form-input-sm {
-          width: 100%;
-          background: #fff;
-          border: 1px solid #E8E8E3;
-          padding: 8px 12px;
-          border-radius: 8px;
-          font-size: 13px;
-          outline: none;
-        }
-
-        .no-margin { margin-bottom: 0; }
-
-        .remove-staff-btn {
-          background: transparent;
-          border: none;
-          color: #DC2626;
-          opacity: 0.6;
-          cursor: pointer;
-        }
-
-        .remove-staff-btn:hover { opacity: 1; }
-
-        .empty-staff {
-          text-align: center;
-          padding: 40px;
-          color: #9A9FA5;
-          background: #F8F8F5;
-          border-radius: 20px;
-          border: 2px dashed #E8E8E3;
-        }
-
-        .empty-staff p {
-          margin-top: 12px;
-          font-size: 13px;
-        }
-
-        .success-view {
-          text-align: center;
-          flex: 1;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-        }
-
-        .success-icon {
-          margin-bottom: 24px;
-          animation: scaleIn 0.5s cubic-bezier(0.16, 1, 0.3, 1);
-        }
-
-        @keyframes scaleIn {
-          from { transform: scale(0.5); opacity: 0; }
-          to { transform: scale(1); opacity: 1; }
-        }
-
-        .info-summary {
-          width: 100%;
-          max-width: 320px;
-          background: #f8f8f5;
-          padding: 20px;
-          border-radius: 16px;
-          margin: 32px 0;
-          text-align: left;
-        }
-
-        .info-row {
-          display: flex;
-          justify-content: space-between;
-          padding: 8px 0;
-          font-size: 13px;
-          border-bottom: 1px solid #eee;
-        }
-
-        .info-row:last-child {
-          border: none;
-        }
-
-        .info-row span:first-child {
-          color: #6F767E;
-        }
-
-        .error-pill {
-          margin-top: 16px;
-          padding: 8px 16px;
-          background: #FEF2F2;
-          color: #DC2626;
-          border-radius: 8px;
-          font-size: 13px;
-          display: flex;
-          align-items: center;
-          gap: 8px;
-        }
-
-        .spin {
-          animation: rotate 1s linear infinite;
-        }
-
-        @keyframes rotate {
-          from { transform: rotate(0deg); }
-          to { transform: rotate(360deg); }
-        }
-      `}</style>
     </div>
   );
 }

@@ -48,133 +48,138 @@ export default function IntegrityPage() {
   };
 
   return (
-    <div className="integrity-dashboard">
-      <div className="glass-container">
+    <div style={{ minHeight: '100vh', background: 'var(--brand-deep)', color: 'white', padding: '40px 20px', fontFamily: 'var(--font-outfit)' }}>
+      <div className="pv-glass" style={{ maxWidth: '1200px', margin: '0 auto', borderRadius: '24px', padding: '40px' }}>
         {/* Header */}
-        <header className="dashboard-header">
-          <div className="header-content">
-            <Link href="/superadmin" className="back-link">
+        <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '40px' }}>
+          <div>
+            <Link href="/superadmin" className="pv-btn pv-btn-outline pv-btn-sm" style={{ color: 'rgba(255,255,255,0.6)', border: '1px solid rgba(255,255,255,0.1)', marginBottom: '12px' }}>
               <ArrowLeft size={16} /> Hub
             </Link>
-            <div className="title-section">
-              <div className="glow-icon">
+            <div style={{ display: 'flex', alignItems: 'center', gap: '20px', marginTop: '8px' }}>
+              <div style={{ background: 'var(--brand-vibrant)', color: 'var(--brand-deep)', padding: '12px', borderRadius: '16px', boxShadow: '0 0 20px rgba(45, 212, 191, 0.3)' }}>
                 <ShieldCheck size={32} />
               </div>
               <div>
-                <h1>System Integrity Audit</h1>
-                <p>Deep scan of database schema against <code>schema.sql</code> blueprint</p>
+                <h1 style={{ fontSize: '32px', fontWeight: 800, margin: 0, letterSpacing: '-px' }}>System Integrity Audit</h1>
+                <p style={{ color: 'rgba(255,255,255,0.5)', margin: '4px 0 0' }}>Deep scan of database schema against blueprint</p>
               </div>
             </div>
           </div>
           
           <button 
-            className={`audit-btn ${isPending ? 'loading' : ''}`} 
+            className={`pv-btn ${isPending ? 'pv-btn-outline' : 'pv-btn-gold'}`} 
+            style={{ padding: '12px 24px', borderRadius: '12px' }}
             onClick={runDiagnostics} 
             disabled={isPending}
           >
             <RefreshCw size={20} className={isPending ? 'spin' : ''} />
-            <span>{isPending ? 'Auditing Schema...' : 'Run Deep Audit'}</span>
+            <span>{isPending ? 'Auditing...' : 'Run Audit'}</span>
           </button>
         </header>
 
         {error && (
-          <div className="error-banner">
+          <div className="pv-badge" style={{ background: 'var(--status-overdue-bg)', color: 'var(--status-overdue)', width: '100%', padding: '16px', borderRadius: '12px', marginBottom: '24px', justifyContent: 'center' }}>
             <AlertCircle size={20} />
-            <p>{error}</p>
+            <p style={{ fontWeight: 800 }}>{error}</p>
           </div>
         )}
 
         {report ? (
-          <div className="dashboard-grid">
+          <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '24px' }}>
             {/* Health Summary Card */}
-            <div className="summary-card full-width">
-              <div className="health-gauge">
-                <div className="gauge-background">
+            <div className="pv-card" style={{ gridColumn: '1 / -1', background: 'rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', gap: '60px', padding: '32px' }}>
+              <div style={{ position: 'relative', width: '200px' }}>
+                <div style={{ height: '8px', background: 'rgba(255,255,255,0.1)', borderRadius: '4px', overflow: 'hidden' }}>
                   <div 
-                    className="gauge-fill" 
                     style={{ 
+                      height: '100%',
                       width: `${report.overallHealth}%`, 
-                      background: getHealthColor(report.overallHealth) 
+                      background: report.overallHealth >= 90 ? 'var(--status-active)' : 'var(--gold)' 
                     }}
                   />
                 </div>
-                <div className="gauge-stats">
-                  <span className="health-value">{report.overallHealth}%</span>
-                  <span className="health-label">System Alignment</span>
+                <div style={{ display: 'flex', flexDirection: 'column', marginTop: '12px' }}>
+                  <span style={{ fontSize: '36px', fontWeight: 900 }}>{report.overallHealth}%</span>
+                  <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.4)', fontWeight: 800, textTransform: 'uppercase' }}>System Alignment</span>
                 </div>
               </div>
               
-              <div className="quick-stats">
-                <div className="stat-item">
-                  <span className="stat-num">{report.tables.length}</span>
-                  <span className="stat-name">Tables Tracked</span>
+              <div style={{ display: 'flex', gap: '48px', borderLeft: '1px solid rgba(255,255,255,0.1)', paddingLeft: '60px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column' }}>
+                  <span style={{ fontSize: '24px', fontWeight: 800 }}>{report.tables.length}</span>
+                  <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)', fontWeight: 800, textTransform: 'uppercase' }}>Tables</span>
                 </div>
-                <div className="stat-item">
-                  <span className="stat-num">{report.tables.filter(t => t.isAligned).length}</span>
-                  <span className="stat-name">Perfect Sync</span>
+                <div style={{ display: 'flex', flexDirection: 'column' }}>
+                  <span style={{ fontSize: '24px', fontWeight: 800 }}>{report.tables.filter(t => t.isAligned).length}</span>
+                  <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)', fontWeight: 800, textTransform: 'uppercase' }}>Synced</span>
                 </div>
-                <div className="stat-item">
-                  <span className="stat-num">{report.tables.reduce((acc, t) => acc + t.missingColumns.length, 0)}</span>
-                  <span className="stat-name">Total Mismatches</span>
+                <div style={{ display: 'flex', flexDirection: 'column' }}>
+                  <span style={{ fontSize: '24px', fontWeight: 800, color: 'var(--status-overdue)' }}>{report.tables.reduce((acc, t) => acc + t.missingColumns.length, 0)}</span>
+                  <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)', fontWeight: 800, textTransform: 'uppercase' }}>Mismatches</span>
                 </div>
               </div>
             </div>
 
-            {/* Deep Schema Audit */}
-            <div className="main-card">
-              <div className="card-header">
-                <div className="header-title">
-                  <Database size={20} />
-                  <h2>Schema Alignment Audit</h2>
+            <div className="pv-card" style={{ padding: 0, background: 'rgba(255,255,255,0.02)' }}>
+              <div style={{ padding: '24px', borderBottom: '1px solid rgba(255,255,255,0.05)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <Database size={20} style={{ color: 'var(--brand-primary)' }} />
+                  <h2 style={{ fontSize: '18px', fontWeight: 800, margin: 0 }}>Schema Alignment Audit</h2>
                 </div>
-                <span className="badge">100% Comprehensive</span>
+                <span className="pv-badge" style={{ background: 'rgba(45, 212, 191, 0.1)', color: 'var(--status-active)', fontWeight: 800 }}>100% Comprehensive</span>
               </div>
               
-              <div className="table-list">
+              <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 {report.tables.map((table) => (
                   <div 
                     key={table.name} 
-                    className={`table-item ${table.isAligned ? 'aligned' : 'mismatch'}`}
+                    style={{ 
+                      background: 'rgba(255, 255, 255, 0.03)', 
+                      border: '1px solid rgba(255, 255, 255, 0.05)', 
+                      borderRadius: '12px',
+                      overflow: 'hidden'
+                    }}
                   >
                     <div 
-                      className="table-row" 
+                      style={{ padding: '16px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }}
                       onClick={() => setExpandedTable(expandedTable === table.name ? null : table.name)}
                     >
-                      <div className="table-info">
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                         {table.isAligned ? (
-                          <CheckCircle2 size={18} className="success-icon" />
+                          <CheckCircle2 size={18} style={{ color: 'var(--status-active)' }} />
                         ) : (
-                          <XCircle size={18} className="danger-icon" />
+                          <XCircle size={18} style={{ color: 'var(--status-overdue)' }} />
                         )}
-                        <span className="table-name">{table.name}</span>
+                        <span style={{ fontWeight: 800, fontFamily: 'var(--font-mono)' }}>{table.name}</span>
                       </div>
-                      <div className="table-meta">
-                        <span className="col-count text-tertiary">{table.actualColumns.length} columns</span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '16px', fontSize: '13px' }}>
+                        <span style={{ opacity: 0.5 }}>{table.actualColumns.length} columns</span>
                         {table.missingColumns.length > 0 && (
-                          <span className="danger-pill">{table.missingColumns.length} Missing</span>
+                          <span className="pv-badge" style={{ background: 'var(--status-overdue-bg)', color: 'var(--status-overdue)', fontWeight: 800, fontSize: '10px' }}>{table.missingColumns.length} Missing</span>
                         )}
                         {expandedTable === table.name ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                       </div>
                     </div>
 
                     {expandedTable === table.name && (
-                      <div className="table-details">
-                        <div className="detail-grid">
-                          <div className="detail-section">
-                            <span className="detail-label">Status</span>
-                            <div className="status-indicator">
+                      <div style={{ padding: '0 20px 20px', borderTop: '1px solid rgba(255, 255, 255, 0.05)', animation: 'anim-fade-in 0.3s' }}>
+                        <div style={{ display: 'grid', gap: '16px', paddingTop: '16px' }}>
+                          <div>
+                            <span style={{ fontSize: '11px', color: 'rgba(255, 255, 255, 0.3)', textTransform: 'uppercase', fontWeight: 800, marginBottom: '4px', display: 'block' }}>Alignment Status</span>
+                            <div>
                               {table.isAligned ? (
-                                <p className="text-success small">Perfectly aligned with blueprint.</p>
+                                <p style={{ color: 'var(--status-active)', fontSize: '12px', fontWeight: 700, margin: 0 }}>Perfectly aligned with blueprint.</p>
                               ) : (
-                                <p className="text-danger small">Mismatch detected between SQL and Database.</p>
+                                <p style={{ color: 'var(--status-overdue)', fontSize: '12px', fontWeight: 700, margin: 0 }}>Mismatch detected between SQL and Database.</p>
                               )}
                             </div>
                           </div>
                           
                           {!table.isAligned && (
-                            <div className="remediation-section">
-                              <span className="detail-label">Remediation SQL</span>
-                              <div className="code-box">
+                            <div>
+                              <span style={{ fontSize: '11px', color: 'rgba(255, 255, 255, 0.3)', textTransform: 'uppercase', fontWeight: 800, marginBottom: '4px', display: 'block' }}>Remediation SQL</span>
+                              <div style={{ background: 'black', padding: '12px', borderRadius: '8px', color: 'var(--brand-primary)', display: 'flex', gap: '12px', fontSize: '12px', fontFamily: 'var(--font-mono)' }}>
                                 <Terminal size={14} />
                                 <code>
                                   ALTER TABLE {table.name} <br/>
@@ -197,17 +202,19 @@ export default function IntegrityPage() {
             </div>
 
             {/* Sidebar Cards */}
-            <div className="integrity-sidebar">
-              <div className="side-card">
-                <div className="card-header">
-                  <Lock size={18} />
-                  <h3>Security Governance</h3>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+              <div className="pv-card" style={{ background: 'rgba(255, 255, 255, 0.02)', padding: '24px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <Lock size={18} style={{ color: 'var(--brand-primary)' }} />
+                    <h3 style={{ fontSize: '16px', fontWeight: 800, margin: 0 }}>Security Governance</h3>
+                  </div>
                 </div>
-                <div className="side-list">
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                   {report.rlsStatus.map((s, idx) => (
-                    <div key={`rls-${s.tableName}-${idx}`} className="side-item">
-                      <span>{s.tableName}</span>
-                      <span className={`pill ${s.enabled ? 'success' : 'danger'}`}>
+                    <div key={`rls-${s.tableName}-${idx}`} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: '1px solid rgba(255, 255, 255, 0.03)', fontSize: '13px' }}>
+                      <span style={{ fontWeight: 600 }}>{s.tableName}</span>
+                      <span className="pv-badge" style={{ background: s.enabled ? 'rgba(45, 212, 191, 0.1)' : 'var(--status-overdue-bg)', color: s.enabled ? 'var(--status-active)' : 'var(--status-overdue)', fontWeight: 800, fontSize: '10px' }}>
                         {s.enabled ? 'RLS' : 'UNSAFE'}
                       </span>
                     </div>
@@ -215,16 +222,18 @@ export default function IntegrityPage() {
                 </div>
               </div>
 
-              <div className="side-card">
-                <div className="card-header">
-                  <Zap size={18} />
-                  <h3>Functional Health</h3>
+              <div className="pv-card" style={{ background: 'rgba(255, 255, 255, 0.02)', padding: '24px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <Zap size={18} style={{ color: 'var(--brand-primary)' }} />
+                    <h3 style={{ fontSize: '16px', fontWeight: 800, margin: 0 }}>Functional Health</h3>
+                  </div>
                 </div>
-                <div className="side-list">
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                   {report.functions.map((f, idx) => (
-                    <div key={`fn-${f.name}-${idx}`} className="side-item">
-                      <code>{f.name}()</code>
-                      {f.exists ? <CheckCircle2 size={14} color="var(--success)"/> : <AlertCircle size={14} color="var(--danger)"/>}
+                    <div key={`fn-${f.name}-${idx}`} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: '1px solid rgba(255, 255, 255, 0.03)', fontSize: '13px' }}>
+                      <code style={{ fontSize: '12px', color: 'var(--brand-primary)' }}>{f.name}()</code>
+                      {f.exists ? <CheckCircle2 size={14} style={{ color: 'var(--status-active)' }}/> : <AlertCircle size={14} style={{ color: 'var(--status-overdue)' }}/>}
                     </div>
                   ))}
                 </div>
@@ -232,214 +241,14 @@ export default function IntegrityPage() {
             </div>
           </div>
         ) : (
-          <div className="loading-state">
-            <div className="loader">
-              <Activity size={48} />
-            </div>
-            <p>Initializing Deep Schema Audit...</p>
+          <div style={{ height: '400px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '20px' }}>
+            <Activity className="spin" size={48} style={{ color: 'var(--brand-primary)' }} />
+            <p style={{ fontWeight: 800, opacity: 0.5 }}>Initializing Deep Schema Audit...</p>
           </div>
         )}
       </div>
 
-      <style jsx>{`
-        .integrity-dashboard {
-          min-height: 100vh;
-          background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
-          color: white;
-          padding: 40px 20px;
-          font-family: 'Outfit', sans-serif;
-        }
-        .glass-container {
-          max-width: 1200px;
-          margin: 0 auto;
-          background: rgba(255, 255, 255, 0.03);
-          backdrop-filter: blur(20px);
-          border: 1px solid rgba(255, 255, 255, 0.05);
-          border-radius: 24px;
-          padding: 40px;
-          box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-        }
-        .dashboard-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-bottom: 40px;
-        }
-        .back-link {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          color: rgba(255, 255, 255, 0.4);
-          text-decoration: none;
-          font-size: 14px;
-          margin-bottom: 12px;
-          transition: 0.2s;
-        }
-        .back-link:hover { color: white; }
-        .title-section {
-          display: flex;
-          align-items: center;
-          gap: 20px;
-        }
-        .glow-icon {
-          background: var(--accent);
-          background: linear-gradient(135deg, #10B981 0%, #059669 100%);
-          padding: 12px;
-          border-radius: 16px;
-          box-shadow: 0 0 20px rgba(16, 185, 129, 0.3);
-        }
-        h1 { font-size: 32px; font-weight: 800; margin: 0; letter-spacing: -1px; }
-        p { color: rgba(255, 255, 255, 0.5); margin: 4px 0 0; }
 
-        .audit-btn {
-          background: white;
-          color: black;
-          border: none;
-          padding: 12px 24px;
-          border-radius: 12px;
-          font-weight: 700;
-          display: flex;
-          align-items: center;
-          gap: 10px;
-          cursor: pointer;
-          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-        .audit-btn:hover { transform: translateY(-2px); box-shadow: 0 10px 20px rgba(255, 255, 255, 0.1); }
-        .audit-btn:active { transform: translateY(0); }
-        .audit-btn.loading { opacity: 0.7; cursor: not-allowed; }
-
-        .dashboard-grid {
-          display: grid;
-          grid-template-columns: 2fr 1fr;
-          gap: 24px;
-        }
-        .full-width { grid-column: 1 / -1; }
-
-        .summary-card {
-          background: rgba(255, 255, 255, 0.05);
-          border-radius: 20px;
-          padding: 32px;
-          display: flex;
-          align-items: center;
-          gap: 60px;
-        }
-        .health-gauge {
-          position: relative;
-          width: 200px;
-        }
-        .gauge-background {
-          height: 8px;
-          background: rgba(255, 255, 255, 0.1);
-          border-radius: 4px;
-          overflow: hidden;
-        }
-        .gauge-fill {
-          height: 100%;
-          transition: width 1s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-        .gauge-stats {
-          display: flex;
-          flex-direction: column;
-          margin-top: 12px;
-        }
-        .health-value { font-size: 36px; font-weight: 900; }
-        .health-label { font-size: 14px; color: rgba(255, 255, 255, 0.4); text-transform: uppercase; letter-spacing: 1px; }
-
-        .quick-stats {
-          display: flex;
-          gap: 48px;
-          border-left: 1px solid rgba(255, 255, 255, 0.1);
-          padding-left: 60px;
-        }
-        .stat-item { display: flex; flex-direction: column; }
-        .stat-num { font-size: 24px; font-weight: 700; }
-        .stat-name { font-size: 12px; color: rgba(255, 255, 255, 0.4); }
-
-        .main-card, .side-card {
-          background: rgba(255, 255, 255, 0.02);
-          border: 1px solid rgba(255, 255, 255, 0.05);
-          border-radius: 20px;
-          padding: 24px;
-        }
-        .card-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-bottom: 24px;
-        }
-        .header-title { display: flex; alignItems: center; gap: 12px; }
-        h2 { font-size: 18px; font-weight: 700; margin: 0; }
-        .badge { background: rgba(16, 185, 129, 0.1); color: #10B981; padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 700; }
-
-        .table-list { display: flex; flex-direction: column; gap: 8px; }
-        .table-item {
-          background: rgba(255, 255, 255, 0.03);
-          border: 1px solid rgba(255, 255, 255, 0.05);
-          border-radius: 12px;
-          overflow: hidden;
-          transition: 0.2s;
-        }
-        .table-item:hover { background: rgba(255, 255, 255, 0.05); }
-        .table-row {
-          padding: 16px 20px;
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          cursor: pointer;
-        }
-        .table-info { display: flex; align-items: center; gap: 12px; }
-        .table-name { font-weight: 600; font-family: 'JetBrains Mono', monospace; }
-        .table-meta { display: flex; align-items: center; gap: 16px; font-size: 13px; }
-        .danger-pill { background: #E11D48; color: white; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 700; }
-
-        .table-details { padding: 0 20px 20px; border-top: 1px solid rgba(255, 255, 255, 0.05); margin-top: -4px; animation: slideDown 0.3s ease-out; }
-        .detail-grid { display: grid; gap: 16px; padding-top: 16px; }
-        .detail-label { font-size: 11px; color: rgba(255, 255, 255, 0.3); text-transform: uppercase; font-weight: 700; margin-bottom: 6px; display: block; }
-        .code-box {
-          background: black;
-          padding: 12px;
-          border-radius: 8px;
-          font-family: 'JetBrains Mono', monospace;
-          font-size: 12px;
-          color: #10B981;
-          display: flex;
-          gap: 12px;
-        }
-
-        .sidebar-list { display: flex; flex-direction: column; gap: 24px; }
-        .integrity-sidebar { display: flex; flex-direction: column; gap: 24px; }
-        .side-item {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          padding: 10px 0;
-          border-bottom: 1px solid rgba(255, 255, 255, 0.03);
-          font-size: 13px;
-        }
-        .pill { padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: 800; }
-        .pill.success { background: rgba(16, 185, 129, 0.1); color: #10B981; }
-        .pill.danger { background: rgba(225, 29, 72, 0.1); color: #E11D48; }
-
-        .loading-state {
-          height: 400px;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          gap: 20px;
-        }
-        .loader { animation: pulse 2s infinite; color: var(--accent); }
-
-        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-        @keyframes pulse { 0% { opacity: 1; transform: scale(1); } 50% { opacity: 0.5; transform: scale(1.1); } 100% { opacity: 1; transform: scale(1); } }
-        @keyframes slideDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
-
-        .text-success { color: #10B981; }
-        .text-danger { color: #E11D48; }
-        .small { font-size: 12px; }
-        .success-icon { color: #10B981; }
-        .danger-icon { color: #E11D48; }
-      `}</style>
     </div>
   );
 }

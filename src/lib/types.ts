@@ -8,6 +8,7 @@ export interface Branch {
   location: string;
   code: string; // e.g., 'CBE01'
   licenseNumber?: string;
+  phone?: string;
 }
 
 export type MetalType = 'gold' | 'silver';
@@ -152,6 +153,8 @@ export interface ShopSettings {
   ratesUpdatedAt?: string;
   allowStaffOverridesInterest?: boolean;
   allowStaffOverridesLtv?: boolean;
+  language?: 'en' | 'ta';
+  theme?: 'emerald' | 'zinc' | 'blue' | 'rose' | 'gold';
   brandingConfig?: BrandingConfig;
 }
 

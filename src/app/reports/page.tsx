@@ -139,30 +139,35 @@ export default function ReportsPage() {
         </div>
         <div className="page-header-right">
           <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-            <div className="date-filter-group">
-              <div className="input-with-icon">
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'var(--bg-primary)', padding: '4px 12px', borderRadius: '12px', border: '1px solid var(--border)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--text-tertiary)' }}>
                 <Calendar size={14} />
                 <input 
                   type="date" 
+                  className="pv-input"
+                  style={{ border: 'none', background: 'transparent', height: '32px', fontSize: '13px', width: '120px' }}
                   value={customRange.start} 
                   onChange={(e) => setCustomRange({...customRange, start: e.target.value})}
                 />
               </div>
-              <span style={{ color: '#9A9FA5', fontSize: '12px' }}>to</span>
-              <div className="input-with-icon">
+              <span style={{ color: 'var(--text-tertiary)', fontSize: '12px', fontWeight: 700 }}>TO</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--text-tertiary)' }}>
                 <Calendar size={14} />
                 <input 
                   type="date" 
+                  className="pv-input"
+                  style={{ border: 'none', background: 'transparent', height: '32px', fontSize: '13px', width: '120px' }}
                   value={customRange.end} 
                   onChange={(e) => setCustomRange({...customRange, end: e.target.value})}
                 />
               </div>
             </div>
 
-            <div className="header-search" style={{ minWidth: '130px' }}>
-              <Filter size={16} />
+            <div style={{ position: 'relative', width: '150px' }}>
+              <Filter size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-tertiary)' }} />
               <select 
-                style={{ background: 'transparent', width: '100%', fontSize: '13px', outline: 'none', border: 'none' }}
+                className="pv-input"
+                style={{ paddingLeft: '36px', height: '40px', fontSize: '13px' }}
                 value={dateRange}
                 onChange={(e) => handlePresetChange(e.target.value)}
               >
@@ -174,7 +179,7 @@ export default function ReportsPage() {
                 <option value="custom">Custom Range</option>
               </select>
             </div>
-            <button className="btn btn-outline btn-sm"><Download size={16} /> Export</button>
+            <button className="pv-btn pv-btn-outline"><Download size={16} /> Export</button>
           </div>
         </div>
       </div>
@@ -214,29 +219,30 @@ export default function ReportsPage() {
         />
       </div>
 
-      <div className="content-grid">
+      <div className="content-grid" style={{ gap: '24px' }}>
         {/* Earnings Chart */}
-        <div className="card">
-          <div className="card-header">
-            <h3><TrendingUp size={18} /> Daily Collection (Last 30 Days)</h3>
+        <div className="pv-card" style={{ padding: 0 }}>
+          <div style={{ padding: '24px 32px', borderBottom: '1px solid var(--border)' }}>
+            <h3 style={{ fontSize: '18px', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '8px' }}><TrendingUp size={18} /> Daily Collection</h3>
           </div>
-          <div className="card-body">
-            <div className="chart-container" style={{ height: '300px' }}>
+          <div style={{ padding: '24px' }}>
+            <div style={{ height: '300px' }}>
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={dailyEarnings}>
                   <defs>
                     <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#158567" stopOpacity={0.3}/>
-                      <stop offset="95%" stopColor="#158567" stopOpacity={0}/>
+                      <stop offset="5%" stopColor="var(--brand-primary)" stopOpacity={0.3}/>
+                      <stop offset="95%" stopColor="var(--brand-primary)" stopOpacity={0}/>
                     </linearGradient>
                   </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border-light)" vertical={false} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
                   <XAxis dataKey="date" tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
-                  <YAxis tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fontSize: 11, fontWeight: 700 }} axisLine={false} tickLine={false} tickFormatter={(val) => `₹${val/1000}k`} />
                   <Tooltip 
-                    contentStyle={{ borderRadius: '8px', border: '1px solid #eee', boxShadow: 'var(--shadow-md)' }}
+                    contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: 'var(--shadow-lg)', background: 'var(--bg-glass)', backdropFilter: 'blur(10px)' }}
+                    labelStyle={{ fontWeight: 800, color: 'var(--brand-primary)' }}
                   />
-                  <Area type="monotone" dataKey="amount" stroke="#158567" fillOpacity={1} fill="url(#colorValue)" strokeWidth={3} />
+                  <Area type="monotone" dataKey="amount" stroke="var(--brand-primary)" fillOpacity={1} fill="url(#colorValue)" strokeWidth={3} />
                 </AreaChart>
               </ResponsiveContainer>
             </div>
@@ -244,27 +250,28 @@ export default function ReportsPage() {
         </div>
 
         {/* Metal Performance */}
-        <div className="card">
-          <div className="card-header">
-            <h3><PieChartIcon size={18} /> Asset Distribution</h3>
+        <div className="pv-card pv-glass" style={{ padding: 0 }}>
+          <div style={{ padding: '24px 32px', borderBottom: '1px solid var(--border)' }}>
+            <h3 style={{ fontSize: '18px', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '8px' }}><PieChartIcon size={18} /> Asset Portfolio</h3>
           </div>
-          <div className="card-body">
-            <div className="chart-container" style={{ height: '300px' }}>
+          <div style={{ padding: '24px' }}>
+            <div style={{ height: '300px' }}>
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
                     data={metalPerformance}
-                    innerRadius={60}
+                    innerRadius={70}
                     outerRadius={100}
-                    paddingAngle={5}
+                    paddingAngle={8}
                     dataKey="value"
+                    stroke="none"
                   >
                     {metalPerformance.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                     ))}
                   </Pie>
                   <Tooltip />
-                  <Legend />
+                  <Legend iconType="circle" />
                 </PieChart>
               </ResponsiveContainer>
             </div>
@@ -274,22 +281,23 @@ export default function ReportsPage() {
 
 
 
-      <div className="card" style={{ marginTop: '24px', border: '1px solid rgba(220, 53, 69, 0.2)' }}>
-        <div className="card-header" style={{ background: 'rgba(220, 53, 69, 0.05)' }}>
-          <h3 style={{ color: 'var(--status-overdue)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+      <div className="pv-card" style={{ marginTop: '32px', padding: 0, overflow: 'hidden' }}>
+        <div style={{ padding: '24px 32px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--status-overdue-bg)' }}>
+          <h3 style={{ color: 'var(--status-overdue)', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '18px', fontWeight: 800 }}>
             <TrendingUp size={18} /> High Interest Delinquency (Long Pending)
           </h3>
-          <span className="badge overdue">{delinquentLoans.length} Loans Flagged</span>
+          <span className="badge overdue" style={{ fontWeight: 800 }}>{delinquentLoans.length} Loans Flagged</span>
         </div>
-        <div className="card-body no-padding">
+        
+        <div className="data-table-wrapper">
           <table className="data-table">
             <thead>
               <tr>
-                <th>Loan Ref</th>
+                <th>Loan Reference</th>
                 <th>Customer</th>
                 <th>Principal</th>
                 <th>Interest Due</th>
-                <th>Interest %</th>
+                <th>Portfolio %</th>
                 <th>Action</th>
               </tr>
             </thead>
@@ -308,70 +316,68 @@ export default function ReportsPage() {
                       <span style={{ fontSize: '12px' }}>{((loan.accrued / loan.loanAmount) * 100).toFixed(1)}%</span>
                     </div>
                   </td>
-                  <td>
-                    <Link href={`/loans/${loan.id}`} className="btn btn-sm btn-outline">Call Customer</Link>
-                  </td>
+                    <td>
+                      <Link href={`/loans/${loan.id}`} className="pv-btn pv-btn-outline pv-btn-sm">Call Customer</Link>
+                    </td>
                 </tr>
               ))}
-              {delinquentLoans.length === 0 && (
-                <tr>
-                  <td colSpan={6} style={{ textAlign: 'center', padding: '40px', color: 'var(--text-tertiary)' }}>
-                    No critical interest dues found. Your portfolio is healthy!
-                  </td>
-                </tr>
-              )}
             </tbody>
           </table>
         </div>
+
+        <div className="mobile-cards">
+           {delinquentLoans.map((loan) => (
+             <div key={loan.id} className="pv-mobile-card" style={{ borderLeft: '4px solid var(--status-overdue)' }}>
+               <div className="card-header">
+                  <div className="data-point">
+                    <span className="data-label">Loan #</span>
+                    <span className="data-value" style={{ fontWeight: 800 }}>{loan.loanNumber}</span>
+                  </div>
+                  <span className="badge overdue">CRITICAL</span>
+               </div>
+               <div className="card-body">
+                  <div className="data-point">
+                    <span className="data-label">Interest Due</span>
+                    <span className="data-value" style={{ color: 'var(--status-overdue)', fontWeight: 800 }}>{formatCurrency(loan.accrued)}</span>
+                  </div>
+                  <div className="data-point">
+                    <span className="data-label">Principal</span>
+                    <span className="data-value">{formatCurrency(loan.loanAmount)}</span>
+                  </div>
+               </div>
+               <div className="card-actions">
+                  <Link href={`/loans/${loan.id}`} className="pv-btn pv-btn-outline pv-btn-sm" style={{ flex: 1 }}>Call Customer</Link>
+               </div>
+             </div>
+           ))}
+        </div>
+
+        {delinquentLoans.length === 0 && (
+          <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-tertiary)' }}>
+            No critical interest dues found. Your portfolio is healthy!
+          </div>
+        )}
       </div>
 
       <div style={{ 
-        marginTop: '24px', 
-        padding: '16px', 
-        background: 'var(--bg-card)', 
-        borderRadius: 'var(--radius-lg)', 
-        border: '1px solid var(--border-light)',
+        marginTop: '32px', 
+        padding: '20px 24px', 
+        background: 'var(--brand-deep)', 
+        borderRadius: '20px', 
         display: 'flex',
         alignItems: 'center',
-        gap: '12px'
+        gap: '16px',
+        color: 'white'
       }}>
-        <Info size={20} color="var(--brand-primary)" />
-        <p style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
-          <strong>Pro Tip:</strong> Your average LTV (Loan to Value) is currently at 72%. The historical safety margin for gold loans in Coimbatore is 75%, indicating a very safe lending portfolio.
+        <div style={{ width: '40px', height: '40px', background: 'rgba(255,255,255,0.1)', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--gold)' }}>
+          <Info size={24} />
+        </div>
+        <p style={{ fontSize: '14px', lineHeight: 1.6 }}>
+          <strong style={{ color: 'var(--gold)' }}>Platform Insights:</strong> Your average LTV (Loan to Value) is currently at 72%. The historical safety margin for gold loans in Coimbatore is 75%, indicating a very stable and well-collateralized lending portfolio.
         </p>
       </div>
 
-      <style jsx>{`
-        .date-filter-group {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          background: #fff;
-          padding: 4px 12px;
-          border-radius: 12px;
-          border: 1px solid var(--border-light);
-        }
 
-        .input-with-icon {
-          display: flex;
-          align-items: center;
-          gap: 6px;
-          color: var(--text-tertiary);
-        }
-
-        .input-with-icon input {
-          border: none;
-          outline: none;
-          font-size: 13px;
-          color: var(--text-secondary);
-          width: 110px;
-          background: transparent;
-        }
-
-        .date-filter-group span {
-          font-weight: 600;
-        }
-      `}</style>
     </div>
   );
 }

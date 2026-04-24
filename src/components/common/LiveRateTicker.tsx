@@ -3,12 +3,23 @@
 import React, { useEffect, useState } from 'react';
 import { metalRateService } from '@/lib/supabase/metalRateService';
 import { RefreshCcw, Clock } from 'lucide-react';
-import { ShopSettings } from '@/lib/types';
 import { authStore } from '@/lib/authStore';
+import { settingsStore } from '@/lib/store';
+import { translations, Language } from '@/lib/i18n/translations';
 
 export default function LiveRateTicker() {
   const [rates, setRates] = useState<{ gold22k: number; silver: number; updatedAt?: string; isFromDb?: boolean; isWeekend?: boolean } | null>(null);
   const [loading, setLoading] = useState(true);
+  const [lang, setLang] = useState<Language>(settingsStore.get().language || 'en');
+  const t = translations[lang];
+
+  useEffect(() => {
+    const handleSync = () => {
+      setLang(settingsStore.get().language || 'en');
+    };
+    window.addEventListener('pv_settings_updated', handleSync);
+    return () => window.removeEventListener('pv_settings_updated', handleSync);
+  }, []);
 
   const fetchRates = async () => {
     setLoading(true);
@@ -24,86 +35,61 @@ export default function LiveRateTicker() {
 
   useEffect(() => {
     fetchRates();
-    // Refresh every 5 minutes
-    const interval = setInterval(fetchRates, 5 * 60 * 1000);
+    // Silently check if the daily 24h/9AM sync is needed
+    metalRateService.autoSyncIfStale();
+
+    const interval = setInterval(fetchRates, 5 * 60 * 1000); // Polling DB every 5 mins
     return () => clearInterval(interval);
   }, []);
 
   if (!rates && loading) return null;
 
+  const isManager = authStore.isManager() || authStore.isSuperadmin();
+
   return (
-    <div className="live-rate-ticker" style={{
-      display: 'flex',
-      alignItems: 'center',
-      gap: '12px',
-      background: 'rgba(255, 255, 255, 0.05)',
-      padding: '4px 10px',
-      borderRadius: '20px',
-      border: '1px solid rgba(255, 255, 255, 0.1)',
-      fontSize: '11px',
-      color: 'white',
-      fontWeight: 500,
-      backdropFilter: 'blur(4px)'
-    }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-        <div style={{ 
-          width: '6px', 
-          height: '6px', 
-          borderRadius: '50%', 
-          background: rates?.isWeekend ? '#FDBA74' : rates?.isFromDb ? '#10B981' : '#FDBA74',
-          boxShadow: `0 0 8px ${rates?.isWeekend ? '#FDBA74' : rates?.isFromDb ? '#10B981' : '#FDBA74'}`,
-          animation: 'pulse-green 2s infinite'
-        }} />
-        <span style={{ opacity: 0.8, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-          Today's Rate
+    <div className="live-rate-ticker">
+      {/* Label Badge */}
+      <div className="ticker-label-badge" title="Market rates are synchronized once every 24 hours (after 9:00 AM)">
+        <div className="ticker-status-dot" />
+        <span className="ticker-label-txt">
+          {t.common.liveMarket}
         </span>
       </div>
 
-      <div style={{ width: '1px', height: '12px', background: 'rgba(255, 255, 255, 0.2)' }} />
+      {/* Values */}
+      <div className="ticker-values">
+        <div className="rate-val" title={`${t.common.gold} 22K (Per Gram)`}>
+          <span className={`metal-symbol ${lang === 'ta' ? 'lang-ta' : ''}`}>{t.common.gold}</span>
+          <span className="price-txt gold">₹{rates?.gold22k?.toLocaleString('en-IN') || '---'}</span>
+        </div>
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-        <div title="Gold 22K (Per Gram)">₹{rates?.gold22k?.toLocaleString('en-IN')}</div>
-        <div style={{ width: '1px', height: '12px', background: 'rgba(255, 255, 255, 0.1)' }} />
-        <div title="Silver (Per Gram)" style={{ color: 'rgba(255, 255, 255, 0.8)' }}>₹{rates?.silver?.toLocaleString('en-IN')}</div>
+        <div className="ticker-divider" />
+
+        <div className="rate-val" title={`${t.common.silver} (Per Gram)`}>
+          <span className={`metal-symbol ${lang === 'ta' ? 'lang-ta' : ''}`}>{t.common.silver}</span>
+          <span className="price-txt silver">₹{rates?.silver?.toLocaleString('en-IN') || '---'}</span>
+        </div>
       </div>
 
-      {rates?.updatedAt && (
-        <>
-          <div style={{ width: '1px', height: '12px', background: 'rgba(255, 255, 255, 0.2)' }} />
-          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', opacity: 0.6 }} title="Last Fetch Timestamp">
-            <Clock size={10} />
-            <span>{new Date(rates.updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-          </div>
-        </>
-      )}
+      {/* Meta */}
+      <div className="ticker-meta">
+        {rates?.updatedAt && (
+           <div className="sync-info" title="Latest Database Sync">
+             <Clock size={12} />
+             <span>{new Date(rates.updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+           </div>
+        )}
 
-      {authStore.isManager() && (
-        <button 
-          onClick={fetchRates}
-          style={{ 
-            background: 'none', 
-            border: 'none', 
-            color: 'white', 
-            cursor: 'pointer', 
-            padding: '2px',
-            opacity: 0.6,
-            display: 'flex',
-            alignItems: 'center',
-            marginLeft: '4px'
-          }}
-          title="Force Market Update"
-        >
-          <RefreshCcw size={12} className={loading ? 'spin' : ''} />
-        </button>
-      )}
-
-      <style jsx global>{`
-        @keyframes pulse-green {
-          0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
-          70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
-          100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
-        }
-      `}</style>
+        {isManager && (
+          <button 
+            onClick={fetchRates}
+            className="refresh-btn"
+            title="Refresh from Database"
+          >
+            <RefreshCcw size={12} className={loading ? 'spin' : ''} />
+          </button>
+        )}
+      </div>
     </div>
   );
 }

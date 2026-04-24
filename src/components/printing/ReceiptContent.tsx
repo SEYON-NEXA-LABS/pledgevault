@@ -15,12 +15,14 @@ interface ReceiptContentProps {
   customer: Customer;
   settings: ShopSettings;
   type: 'modern' | 'thermal';
+  remarks?: string;
 }
 
-export default function ReceiptContent({ loan, customer, settings, type }: ReceiptContentProps) {
+export default function ReceiptContent({ loan, customer, settings, type, remarks }: ReceiptContentProps) {
   const isThermal = type === 'thermal';
   const currentBranch = settings.branches.find(b => b.id === loan.branchId);
   const branchLicense = currentBranch?.licenseNumber;
+  const displayPhone = currentBranch?.phone || settings.shopPhone;
 
   if (isThermal) {
     return (
@@ -36,7 +38,7 @@ export default function ReceiptContent({ loan, customer, settings, type }: Recei
         <div style={{ textAlign: 'center', marginBottom: '10px' }}>
           <div style={{ fontSize: '16px', fontWeight: 'bold', textTransform: 'uppercase' }}>{settings.shopName}</div>
           <div style={{ fontSize: '10px' }}>{settings.shopAddress}</div>
-          <div style={{ fontSize: '10px' }}>Phone: {settings.shopPhone}</div>
+          <div style={{ fontSize: '10px' }}>Phone: {displayPhone}</div>
           <div style={{ fontSize: '10px', display: 'flex', justifyContent: 'center', gap: '8px' }}>
             {branchLicense && <span>Lic: {branchLicense}</span>}
             {settings.gstNumber && <span>GST: {settings.gstNumber}</span>}
@@ -92,6 +94,12 @@ export default function ReceiptContent({ loan, customer, settings, type }: Recei
           Original receipt required for redemption.
         </div>
 
+        {remarks && (
+          <div style={{ marginTop: '10px', padding: '5px', border: '1px solid #000', fontSize: '10px' }}>
+            <strong>Note:</strong> {remarks}
+          </div>
+        )}
+
         <div style={{ marginTop: '30px', display: 'flex', justifyContent: 'space-between' }}>
           <div style={{ borderTop: '1px solid #000', width: '30mm', textAlign: 'center', paddingTop: '5px', fontSize: '10px' }}>Customer</div>
           <div style={{ borderTop: '1px solid #000', width: '30mm', textAlign: 'center', paddingTop: '5px', fontSize: '10px' }}>Authorized</div>
@@ -122,7 +130,7 @@ export default function ReceiptContent({ loan, customer, settings, type }: Recei
         <div>
           <h1 style={{ margin: 0, color: '#1A3C34', fontSize: '24px', fontWeight: 800 }}>{settings.shopName}</h1>
           <p style={{ margin: '5px 0 0', fontSize: '13px', color: '#6F767E', maxWidth: '300px' }}>{settings.shopAddress}</p>
-          <p style={{ margin: '2px 0 0', fontSize: '13px', color: '#6F767E' }}>Phone: {settings.shopPhone}</p>
+          <p style={{ margin: '2px 0 0', fontSize: '13px', color: '#6F767E' }}>Phone: {displayPhone}</p>
           <div style={{ display: 'flex', gap: '15px', marginTop: '4px' }}>
             {branchLicense && <p style={{ margin: 0, fontSize: '12px', color: '#9A9FA5' }}>License: <strong>{branchLicense}</strong></p>}
             {settings.gstNumber && <p style={{ margin: 0, fontSize: '12px', color: '#9A9FA5' }}>GSTIN: <strong>{settings.gstNumber}</strong></p>}
@@ -243,6 +251,19 @@ export default function ReceiptContent({ loan, customer, settings, type }: Recei
           </div>
         </div>
       </div>
+
+      {remarks && (
+        <div style={{ 
+          marginBottom: '30px', 
+          padding: '12px', 
+          background: '#fcfcf7', 
+          borderLeft: '4px solid #D4A843',
+          fontSize: '13px'
+        }}>
+          <strong style={{ display: 'block', fontSize: '10px', color: '#D4A843', textTransform: 'uppercase', marginBottom: '4px' }}>Staff Remarks</strong>
+          {remarks}
+        </div>
+      )}
 
       {/* Signatures */}
       <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '60px' }}>

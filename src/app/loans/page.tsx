@@ -10,6 +10,8 @@ import {
   XCircle,
   RefreshCw,
   HandCoins,
+  Phone,
+  MessageCircle,
 } from 'lucide-react';
 import { loanStore, settingsStore } from '@/lib/store';
 import { supabaseService } from '@/lib/supabase/service';
@@ -17,6 +19,7 @@ import { authStore } from '@/lib/authStore';
 import { ChevronLeft as ChevronLeftIcon, ChevronRight } from 'lucide-react';
 import { formatCurrency, formatWeight, formatDate, getDaysOverdue, LOAN_STATUS_LABELS } from '@/lib/constants';
 import { Loan, LoanStatus } from '@/lib/types';
+import Pagination from '@/components/common/Pagination';
 
 const STATUS_FILTERS: { value: string; label: string }[] = [
   { value: 'all', label: 'All Loans' },
@@ -122,13 +125,13 @@ export default function LoansPage() {
     <>
       <div className="page-header">
         <div className="page-header-left">
-          <h2>Loans</h2>
-          <p className="subtitle">
+          <h2 className="text-4xl font-black tracking-tight mb-2">Loans</h2>
+          <p className="text-sm font-bold text-muted-foreground opacity-70">
             Manage all pledge loans — {loans.length} total, {loans.filter((l) => l.status === 'active').length} active
           </p>
         </div>
         <div className="page-header-right">
-          <Link href="/loans/new" className="btn btn-gold" id="create-loan-btn">
+          <Link href="/loans/new" className="pv-btn pv-btn-gold shadow-lg shadow-primary/10" id="create-loan-btn">
             <Plus size={18} />
             New Loan
           </Link>
@@ -136,32 +139,32 @@ export default function LoansPage() {
       </div>
 
       {/* Filters */}
-      <div className="filter-bar">
-        <div className="header-search" style={{ maxWidth: '360px' }}>
-          <Search size={18} />
+      <div className="flex flex-col md:flex-row gap-4 mb-6 items-center justify-between">
+        <div className="flex items-center gap-3 bg-muted/40 border border-border/50 rounded-xl px-4 h-12 w-full max-w-md transition-all focus-within:border-primary/30 focus-within:bg-card">
+          <Search size={18} className="text-muted-foreground opacity-50" />
           <input
             type="text"
-            placeholder="Search by loan #, customer name or phone..."
+            placeholder="Search by loan #, customer..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            id="loan-search"
+            className="bg-transparent border-none outline-none text-sm font-bold w-full"
           />
         </div>
         <div style={{ display: 'flex', gap: '8px' }}>
           {STATUS_FILTERS.map((f) => (
             <button
               key={f.value}
-              className={`btn btn-sm ${statusFilter === f.value ? 'btn-primary' : 'btn-outline'}`}
+              className={`pv-btn pv-btn-sm ${statusFilter === f.value ? 'pv-btn-primary' : 'pv-btn-outline'}`}
               onClick={() => {
                 setStatusFilter(f.value);
-                setPage(0); // Reset page on filter change
+                setPage(0);
               }}
             >
               {f.label}
             </button>
           ))}
           <button 
-            className={`btn btn-sm ${showFilters ? 'btn-gold' : 'btn-outline'}`}
+            className={`pv-btn pv-btn-sm ${showFilters ? 'pv-btn-gold' : 'pv-btn-outline'}`}
             onClick={() => setShowFilters(!showFilters)}
           >
             <Filter size={16} /> Filters
@@ -170,45 +173,26 @@ export default function LoansPage() {
       </div>
 
       {showFilters && (
-        <div className="advanced-filters card animate-slide-down">
-          <div className="card-body">
-            <div className="filter-grid">
+        <div className="pv-card anim-slide-up" style={{ marginBottom: '24px', border: '1px solid var(--brand-glow)' }}>
+          <div className="filter-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '24px', padding: '24px' }}>
               <div className="filter-group">
-                <label>Loan Date Range</label>
-                <div className="range-inputs">
-                  <input 
-                    type="date" 
-                    value={dateRange.start} 
-                    onChange={e => setDateRange({...dateRange, start: e.target.value})} 
-                  />
-                  <span>to</span>
-                  <input 
-                    type="date" 
-                    value={dateRange.end} 
-                    onChange={e => setDateRange({...dateRange, end: e.target.value})} 
-                  />
+                <label style={{ display: 'block', fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-tertiary)', marginBottom: '8px' }}>Loan Date Range</label>
+                <div className="range-inputs" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <input className="pv-input" type="date" value={dateRange.start} onChange={e => setDateRange({...dateRange, start: e.target.value})} />
+                  <span style={{ fontSize: '12px', color: 'var(--text-tertiary)' }}>to</span>
+                  <input className="pv-input" type="date" value={dateRange.end} onChange={e => setDateRange({...dateRange, end: e.target.value})} />
                 </div>
               </div>
               <div className="filter-group">
-                <label>Amount Range (₹)</label>
-                <div className="range-inputs">
-                  <input 
-                    type="number" 
-                    placeholder="Min"
-                    value={amountRange.min} 
-                    onChange={e => setAmountRange({...amountRange, min: e.target.value})} 
-                  />
-                  <input 
-                    type="number" 
-                    placeholder="Max"
-                    value={amountRange.max} 
-                    onChange={e => setAmountRange({...amountRange, max: e.target.value})} 
-                  />
+                <label style={{ display: 'block', fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-tertiary)', marginBottom: '8px' }}>Amount Range (₹)</label>
+                <div className="range-inputs" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <input className="pv-input" type="number" placeholder="Min" value={amountRange.min} onChange={e => setAmountRange({...amountRange, min: e.target.value})} />
+                  <input className="pv-input" type="number" placeholder="Max" value={amountRange.max} onChange={e => setAmountRange({...amountRange, max: e.target.value})} />
                 </div>
               </div>
-              <div className="filter-actions">
+              <div className="filter-actions" style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'flex-end' }}>
                 <button 
-                  className="btn btn-sm btn-outline"
+                  className="pv-btn pv-btn-sm pv-btn-outline"
                   onClick={() => {
                     setDateRange({ start: '', end: '' });
                     setAmountRange({ min: '', max: '' });
@@ -218,267 +202,214 @@ export default function LoansPage() {
                   Clear All
                 </button>
               </div>
-            </div>
           </div>
         </div>
       )}
-
-      {/* Table */}
-      <div className="card">
-        <div className="card-body no-padding">
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>Loan #</th>
-                <th>Customer</th>
-                <th>Items</th>
-                <th>Weight</th>
-                <th>Loan Amount</th>
-                <th>Interest</th>
-                <th>Due Date</th>
-                <th>Status</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {loading ? (
+            {/* Table & Cards */}
+      <div className="pv-card" style={{ padding: 0, overflow: 'hidden' }}>
+          <div className="data-table-wrapper">
+            <table className="data-table">
+              <thead>
                 <tr>
-                   <td colSpan={9} style={{ textAlign: 'center', padding: '100px 0' }}>
-                     <RefreshCw className="spin" size={32} style={{ color: 'var(--gold)', opacity: 0.5 }} />
-                     <p style={{ marginTop: '12px', fontSize: '14px', color: 'var(--text-tertiary)' }}>Fetching loans...</p>
-                   </td>
+                  <th>Loan #</th>
+                  <th>Customer</th>
+                  <th>Items</th>
+                  <th>Weight</th>
+                  <th>Principal</th>
+                  <th>Rate</th>
+                  <th>Due Date</th>
+                  <th>Status</th>
+                  <th>Actions</th>
                 </tr>
-              ) : displayLoans.map((loan) => {
-                // Ensure array existence
-                const items = (loan as any).items || [];
-                const goldWeight = items
-                  .filter((i: any) => i.metalType === 'gold')
-                  .reduce((s: any, i: any) => s + i.netWeight, 0);
-                const silverWeight = items
-                  .filter((i: any) => i.metalType === 'silver')
-                  .reduce((s: any, i: any) => s + i.netWeight, 0);
-
-                return (
-                  <tr key={loan.id}>
-                    <td>
-                      <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>
-                        {loan.loanNumber}
-                      </span>
-                      <div style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>
-                        {loan.startDate ? formatDate(loan.startDate) : '---'}
-                      </div>
-                    </td>
-                    <td>
-                      <div className="customer-cell">
-                        <div className="customer-avatar">
-                          {loan.customerName?.charAt(0)}
-                        </div>
-                        <div className="customer-info">
-                          <div className="name">{loan.customerName}</div>
-                          <div className="phone">{loan.customerPhone}</div>
-                        </div>
-                      </div>
-                    </td>
-                    <td>
-                      <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
-                        {items.map((item: any) => (
-                          <span
-                            key={item.id}
-                            className={`badge ${item.metalType}`}
-                            style={{ fontSize: '11px' }}
-                          >
-                            {item.itemType}
-                          </span>
-                        ))}
-                      </div>
-                    </td>
-                    <td>
-                      {goldWeight > 0 && (
-                        <div style={{ fontSize: '13px' }}>
-                          <span style={{ color: 'var(--gold-dark)', fontWeight: 600 }}>
-                            {formatWeight(goldWeight)}
-                          </span>
-                          <span style={{ color: 'var(--text-tertiary)', fontSize: '11px' }}> Au</span>
-                        </div>
-                      )}
-                      {silverWeight > 0 && (
-                        <div style={{ fontSize: '13px' }}>
-                          <span style={{ color: 'var(--silver-dark)', fontWeight: 600 }}>
-                            {formatWeight(silverWeight)}
-                          </span>
-                          <span style={{ color: 'var(--text-tertiary)', fontSize: '11px' }}> Ag</span>
-                        </div>
-                      )}
-                    </td>
-                    <td style={{ fontWeight: 700 }}>{formatCurrency(loan.loanAmount || 0)}</td>
-                    <td>
-                      <span style={{ fontSize: '13px' }}>
-                        {loan.interestRate || 0}%
-                        <span style={{ color: 'var(--text-tertiary)', fontSize: '11px' }}> /mo</span>
-                      </span>
-                    </td>
-                    <td>
-                      <span
-                        style={{
-                          color:
-                            loan.status === 'overdue'
-                              ? 'var(--status-overdue)'
-                              : 'var(--text-primary)',
-                          fontWeight: loan.status === 'overdue' ? 600 : 400,
-                        }}
-                      >
-                        {formatDate(loan.dueDate || '')}
-                      </span>
-                      {loan.status === 'overdue' && (
-                        <div style={{ fontSize: '11px', color: 'var(--status-overdue)' }}>
-                          {getDaysOverdue(loan.dueDate || '')}d overdue
-                        </div>
-                      )}
-                    </td>
-                    <td>
-                      <span className={`badge ${loan.status || 'active'}`}>
-                        {(loan.status && LOAN_STATUS_LABELS[loan.status as keyof typeof LOAN_STATUS_LABELS]) || 'Active'}
-                      </span>
-                    </td>
-                    <td>
-                      <div className="quick-actions">
-                        <Link href={`/loans/${loan.id}`} title="View Details">
-                          <button><Eye size={16} /></button>
-                        </Link>
-                        {(loan.status === 'active' || loan.status === 'overdue') && (
-                          <button
-                            title="Close Loan"
-                            onClick={() => handleCloseLoan(loan.id || '')}
-                          >
-                            <XCircle size={16} />
-                          </button>
-                        )}
-                      </div>
+              </thead>
+              <tbody>
+                {loading ? (
+                  <tr>
+                    <td colSpan={9} className="py-24 text-center">
+                      <RefreshCw className="animate-spin mx-auto mb-4 text-primary opacity-30" size={32} />
+                      <p className="text-sm font-bold text-muted-foreground uppercase tracking-widest opacity-50">Fetching loans...</p>
                     </td>
                   </tr>
-                );
-              })}
-              {displayLoans.length === 0 && !loading && (
-                <tr>
-                  <td colSpan={9}>
-                    <div className="empty-state">
-                      <div className="empty-state-icon">
-                        <HandCoins size={28} />
-                      </div>
-                      <h3>No loans found</h3>
-                      <p>
-                        {search
-                          ? 'Try a different search term'
-                          : 'Create your first loan to get started'}
-                      </p>
-                      {!search && (
-                        <Link href="/loans/new" className="btn btn-gold btn-sm">
-                          <Plus size={16} /> Create Loan
-                        </Link>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-          
-          {/* Pagination Footer */}
-          <div className="pagination-footer">
-            <div className="pagination-info">
-              Showing <span>{page * pageSize + 1}</span> to <span>{Math.min((page + 1) * pageSize, total)}</span> of <span>{total}</span> loans
-            </div>
-            <div className="pagination-btns">
-              <button 
-                className="btn btn-outline btn-sm" 
-                disabled={page === 0 || loading}
-                onClick={() => setPage(p => Math.max(0, p - 1))}
-              >
-                <ChevronLeftIcon size={16} /> Previous
-              </button>
-              <button 
-                className="btn btn-outline btn-sm"
-                disabled={(page + 1) * pageSize >= total || loading}
-                onClick={() => setPage(p => p + 1)}
-              >
-                Next <ChevronRight size={16} />
-              </button>
-            </div>
+                ) : displayLoans.map((loan) => {
+                  const items = (loan as any).items || [];
+                  const goldWeight = items
+                    .filter((i: any) => i.metalType === 'gold')
+                    .reduce((s: any, i: any) => s + i.netWeight, 0);
+                  const silverWeight = items
+                    .filter((i: any) => i.metalType === 'silver')
+                    .reduce((s: any, i: any) => s + i.netWeight, 0);
+
+                  return (
+                    <tr key={loan.id}>
+                      <td>
+                        <div className="font-black text-sm">{loan.loanNumber}</div>
+                        <div className="text-[11px] font-bold text-muted-foreground opacity-50 uppercase tracking-tight">
+                          {loan.startDate ? formatDate(loan.startDate) : '---'}
+                        </div>
+                      </td>
+                      <td>
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center text-xs font-black">
+                            {loan.customerName?.charAt(0)}
+                          </div>
+                          <div className="flex flex-col">
+                            <span className="text-sm font-bold">{loan.customerName}</span>
+                            <div className="flex items-center gap-2">
+                              <span className="text-[11px] font-bold text-muted-foreground uppercase opacity-60">{loan.customerPhone}</span>
+                              <div className="flex gap-1.5">
+                                <a 
+                                  href={`tel:${loan.customerPhone}`} 
+                                  className="p-1 rounded-md bg-primary/5 text-primary hover:bg-primary/20 transition-colors"
+                                  title="Call"
+                                >
+                                  <Phone size={10} />
+                                </a>
+                                <a 
+                                  href={`sms:${loan.customerPhone}?body=${encodeURIComponent(`Reminder: Your pledge ${loan.loanNumber} is due. Please contact us.`)}`} 
+                                  className="p-1 rounded-md bg-blue-500/5 text-blue-600 hover:bg-blue-500/20 transition-colors"
+                                  title="SMS"
+                                >
+                                  <MessageSquare size={10} />
+                                </a>
+                                <a 
+                                  href={`https://wa.me/${loan.customerPhone?.replace(/\D/g, '')}`} 
+                                  target="_blank" 
+                                  rel="noopener noreferrer"
+                                  className="p-1 rounded-md bg-green-500/5 text-green-600 hover:bg-green-500/20 transition-colors"
+                                  title="WhatsApp"
+                                >
+                                  <MessageCircle size={10} />
+                                </a>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </td>
+                      <td>
+                        <div className="flex gap-1.5 flex-wrap">
+                          {items.map((item: any) => (
+                            <span 
+                              key={item.id} 
+                              className={`badge ${item.metalType === 'gold' ? 'active' : 'demo'} px-2 py-0.5 rounded-md text-[9px] font-black uppercase border border-current opacity-80`}
+                              style={{ borderColor: item.metalType === 'gold' ? 'oklch(0.7 0.15 80 / 30%)' : 'oklch(0.8 0.05 200 / 30%)' }}
+                            >
+                              {item.itemType}
+                            </span>
+                          ))}
+                        </div>
+                      </td>
+                      <td>
+                        {goldWeight > 0 && (
+                          <div className="text-[13px] font-bold">
+                            <span className="text-primary">{formatWeight(goldWeight)}</span>
+                            <span className="text-[10px] text-muted-foreground opacity-40 ml-1 uppercase">Gold</span>
+                          </div>
+                        )}
+                        {silverWeight > 0 && (
+                          <div className="text-[13px] font-bold">
+                            <span className="text-muted-foreground">{formatWeight(silverWeight)}</span>
+                            <span className="text-[10px] text-muted-foreground opacity-40 ml-1 uppercase">Silver</span>
+                          </div>
+                        )}
+                      </td>
+                      <td className="font-black text-sm">{formatCurrency(loan.loanAmount || 0)}</td>
+                      <td>
+                        <span className="text-[13px] font-bold">{loan.interestRate || 0}<small className="opacity-40 ml-0.5">%</small></span>
+                      </td>
+                      <td>
+                        <span className={`text-[13px] ${loan.status === 'overdue' ? 'text-destructive font-black' : 'font-bold opacity-80'}`}>
+                          {formatDate(loan.dueDate || '')}
+                        </span>
+                        {loan.status === 'overdue' && (
+                          <div className="text-[10px] text-destructive font-black uppercase tracking-wider">
+                            {getDaysOverdue(loan.dueDate || '')}d overdue
+                          </div>
+                        )}
+                      </td>
+                      <td>
+                        <span className={`badge ${loan.status || 'active'}`} style={{ fontWeight: 800 }}>
+                          {(loan.status && LOAN_STATUS_LABELS[loan.status as keyof typeof LOAN_STATUS_LABELS]) || 'Active'}
+                        </span>
+                      </td>
+                      <td>
+                        <div className="flex gap-2">
+                          <Link href={`/loans/${loan.id}`} className="pv-btn pv-btn-sm pv-btn-outline font-black text-[10px] uppercase tracking-widest h-8 px-3">
+                            Details
+                          </Link>
+                          {(loan.status === 'active' || loan.status === 'overdue') && (
+                            <button
+                              className="pv-btn pv-btn-sm pv-btn-outline text-destructive border-destructive/20 font-black text-[10px] uppercase tracking-widest h-8 px-3"
+                              onClick={() => handleCloseLoan(loan.id || '')}
+                            >
+                              Close
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
-        </div>
 
-        <style jsx>{`
-          .pagination-footer {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 16px 24px;
-            border-top: 1px solid rgba(255, 255, 255, 0.05);
-            background: rgba(255, 255, 255, 0.01);
-          }
-          .pagination-info {
-            font-size: 13px;
-            color: var(--text-tertiary);
-          }
-          .pagination-info span {
-            color: var(--text-primary);
-            font-weight: 600;
-          }
-          .pagination-btns {
-            display: flex;
-            gap: 8px;
-          }
+          <div className="mobile-cards">
+             {displayLoans.map((loan) => (
+               <div key={loan.id} className="pv-card flex flex-col gap-4 p-5 hover:shadow-lg transition-all duration-300">
+                 <div className="flex items-center justify-between">
+                    <div className="flex flex-col">
+                       <span className="text-[10px] font-black uppercase text-muted-foreground opacity-40">Loan Number</span>
+                       <span className="font-black text-sm">{loan.loanNumber}</span>
+                    </div>
+                    <span className={`badge ${loan.status || 'active'}`}>{loan.status}</span>
+                 </div>
+                 <div className="flex flex-col gap-1">
+                    <span className="text-[10px] font-black uppercase text-muted-foreground opacity-40">Customer</span>
+                    <span className="text-sm font-bold">{loan.customerName}</span>
+                 </div>
+                 <div className="grid grid-cols-2 gap-4 border-t border-border/50 pt-4 mt-2">
+                    <div className="flex flex-col">
+                       <span className="text-[10px] font-black uppercase text-muted-foreground opacity-40">Principal</span>
+                       <span className="text-sm font-black text-primary">{formatCurrency(loan.loanAmount || 0)}</span>
+                    </div>
+                    <div className="flex flex-col">
+                       <span className="text-[10px] font-black uppercase text-muted-foreground opacity-40">Due Date</span>
+                       <span className={`text-sm font-bold ${loan.status === 'overdue' ? 'text-destructive' : ''}`}>
+                          {formatDate(loan.dueDate || '')}
+                       </span>
+                    </div>
+                 </div>
+                 <div className="flex gap-2 border-t border-border/50 pt-4">
+                    <Link href={`/loans/${loan.id}`} className="pv-btn pv-btn-outline flex-1 h-10 rounded-xl font-black text-xs uppercase tracking-widest">
+                       Details
+                    </Link>
+                    {(loan.status === 'active' || loan.status === 'overdue') && (
+                       <button 
+                        className="pv-btn pv-btn-outline text-destructive border-destructive/20 hover:bg-destructive/5 flex-1 h-10 rounded-xl font-black text-xs uppercase tracking-widest"
+                        onClick={() => handleCloseLoan(loan.id || '')}
+                       >
+                          Close
+                       </button>
+                    )}
+                 </div>
+               </div>
+             ))}
+          </div>
 
-          .advanced-filters {
-            margin-bottom: 24px;
-            border: 1px solid var(--gold-soft);
-          }
-
-          .filter-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 24px;
-            align-items: flex-end;
-          }
-
-          .filter-group label {
-            display: block;
-            font-size: 12px;
-            font-weight: 700;
-            color: var(--text-tertiary);
-            margin-bottom: 8px;
-            text-transform: uppercase;
-          }
-
-          .range-inputs {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-          }
-
-          .range-inputs input {
-            background: var(--bg-input);
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            padding: 8px 12px;
-            color: var(--text-primary);
-            font-size: 13px;
-            width: 100%;
-          }
-
-          .range-inputs span {
-            color: var(--text-tertiary);
-            font-size: 12px;
-          }
-
-          @keyframes slideDown {
-            from { transform: translateY(-10px); opacity: 0; }
-            to { transform: translateY(0); opacity: 1; }
-          }
-          .animate-slide-down {
-            animation: slideDown 0.3s ease-out forwards;
-          }
-        `}</style>
+          {!loading && displayLoans.length === 0 && (
+            <div className="empty-state" style={{ padding: '80px', textAlign: 'center' }}>
+               <HandCoins size={32} style={{ color: 'var(--text-tertiary)', marginBottom: '16px' }} />
+               <h3 style={{ fontWeight: 800 }}>No loans found</h3>
+            </div>
+          )}
+          
+          <Pagination 
+            page={page}
+            pageSize={pageSize}
+            total={total}
+            onPageChange={setPage}
+            loading={loading}
+          />
       </div>
     </>
   );

@@ -8,7 +8,16 @@ import {
   ArrowRight, 
   Loader2, 
   CheckCircle2,
-  AlertCircle 
+  AlertCircle,
+  Gem,
+  ExternalLink,
+  ShieldCheck,
+  ChevronRight,
+  Monitor,
+  Smartphone,
+  LockKeyhole,
+  Sparkles,
+  Trophy
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -16,8 +25,9 @@ import Link from 'next/link';
 import { settingsStore } from '@/lib/store';
 import { authStore } from '@/lib/authStore';
 import { supabaseService } from '@/lib/supabase/service';
-import { Branch, BrandingConfig } from '@/lib/types';
+import { Branch } from '@/lib/types';
 import BranchSelectorModal from '@/components/auth/BranchSelectorModal';
+import { translations, Language } from '@/lib/i18n/translations';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -28,7 +38,12 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [showBranchSelector, setShowBranchSelector] = useState(false);
   const [availableBranches, setAvailableBranches] = useState<Branch[]>([]);
-  const [branding, setBranding] = useState<{name: string, greeting: string} | null>(null);
+  const [branding, setBranding] = useState<{name: string, greeting: string}>({
+    name: translations.en.common.pledgevault,
+    greeting: translations.en.login.greeting
+  });
+  const [lang, setLang] = useState<Language>('en');
+  const t = translations[lang];
 
   useEffect(() => {
     const fetchBranding = async () => {
@@ -37,7 +52,7 @@ export default function LoginPage() {
       if (shopSlug) {
         const data = await supabaseService.getFirmBranding(shopSlug);
         if (data) {
-          setBranding({ name: data.name, greeting: data.branding.loginGreeting });
+          setBranding({ name: data.name, greeting: data.branding.loginGreeting || 'Welcome Back' });
           if (data.branding.primaryColor) {
             document.documentElement.style.setProperty('--primary-brand', data.branding.primaryColor);
             document.documentElement.style.setProperty('--primary-hover', data.branding.primaryColor + 'e6');
@@ -48,15 +63,11 @@ export default function LoginPage() {
     fetchBranding();
   }, []);
 
-  const settings = settingsStore.get();
-
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
 
-    // Mock bypass for login since we are in dev/demo mode
-    // Standard Supabase login:
     const { error: loginError } = await supabase.auth.signInWithPassword({
       email,
       password,
@@ -66,7 +77,6 @@ export default function LoginPage() {
       setError(loginError.message);
       setLoading(false);
     } else {
-      // Fetch Profile & Initialize AuthStore
       try {
         const { data: { user } } = await supabase.auth.getUser();
         if (user) {
@@ -83,153 +93,240 @@ export default function LoginPage() {
           setSuccess(true);
           setLoading(false);
 
-          // Give a small delay for the success message to be seen
           setTimeout(async () => {
-            // ROLE BASED REDIRECTION
             if (profile.role === 'superadmin') {
               router.push('/superadmin');
-              router.refresh();
               return;
             }
 
-            // Shop Logic - Determine if we need to show the branch selector
             const branches = await supabaseService.getBranches(profile.firmId);
             setAvailableBranches(branches);
 
-            // NEW REDIRECTION LOGIC:
-            // 1. Managers default to Global Overview ('firm')
             if (profile.role === 'manager' || profile.role === 'admin') {
               settingsStore.save({ activeBranchId: 'firm' });
               router.push('/');
-              router.refresh();
               return;
             }
 
-            // 2. Staff with a default branch
             if (profile.role === 'staff' && profile.defaultBranchId) {
               settingsStore.save({ activeBranchId: profile.defaultBranchId });
               router.push('/');
-              router.refresh();
               return;
             }
 
-            // 3. Fallback: Show selector if more than one branch, or auto-pick the only one
             if (branches.length === 1) {
               handleBranchSelect(branches[0].id);
             } else if (branches.length > 1) {
               setShowBranchSelector(true);
             } else {
-              // No branches found - highly unlikely with seed data, but handle cleanly
               router.push('/');
             }
           }, 800);
-        } else {
-          throw new Error('User not found after login');
         }
       } catch (err: any) {
-        console.error('Failed to fetch profile:', err);
         setError(err.message || 'Login successful, but profile could not be loaded.');
         setLoading(false);
       }
     }
   };
 
+  const handleDevLogin = async (role: 'manager' | 'staff') => {
+    const creds = {
+      manager: { email: 'admin@yourfirm.com', pass: 'password123' },
+      staff: { email: 'staff@yourfirm.com', pass: 'password123' }
+    };
+    
+    setEmail(creds[role].email);
+    setPassword(creds[role].pass);
+    
+    // Small delay to show the values being filled before submitting
+    setTimeout(() => {
+      const form = document.querySelector('form');
+      if (form) form.requestSubmit();
+    }, 100);
+  };
+
   const handleBranchSelect = (branchId: string) => {
     settingsStore.save({ activeBranchId: branchId });
     router.push('/');
-    router.refresh();
   };
 
   return (
-    <div className="login-container">
-      <div className="login-card">
-        <div className="login-header">
-          <div className="login-logo">
-            <span style={{ color: 'var(--gold)' }}>🪙</span> {branding?.name || 'PledgeVault'}
+    <div className="login-screen">
+      <div className="login-card-dual anim-in">
+        <div className="login-pane-brand">
+          <div className="brand-zone">
+            <div className="brand-logo-large">
+               <span className="logo-spark">✨</span>
+               <div className="logo-circle">🪙</div>
+            </div>
+            <div className="brand-info">
+               <h1 className="logo-name-large">{branding.name}</h1>
+               <p className="logo-tagline">{t.common.secureVault}</p>
+            </div>
           </div>
-          <h2>{branding?.greeting || 'Welcome Back'}</h2>
-          <p>Login to manage your shop's pledges</p>
+          {/* Abstract Background Shapes */}
+          <div className="abstract-shape shape-1" />
+          <div className="abstract-shape shape-2" />
         </div>
 
-        <form className="login-form" onSubmit={handleLogin}>
-          {error && (
-            <div className="login-error">
-              <AlertCircle size={18} /> {error}
-            </div>
-          )}
+        <div className="login-pane-form">
+          <div className="right-header">
+             <div className="lang-switcher-top">
+                <button 
+                  type="button" 
+                  className={lang === 'en' ? 'active' : ''} 
+                  onClick={() => setLang('en')}
+                >
+                  EN
+                </button>
+                <button 
+                  type="button" 
+                  className={`lang-ta ${lang === 'ta' ? 'active' : ''}`} 
+                  onClick={() => setLang('ta')}
+                >
+                  தமிழ்
+                </button>
+             </div>
+             <div className={`header-text ${lang === 'ta' ? 'lang-ta' : ''}`}>
+                <h2>{lang === 'en' ? branding.greeting : t.login.greeting}</h2>
+                <p>{t.login.subtitle}</p>
+             </div>
+          </div>
 
-          {success && (
-            <div className="login-success">
-              <CheckCircle2 size={18} /> Login successful! Redirecting...
-            </div>
-          )}
+          <form onSubmit={handleLogin} className={`login-form-modern ${lang === 'ta' ? 'lang-ta' : ''}`}>
+            {error && (
+              <div className="alert-modern error">
+                <AlertCircle size={14} />
+                <span>{error}</span>
+              </div>
+            )}
 
-          <div className="form-group">
-            <label className="form-label">Email Address</label>
-            <div className="input-with-icon">
-              <Mail className="icon" size={18} />
-              <input
-                type="email"
-                className="form-input"
-                placeholder="name@shop.com"
+            {success && (
+              <div className="alert-modern success">
+                <CheckCircle2 size={14} />
+                <span>{t.login.authenticating}</span>
+              </div>
+            )}
+
+            <div className="pv-input-group">
+               <div className="input-icon-label">
+                  <Mail size={16} />
+                  <label>{t.login.emailLabel}</label>
+               </div>
+               <input 
+                className="pv-input input-modern-underline"
+                type="email" 
+                placeholder={t.login.emailPlaceholder} 
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-              />
+                disabled={loading}
+               />
             </div>
-          </div>
 
-          <div className="form-group">
-            <label className="form-label">Password</label>
-            <div className="input-with-icon">
-              <Lock className="icon" size={18} />
-              <input
-                type="password"
-                className="form-input"
-                placeholder="••••••••"
+            <div className="pv-input-group">
+               <div className="input-icon-label">
+                  <LockKeyhole size={16} />
+                  <label>{t.login.passwordLabel}</label>
+               </div>
+               <input 
+                className="pv-input input-modern-underline"
+                type="password" 
+                placeholder={t.login.passwordPlaceholder} 
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-              />
+                disabled={loading}
+               />
             </div>
-          </div>
 
-          <div className="login-meta">
-            <label className="checkbox-label">
-              <input type="checkbox" /> Remember me
-            </label>
-            <a href="#" className="forgot-password">Forgot password?</a>
-          </div>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '4px' }}>
+              <button
+                type="button"
+                onClick={() => alert('Password reset will be sent to your registered email address.')}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: 'var(--brand-primary)',
+                  fontSize: '12px',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  padding: 0,
+                }}
+              >
+                {t.login.forgotPassword}
+              </button>
+            </div>
 
-          <button className="btn btn-gold login-btn" disabled={loading}>
-            {loading ? (
-              <>
-                <Loader2 className="spin" size={18} /> Logging in...
-              </>
-            ) : (
-              <>
-                Login to Dashboard <ArrowRight size={18} />
-              </>
-            )}
-          </button>
-        </form>
+            <button className="pv-btn pv-btn-primary" style={{ width: '100%', height: '56px', marginTop: '24px', borderRadius: 'var(--radius-md)', fontSize: '15px' }} disabled={loading}>
+              {loading ? (
+                <Loader2 className="spin" size={20} />
+              ) : (
+                <>
+                  {t.login.button} <ArrowRight size={18} />
+                </>
+              )}
+            </button>
+          </form>
 
-        <div className="login-footer">
-          <div style={{ marginBottom: '16px' }}>
-            <Link href="/start-trial" className="btn btn-outline btn-full" style={{ justifyContent: 'center' }}>
-              Start 14-Day Free Trial
+          {/* Start Trial CTA */}
+          <div style={{
+            marginTop: '32px',
+            padding: '20px 24px',
+            background: 'var(--brand-soft)',
+            borderRadius: 'var(--radius-md)',
+            border: '1px solid var(--border)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '16px',
+          }}>
+            <div>
+              <span style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 600 }}>
+                {t.login.newUser}
+              </span>
+            </div>
+            <Link
+              href="/start-trial"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                color: 'var(--brand-primary)',
+                fontSize: '13px',
+                fontWeight: 800,
+                textDecoration: 'none',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              {t.login.startTrial} <ArrowRight size={14} />
             </Link>
           </div>
-          Don't have an account? <a href="#">Contact Sales</a>
-          <div style={{ marginTop: '24px', fontSize: '10px', color: 'rgba(0,0,0,0.2)', letterSpacing: '0.5px' }}>
-            v{process.env.NEXT_PUBLIC_APP_VERSION || '1.0.0'}
-          </div>
-        </div>
-      </div>
+          <footer style={{ marginTop: '24px', paddingTop: '20px', borderTop: '1px solid var(--border)' }}>
+             <div style={{ display: 'flex', gap: '8px', fontSize: '11px', color: 'var(--text-tertiary)', fontWeight: '700' }}>
+                <span>© 2026 {t.common.pledgevault}</span>
+                <span>•</span>
+                <span>v3.5.2</span>
+             </div>
+          </footer>
 
-      <div className="login-bg-decoration">
-        <div className="blob blob-1"></div>
-        <div className="blob blob-2"></div>
+          {process.env.NODE_ENV === 'development' && (
+            <div className="dev-login-zone">
+              <div className="dev-title">
+                <Sparkles size={10} /> <span>Dev Shortcuts</span>
+              </div>
+              <div className="dev-btns">
+                <button type="button" onClick={() => handleDevLogin('manager')} className="dev-btn manager">
+                  <ShieldCheck size={12} /> Manager
+                </button>
+                <button type="button" onClick={() => handleDevLogin('staff')} className="dev-btn staff">
+                  <Monitor size={12} /> Staff
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
 
       <BranchSelectorModal 

@@ -23,7 +23,7 @@ export default function StatCard({
   variant,
 }: StatCardProps) {
   return (
-    <div className={`stat-card variant-${variant}`}>
+    <div className={`pv-card stat-card variant-${variant} hover:scale-[1.02]`}>
       <div className="stat-card-header">
         <span className="stat-card-title">{title}</span>
         <div className="stat-card-icon">
@@ -34,11 +34,14 @@ export default function StatCard({
       <div className="stat-card-meta">
         {change && (
           <span className={`stat-card-change ${changeType}`}>
-            {changeType === 'positive' ? '+' : ''}{change}
+            {changeType === 'positive' ? '↑' : '↓'} {change}
           </span>
         )}
-        {subtitle && <span>{subtitle}</span>}
+        {subtitle && <span className="opacity-60">{subtitle}</span>}
       </div>
+      
+      {/* Decorative background element */}
+      <div className="absolute -bottom-6 -right-6 w-24 h-24 bg-primary/5 rounded-full blur-2xl" />
     </div>
   );
 }

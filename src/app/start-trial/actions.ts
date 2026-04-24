@@ -14,7 +14,7 @@ export async function registerTrialAction(formData: any) {
 
   const { 
     name, location,
-    email, password, fullName
+    email, password, fullName, phone
   } = formData;
 
   try {
@@ -47,7 +47,8 @@ export async function registerTrialAction(formData: any) {
         firm_id: firm.id,
         name: 'Main Branch',
         code: 'MAIN',
-        location: location || 'Main Office'
+        location: location || 'Main Office',
+        phone: phone
       }])
       .select()
       .single();
@@ -83,15 +84,15 @@ export async function registerTrialAction(formData: any) {
       .insert([{
         firm_id: firm.id,
         shop_address: location || 'Initial Address',
-        shop_phone: 'Not provided',
+        shop_phone: phone,
         active_branch_id: mainBranch.id
       }]);
 
     if (settingsError) throw settingsError;
 
-    // 6. Initialize 14-Day Elite Trial Subscription
+    // 6. Initialize 30-Day Elite Trial Subscription
     const trialEndDate = new Date();
-    trialEndDate.setDate(trialEndDate.getDate() + 14);
+    trialEndDate.setDate(trialEndDate.getDate() + 30);
 
     const { error: trialError } = await adminClient
       .from('subscriptions')

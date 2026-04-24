@@ -54,6 +54,8 @@ export const DEFAULT_SETTINGS: ShopSettings = {
   branches: [],
   allowStaffOverridesInterest: true,
   allowStaffOverridesLtv: true,
+  language: 'en',
+  theme: 'emerald',
   goldRateMarket: 0,
   silverRateMarket: 0,
   ratesUpdatedAt: '',

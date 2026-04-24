@@ -55,7 +55,7 @@ export default function TrialExpiredGate({ children }: { children: React.ReactNo
 
         <h1 className="gate-title">Access Restricted</h1>
         <p className="gate-message">
-          Your 14-day Elite Trial has expired. To continue managing your loans, branches, and customers, please upgrade to a production plan.
+          Your 30-day Elite Trial has expired. To continue managing your loans, branches, and customers, please upgrade to a production plan.
         </p>
 
         <div className="gate-stats">

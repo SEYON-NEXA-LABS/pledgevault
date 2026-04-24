@@ -106,58 +106,65 @@ export default function SubscriptionTab({ currentPlan, onUpgrade, firmName }: Su
   };
 
   return (
-    <div className="subscription-container">
-      <div className="billing-toggle-wrapper">
-        <div className="billing-toggle">
+    <div style={{ paddingTop: '10px' }}>
+      <div style={{ textAlign: 'center', marginBottom: '40px' }}>
+        <div style={{ display: 'inline-flex', alignItems: 'center', background: 'var(--bg-primary)', padding: '6px', borderRadius: '40px', border: '1px solid var(--border)', position: 'relative' }}>
           <button 
-            className={`toggle-btn ${interval === 'monthly' ? 'active' : ''}`}
+            className={`pv-btn ${interval === 'monthly' ? 'pv-btn-gold' : 'pv-btn-outline'}`}
+            style={{ borderRadius: '30px', padding: '10px 28px', border: 'none' }}
             onClick={() => setInterval('monthly')}
           >
             Monthly
           </button>
           <button 
-            className={`toggle-btn ${interval === 'yearly' ? 'active' : ''}`}
+            className={`pv-btn ${interval === 'yearly' ? 'pv-btn-gold' : 'pv-btn-outline'}`}
+            style={{ borderRadius: '30px', padding: '10px 28px', border: 'none' }}
             onClick={() => setInterval('yearly')}
           >
             Yearly
           </button>
           {interval === 'yearly' && (
-            <div className="saving-badge">2 Months Free</div>
+            <div style={{ position: 'absolute', right: '-110px', background: 'var(--brand-vibrant)', color: 'var(--brand-deep)', fontSize: '10px', fontWeight: 900, padding: '4px 12px', borderRadius: '8px', textTransform: 'uppercase' }}>2 Months Free</div>
           )}
         </div>
-        <p className="billing-helper">
+        <p style={{ fontSize: '13px', color: 'var(--text-tertiary)', marginTop: '16px', fontWeight: 600 }}>
           {interval === 'yearly' ? 'Billing ₹9,990+ per year' : 'Flexible monthly billing'}
         </p>
       </div>
 
-      <div className="plans-grid">
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '24px' }}>
         {SUBSCRIPTION_PLANS.map((plan) => (
-          <div key={plan.id} className={`plan-card ${plan.id === currentPlan ? 'current' : ''} ${plan.id === 'pro' ? 'featured' : ''}`}>
-            {plan.id === 'pro' && <div className="featured-badge"><Zap size={14} /> Recommended</div>}
+          <div key={plan.id} className={`pv-card ${plan.id === 'pro' ? 'pv-glass' : ''}`} style={{ padding: '40px 32px', position: 'relative', border: plan.id === currentPlan ? '2px solid var(--gold)' : '', background: plan.id === 'pro' ? 'var(--brand-deep)' : '', color: plan.id === 'pro' ? 'white' : '' }}>
+            {plan.id === 'pro' && (
+              <div style={{ position: 'absolute', top: '-14px', left: '50%', transform: 'translateX(-50%)', background: 'var(--brand-vibrant)', color: 'var(--brand-deep)', padding: '6px 16px', borderRadius: '20px', fontSize: '11px', fontWeight: 900, display: 'flex', alignItems: 'center', gap: '6px', whiteSpace: 'nowrap', boxShadow: 'var(--shadow-md)' }}>
+                <Zap size={14} /> Recommended
+              </div>
+            )}
             
-            <div className="plan-header">
-              <div className="plan-icon-box">
+            <div style={{ marginBottom: '24px' }}>
+              <div style={{ width: '56px', height: '56px', background: plan.id === 'pro' ? 'rgba(255,255,255,0.1)' : 'var(--bg-primary)', borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: plan.id === 'pro' ? 'white' : 'var(--brand-primary)', marginBottom: '20px' }}>
                 {plan.id === 'free' && <Building2 size={24} />}
                 {plan.id === 'starter' && <ShieldCheck size={24} />}
                 {plan.id === 'pro' && <Zap size={24} />}
                 {plan.id === 'elite' && <Crown size={24} />}
               </div>
-              <h3>{plan.name}</h3>
-              <p>{plan.description}</p>
+              <h3 style={{ fontSize: '22px', fontWeight: 800, margin: '0 0 8px 0' }}>{plan.name}</h3>
+              <p style={{ fontSize: '14px', opacity: 0.8, lineHeight: 1.6 }}>{plan.description}</p>
             </div>
 
-            <div className="plan-price">
-              <span className="currency">₹</span>
-              <span className="amount">
+            <div style={{ marginBottom: '32px', display: 'flex', alignItems: 'baseline', gap: '4px' }}>
+              <span style={{ fontSize: '24px', fontWeight: 600, opacity: 0.6 }}>₹</span>
+              <span style={{ fontSize: '44px', fontWeight: 900 }}>
                 {interval === 'monthly' 
                   ? (plan.monthlyPrice?.toLocaleString('en-IN') ?? '0') 
                   : (plan.yearlyPrice?.toLocaleString('en-IN') ?? '0')}
               </span>
-              <span className="period">{interval === 'monthly' ? '/mo' : '/yr'}</span>
+              <span style={{ fontSize: '15px', fontWeight: 600, opacity: 0.6 }}>{interval === 'monthly' ? '/mo' : '/yr'}</span>
             </div>
 
             <button 
-              className={`btn-upgrade ${loading === plan.id ? 'loading' : ''} ${plan.id === currentPlan ? 'active' : ''}`}
+              className={`pv-btn ${plan.id === currentPlan ? 'pv-btn-outline' : (plan.id === 'pro' ? 'pv-btn-gold' : 'pv-btn-primary')}`}
+              style={{ width: '100%', marginBottom: '32px' }}
               disabled={plan.id === currentPlan || !!loading}
               onClick={() => handleUpgrade(plan)}
             >
@@ -165,10 +172,10 @@ export default function SubscriptionTab({ currentPlan, onUpgrade, firmName }: Su
               {plan.id !== currentPlan && !loading && <ChevronRight size={18} />}
             </button>
 
-            <ul className="plan-features">
+            <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '16px' }}>
               {plan.features.map((feature: any, idx: number) => (
-                <li key={idx} className={feature.included ? 'included' : 'excluded'}>
-                  <Check size={16} className="check-icon" />
+                <li key={idx} style={{ fontSize: '14px', display: 'flex', alignItems: 'center', gap: '12px', fontWeight: 500, opacity: feature.included ? 1 : 0.4 }}>
+                  <Check size={16} style={{ color: plan.id === 'pro' ? 'var(--brand-vibrant)' : 'var(--brand-primary)', flexShrink: 0 }} />
                   {feature.text}
                 </li>
               ))}
@@ -177,16 +184,16 @@ export default function SubscriptionTab({ currentPlan, onUpgrade, firmName }: Su
         ))}
       </div>
 
-      <div className="history-section">
-        <div className="section-header">
-          <h3>Billing History</h3>
-          <button className="btn-refresh" onClick={fetchHistory} title="Refresh History">
+      <div style={{ marginTop: '64px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+          <h3 style={{ fontSize: '20px', fontWeight: 800 }}>Billing History</h3>
+          <button className="pv-btn pv-btn-outline pv-btn-sm" onClick={fetchHistory} title="Refresh History">
             <RefreshCw size={16} className={fetchingHistory ? 'spin' : ''} />
           </button>
         </div>
         
-        <div className="history-table-wrapper">
-          <table className="history-table">
+        <div className="pv-card" style={{ padding: 0 }}>
+          <table className="pv-table">
             <thead>
               <tr>
                 <th>Date</th>
@@ -200,18 +207,18 @@ export default function SubscriptionTab({ currentPlan, onUpgrade, firmName }: Su
             <tbody>
               {history.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="empty-history">
+                  <td colSpan={6} style={{ textAlign: 'center', padding: '40px', color: 'var(--text-tertiary)' }}>
                     {fetchingHistory ? 'Fetching history...' : 'No payment history yet.'}
                   </td>
                 </tr>
               ) : history.map((sub) => (
                 <tr key={sub.id}>
                   <td>{formatDate(sub.createdAt)}</td>
-                  <td><span className="plan-name">{(sub.planId || 'UNKNOWN').toUpperCase()}</span></td>
+                  <td><span style={{ fontWeight: 800 }}>{(sub.planId || 'UNKNOWN').toUpperCase()}</span></td>
                   <td>{sub.interval === 'yearly' ? 'Yearly' : 'Monthly'}</td>
-                  <td>₹{sub.amount?.toLocaleString('en-IN') ?? '0'}</td>
-                  <td><span className="pay-method">{(sub.paymentMethod || 'OTHER').toUpperCase()}</span></td>
-                  <td><span className={`status-pill ${sub.status}`}>{sub.status}</span></td>
+                  <td style={{ fontWeight: 700 }}>₹{sub.amount?.toLocaleString('en-IN') ?? '0'}</td>
+                  <td>{(sub.paymentMethod || 'OTHER').toUpperCase()}</td>
+                  <td><span className="pv-badge" style={{ background: 'var(--status-active-bg)', color: 'var(--status-active)', fontWeight: 800 }}>{sub.status}</span></td>
                 </tr>
               ))}
             </tbody>
@@ -219,340 +226,18 @@ export default function SubscriptionTab({ currentPlan, onUpgrade, firmName }: Su
         </div>
       </div>
 
-      <div className="billing-footer">
-        <div className="footer-info">
+      <div style={{ marginTop: '60px', padding: '32px', background: 'var(--bg-primary)', borderRadius: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', border: '1px solid var(--border)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', fontSize: '14px', color: 'var(--text-secondary)', fontWeight: 600 }}>
           <CreditCard size={18} />
           <span>Secure checkout powered by **Razorpay Stub**</span>
         </div>
-        <div className="footer-warning">
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: 'var(--status-overdue)', fontWeight: 800, background: 'var(--status-overdue-bg)', padding: '6px 14px', borderRadius: '10px' }}>
           <AlertCircle size={14} />
-          Note: This is a system development simulation. No real money will be charged.
+          Note: System development simulation. No real money will be charged.
         </div>
       </div>
 
-      <style jsx>{`
-        .subscription-container {
-          padding-top: 10px;
-        }
 
-        .billing-toggle-wrapper {
-          text-align: center;
-          margin-bottom: 40px;
-        }
-
-        .billing-toggle {
-          display: inline-flex;
-          align-items: center;
-          background: var(--bg-hover);
-          padding: 6px;
-          border-radius: 40px;
-          border: 1px solid var(--border-light);
-          position: relative;
-        }
-
-        .toggle-btn {
-          padding: 10px 28px;
-          border: none;
-          background: transparent;
-          color: var(--text-tertiary);
-          font-weight: 700;
-          font-size: 14px;
-          border-radius: 30px;
-          cursor: pointer;
-          transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-        }
-
-        .toggle-btn.active {
-          background: var(--primary-teal-dark);
-          color: #fff;
-          box-shadow: 0 4px 12px rgba(14, 124, 134, 0.25);
-        }
-
-        .saving-badge {
-          position: absolute;
-          right: -110px;
-          background: var(--brand-vibrant);
-          color: var(--brand-deep);
-          font-size: 10px;
-          font-weight: 900;
-          padding: 4px 12px;
-          border-radius: 8px;
-          text-transform: uppercase;
-          letter-spacing: 0.5px;
-        }
-
-        .billing-helper {
-          font-size: 13px;
-          color: var(--text-tertiary);
-          margin-top: 16px;
-          font-weight: 500;
-        }
-
-        .plans-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-          gap: 24px;
-        }
-
-        .plan-card {
-          background: var(--bg-primary);
-          border: 1px solid var(--border-light);
-          border-radius: 32px;
-          padding: 40px 32px;
-          display: flex;
-          flex-direction: column;
-          position: relative;
-          transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-        }
-
-        .plan-card:hover {
-          transform: translateY(-8px);
-          border-color: var(--primary-brand);
-          box-shadow: 0 20px 40px rgba(0,0,0,0.05);
-        }
-
-        .plan-card.featured {
-          background: linear-gradient(135deg, #0E7C86 0%, #1FB7C6 100%);
-          border: none;
-          color: #fff;
-        }
-
-        .plan-card.current {
-          border: 2px solid var(--primary-brand);
-        }
-
-        .featured-badge {
-          position: absolute;
-          top: -14px;
-          left: 50%;
-          transform: translateX(-50%);
-          background: var(--brand-vibrant);
-          color: var(--brand-deep);
-          padding: 6px 16px;
-          border-radius: 20px;
-          font-size: 11px;
-          font-weight: 900;
-          display: flex;
-          align-items: center;
-          gap: 6px;
-          white-space: nowrap;
-          box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-        }
-
-        .plan-icon-box {
-          width: 56px;
-          height: 56px;
-          background: var(--bg-hover);
-          border-radius: 16px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          margin-bottom: 24px;
-          color: var(--primary-brand);
-        }
-
-        .featured .plan-icon-box {
-          background: rgba(255, 255, 255, 0.15);
-          color: #fff;
-        }
-
-        .plan-header h3 {
-          margin: 0 0 8px 0;
-          font-size: 22px;
-          font-weight: 800;
-          letter-spacing: -0.5px;
-        }
-
-        .plan-header p {
-          font-size: 14px;
-          color: var(--text-tertiary);
-          margin-bottom: 24px;
-          line-height: 1.6;
-        }
-
-        .featured .plan-header p {
-          color: rgba(255,255,255,0.8);
-        }
-
-        .plan-price {
-          margin-bottom: 32px;
-          display: flex;
-          align-items: baseline;
-          gap: 4px;
-        }
-
-        .currency {
-          font-size: 24px;
-          font-weight: 600;
-          color: var(--text-tertiary);
-        }
-
-        .featured .currency { color: rgba(255,255,255,0.6); }
-
-        .amount {
-          font-size: 44px;
-          font-weight: 900;
-          letter-spacing: -1.5px;
-          color: var(--text-primary);
-        }
-
-        .featured .amount { color: #fff; }
-
-        .period {
-          font-size: 15px;
-          color: var(--text-tertiary);
-          font-weight: 600;
-        }
-
-        .featured .period { color: rgba(255,255,255,0.6); }
-
-        .btn-upgrade {
-          width: 100%;
-          padding: 16px;
-          border-radius: 16px;
-          font-weight: 800;
-          font-size: 15px;
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          gap: 10px;
-          margin-bottom: 32px;
-          transition: all 0.3s;
-          border: 1px solid var(--border-light);
-          background: var(--bg-hover);
-          color: var(--text-primary);
-        }
-
-        .btn-upgrade:not(.active):not(.loading) {
-          background: var(--primary-teal-dark);
-          color: #fff;
-          border: none;
-        }
-
-        .plan-card.featured .btn-upgrade:not(.active) {
-          background: #fff;
-          color: var(--primary-teal-dark);
-          box-shadow: 0 10px 20px rgba(0,0,0,0.1);
-        }
-
-        .btn-upgrade.active {
-          background: var(--bg-primary);
-          color: var(--text-tertiary);
-          cursor: default;
-          border: 1px solid var(--border-light);
-        }
-
-        .btn-upgrade:hover:not(.active):not(:disabled) {
-          transform: scale(1.02);
-          opacity: 0.95;
-        }
-
-        .plan-features {
-          list-style: none;
-          padding: 0;
-          margin: 0;
-          display: flex;
-          flex-direction: column;
-          gap: 16px;
-        }
-
-        .plan-features li {
-          font-size: 14px;
-          display: flex;
-          align-items: center;
-          gap: 12px;
-          font-weight: 500;
-        }
-
-        .check-icon {
-          color: var(--primary-brand);
-          flex-shrink: 0;
-        }
-
-        .featured .check-icon { color: var(--brand-vibrant); }
-
-        .excluded {
-          color: var(--text-tertiary);
-          opacity: 0.4;
-        }
-
-        .billing-footer {
-          margin-top: 60px;
-          padding: 32px;
-          background: var(--bg-hover);
-          border-radius: 24px;
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          border: 1px solid var(--border-light);
-        }
-
-        .footer-info {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-          font-size: 14px;
-          color: var(--text-secondary);
-          font-weight: 600;
-        }
-
-        .footer-warning {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          font-size: 12px;
-          color: #ef4444;
-          font-weight: 700;
-          background: #fee2e2;
-          padding: 6px 14px;
-          border-radius: 10px;
-        }
-
-        .history-section {
-          margin-top: 64px;
-        }
-
-        .section-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-bottom: 24px;
-        }
-
-        .section-header h3 { font-size: 20px; font-weight: 800; }
-
-        .history-table-wrapper {
-          background: var(--bg-primary);
-          border: 1px solid var(--border-light);
-          border-radius: 24px;
-          overflow: hidden;
-        }
-
-        .history-table th {
-          text-align: left;
-          padding: 18px 24px;
-          background: var(--bg-hover);
-          color: var(--text-tertiary);
-          font-weight: 700;
-          font-size: 11px;
-          text-transform: uppercase;
-          letter-spacing: 1px;
-        }
-
-        .history-table td {
-          padding: 18px 24px;
-          border-bottom: 1px solid var(--border-light);
-          font-size: 14px;
-        }
-
-        .plan-name {
-          font-weight: 800;
-          color: var(--primary-brand);
-        }
-
-        .status-pill.active { background: var(--status-active-bg); color: var(--status-active-text); }
-      `}</style>
     </div>
   );
 }
