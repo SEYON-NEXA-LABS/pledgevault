@@ -2,6 +2,7 @@
 
 import { createAdminClient } from '@/lib/supabase/admin';
 import { createClient } from '@/lib/supabase/server';
+import { PLAN_LIMITS } from '@/lib/constants';
 import { revalidatePath } from 'next/cache';
 
 export async function addStaffMemberAction(staffData: { fullName: string, email: string, password: string, branchId?: string, role: 'staff' | 'admin' }) {
@@ -21,6 +22,23 @@ export async function addStaffMemberAction(staffData: { fullName: string, email:
 
     if (profileFetchError || !profile || profile.role !== 'admin') {
       throw new Error('Unauthorized: Only firm admins can manage the team.');
+    }
+
+    // 1.5 PLAN USAGE CHECK (Egress Optimized)
+    const { data: firm } = await supabase.from('firms').select('plan').eq('id', profile.firm_id).single();
+    const currentPlan = firm?.plan || 'free';
+    const limits = PLAN_LIMITS[currentPlan] || PLAN_LIMITS.free;
+
+    if (limits.maxUsers !== Infinity) {
+      const { count, error: countError } = await adminClient
+        .from('profiles')
+        .select('*', { count: 'exact', head: true })
+        .eq('firm_id', profile.firm_id);
+      
+      if (countError) throw countError;
+      if ((count || 0) >= limits.maxUsers) {
+        throw new Error(`Your ${currentPlan.toUpperCase()} plan is limited to ${limits.maxUsers} users. Please upgrade to add more staff.`);
+      }
     }
 
     // 2. Create the user via Admin API (to avoid logging out the current admin)

@@ -249,7 +249,7 @@ export const supabaseService = {
       throw new Error('Authentication required to create a loan.');
     }
 
-    // Separate items from loan data for insertion
+    // Extract firmId immediately for plan checks
     const { items, ...loanData } = loan as any;
     let firmId = loanData.firm_id || loanData.firmId || items?.[0]?.firm_id || items?.[0]?.firmId;
     
@@ -260,6 +260,24 @@ export const supabaseService = {
     }
 
     if (!firmId) throw new Error('Could not determine Firm ID for loan creation.');
+
+    // Plan Limit Check (Egress Optimized)
+    const { data: firm } = await supabase.from('firms').select('plan').eq('id', firmId).single();
+    const currentPlan = (firm?.plan as string) || 'free';
+    const { PLAN_LIMITS } = await import('../constants');
+    const limits = PLAN_LIMITS[currentPlan] || PLAN_LIMITS.free;
+
+    if (limits.maxLoans !== Infinity) {
+      const { count, error: countError } = await supabase
+        .from('loans')
+        .select('*', { count: 'exact', head: true })
+        .eq('firm_id', firmId);
+      
+      if (countError) throw countError;
+      if ((count || 0) >= limits.maxLoans) {
+        throw new Error(`Your ${currentPlan.toUpperCase()} plan is limited to ${limits.maxLoans} active loans. Please upgrade to issue more.`);
+      }
+    }
 
     const isDraft = (loanData.status === 'draft');
     let formattedNumber = loanData.loan_number || loanData.loanNumber || '';
@@ -725,6 +743,27 @@ export const supabaseService = {
   },
 
   async createBranch(branch: Partial<Branch>) {
+    const firmId = branch.firmId;
+    if (!firmId) throw new Error('Firm ID is required to create a branch.');
+
+    // Plan Limit Check (Egress Optimized)
+    const { data: firm } = await supabase.from('firms').select('plan').eq('id', firmId).single();
+    const currentPlan = (firm?.plan as string) || 'free';
+    const { PLAN_LIMITS } = await import('../constants');
+    const limits = PLAN_LIMITS[currentPlan] || PLAN_LIMITS.free;
+
+    if (limits.maxBranches !== Infinity) {
+      const { count, error: countError } = await supabase
+        .from('branches')
+        .select('*', { count: 'exact', head: true })
+        .eq('firm_id', firmId);
+      
+      if (countError) throw countError;
+      if ((count || 0) >= limits.maxBranches) {
+        throw new Error(`Your ${currentPlan.toUpperCase()} plan is limited to ${limits.maxBranches} branch(es). Please upgrade to add more.`);
+      }
+    }
+
     const dbData = toSnake(branch);
     const { data, error } = await supabase
       .from('branches')
