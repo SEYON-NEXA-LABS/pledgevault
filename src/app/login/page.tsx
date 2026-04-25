@@ -17,8 +17,11 @@ import {
   Smartphone,
   LockKeyhole,
   Sparkles,
-  Trophy
+  Trophy,
+  Download,
+  Zap
 } from 'lucide-react';
+import InstallButton from '@/components/pwa/InstallButton';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
@@ -154,20 +157,53 @@ export default function LoginPage() {
   return (
     <div className="login-screen">
       <div className="login-card-dual anim-in">
-        <div className="login-pane-brand">
-          <div className="brand-zone">
-            <div className="brand-logo-large">
-               <span className="logo-spark">✨</span>
-               <div className="logo-circle">🪙</div>
+        <div className="login-pane-brand relative overflow-hidden flex flex-col justify-between p-12">
+          {/* Animated Background Gradients */}
+          <div className="absolute inset-0 bg-gradient-to-br from-primary via-primary/90 to-emerald-900" />
+          <div className="absolute top-[-10%] right-[-10%] w-[60%] h-[60%] rounded-full bg-gold/20 blur-[100px] animate-pulse" />
+          <div className="absolute bottom-[-10%] left-[-10%] w-[50%] h-[50%] rounded-full bg-white/10 blur-[80px]" />
+          
+          <div className="brand-zone relative z-10">
+            <div className="brand-logo-large mb-8">
+               <div className="w-16 h-16 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center shadow-2xl overflow-hidden">
+                 <img src="/android-chrome-192x192.png" alt="Logo" className="w-12 h-12 object-contain" />
+               </div>
+               <div className="flex flex-col">
+                 <h1 className="logo-name-large text-4xl">{branding.name}</h1>
+                 <p className="logo-tagline text-white/60 tracking-[0.3em] font-bold text-[10px] uppercase">
+                   {t.common.secureVault}
+                 </p>
+               </div>
             </div>
-            <div className="brand-info">
-               <h1 className="logo-name-large">{branding.name}</h1>
-               <p className="logo-tagline">{t.common.secureVault}</p>
+            
+            <div className="space-y-6 max-w-sm">
+               <div className="flex items-center gap-4 text-white/80">
+                 <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center shrink-0">
+                   <ShieldCheck size={20} className="text-gold" />
+                 </div>
+                 <p className="text-sm font-medium leading-relaxed">
+                   Enterprise-grade security for your financial vault and pledges.
+                 </p>
+               </div>
+               <div className="flex items-center gap-4 text-white/80">
+                 <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center shrink-0">
+                   <Zap size={20} className="text-gold" />
+                 </div>
+                 <p className="text-sm font-medium leading-relaxed">
+                   Real-time market rate synchronization for accurate appraisals.
+                 </p>
+               </div>
             </div>
           </div>
-          {/* Abstract Background Shapes */}
-          <div className="abstract-shape shape-1" />
-          <div className="abstract-shape shape-2" />
+
+          <div className="relative z-10 flex flex-col gap-6">
+             <InstallButton variant="full" className="w-fit" />
+             {/* <div className="flex items-center gap-4 text-white/40 text-[10px] font-bold uppercase tracking-widest">
+                <span>Certified Financial Platform</span>
+                <span>•</span>
+                <span>ISO 27001</span>
+             </div> */}
+          </div>
         </div>
 
         <div className="login-pane-form">

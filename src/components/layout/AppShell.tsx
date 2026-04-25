@@ -17,6 +17,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [overdueCount, setOverdueCount] = useState(0);
+  const [totalLoans, setTotalLoans] = useState(0);
   const [mounted, setMounted] = useState(false);
   const [isHydrating, setIsHydrating] = useState(true);
   const [showMandatorySelector, setShowMandatorySelector] = useState(false);
@@ -94,6 +95,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
           const stats = await supabaseService.getDashboardStats(auth.firmId as string, targetBranchId);
           setOverdueCount(stats.overdueCount || 0);
+          setTotalLoans(stats.totalActiveLoans || 0);
 
           if (auth.firmId) {
             const subscription = await supabaseService.getActiveSubscription(auth.firmId);
@@ -160,6 +162,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           isOpen={sidebarOpen}
           onToggle={() => setSidebarOpen(!sidebarOpen)}
           overdueCount={overdueCount}
+          totalLoans={totalLoans}
         />
       )}
       <main className={`main-content ${isPublicPage ? 'full-width' : (sidebarOpen ? 'expanded' : 'collapsed')}`}>
@@ -181,7 +184,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
       {/* Mandatory Branch Selector for Staff */}
       {showMandatorySelector && !isPublicPage && (
-        <div className="fixed inset-0 z-[100] bg-background/80 backdrop-blur-xl flex items-center justify-center p-6 animate-in fade-in duration-500">
+        <div className="fixed inset-0 z-[100] bg-background flex items-center justify-center p-6 animate-in fade-in duration-500">
           <div className="pv-card sm:max-w-[440px] w-full text-center p-12 shadow-2xl border-primary/20">
             <div className="w-20 h-20 bg-primary/10 text-primary rounded-3xl flex items-center justify-center text-4xl mx-auto mb-8 shadow-inner">
                 🏠

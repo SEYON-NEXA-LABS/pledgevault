@@ -42,9 +42,10 @@ interface SidebarProps {
   isOpen: boolean;
   onToggle: () => void;
   overdueCount?: number;
+  totalLoans?: number;
 }
 
-export default function Sidebar({ isOpen, onToggle, overdueCount = 0 }: SidebarProps) {
+export default function Sidebar({ isOpen, onToggle, overdueCount = 0, totalLoans = 0 }: SidebarProps) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -111,8 +112,8 @@ export default function Sidebar({ isOpen, onToggle, overdueCount = 0 }: SidebarP
       <aside className={`sidebar ${isOpen ? 'open' : ''} glass-card`}>
         {/* Logo Section */}
         <div className="h-24 flex items-center gap-4 px-8 border-b border-sidebar-border/50">
-          <div className="w-12 h-12 rounded-2xl flex items-center justify-center bg-primary text-primary-foreground shadow-lg shadow-primary/20">
-            {authStore.isSuperadmin() ? <ShieldCheck size={24} /> : <Shield size={24} />}
+          <div className="w-12 h-12 rounded-2xl flex items-center justify-center bg-white/10 backdrop-blur-md border border-white/10 shadow-lg overflow-hidden">
+            <img src="/android-chrome-192x192.png" alt="Logo" className="w-8 h-8 object-contain" />
           </div>
           <div className="flex flex-col">
             <h1 className="text-xl font-black tracking-tight leading-none mb-1">
@@ -143,10 +144,19 @@ export default function Sidebar({ isOpen, onToggle, overdueCount = 0 }: SidebarP
                         ELITE
                       </span>
                     )}
-                    {item.href === '/loans' && overdueCount > 0 && (
-                      <span className="ml-auto bg-destructive text-destructive-foreground text-[10px] font-extrabold px-2 py-0.5 rounded-md">
-                        {overdueCount}
-                      </span>
+                    {item.href === '/loans' && (
+                      <div className="ml-auto flex items-center gap-1.5">
+                        {overdueCount > 0 && (
+                          <span className="bg-destructive text-white text-[11px] font-bold px-2 py-0.5 rounded-md min-w-[20px] text-center shadow-sm" title="Overdue">
+                            {overdueCount}
+                          </span>
+                        )}
+                        {totalLoans > 0 && (
+                          <span className="bg-primary/10 text-primary text-[11px] font-bold px-2 py-0.5 rounded-md min-w-[20px] text-center" title="Total Active">
+                            {totalLoans}
+                          </span>
+                        )}
+                      </div>
                     )}
                   </Link>
                 );

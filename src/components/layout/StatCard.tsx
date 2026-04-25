@@ -39,9 +39,6 @@ export default function StatCard({
         )}
         {subtitle && <span className="opacity-60">{subtitle}</span>}
       </div>
-      
-      {/* Decorative background element */}
-      <div className="absolute -bottom-6 -right-6 w-24 h-24 bg-primary/5 rounded-full blur-2xl" />
     </div>
   );
 }

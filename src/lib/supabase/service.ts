@@ -607,12 +607,15 @@ export const supabaseService = {
     return data;
   },
 
-  async getRecentRateHistory(limit = 2) {
+  async getRecentRateHistory() {
+    const oneWeekAgo = new Date();
+    oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+
     const { data, error } = await supabase
       .from('market_rates')
       .select('gold_24k, silver, created_at')
-      .order('created_at', { ascending: false })
-      .limit(limit);
+      .gte('created_at', oneWeekAgo.toISOString())
+      .order('created_at', { ascending: false });
       
     if (error) throw error;
     return data || [];

@@ -56,7 +56,7 @@ export const metalRateService = {
     }
 
     // 2. Fetch History (Optimized: 7 records for sparklines, specific columns)
-    const history = await supabaseService.getRecentRateHistory(7);
+    const history = await supabaseService.getRecentRateHistory();
     
     if (history.length < 2) {
       return { goldChange: 0, silverChange: 0, isNew: true, history: [] };

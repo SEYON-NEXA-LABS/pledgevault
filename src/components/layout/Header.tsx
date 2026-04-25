@@ -21,6 +21,7 @@ import TamilCalendarPopup from '../common/TamilCalendarPopup';
 import LiveRateTicker from '../common/LiveRateTicker';
 import UniversalSearch from '../common/UniversalSearch';
 import TrialBanner from './TrialBanner';
+import InstallButton from '../pwa/InstallButton';
 import { supabase } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
 import { translations, Language } from '@/lib/i18n/translations';
@@ -208,18 +209,19 @@ export default function Header({ onMenuClick, settings: propSettings }: HeaderPr
             {/* Language Switcher */}
             <div className="flex bg-muted/50 rounded-xl p-1 mr-1 border border-border/30">
               <button 
-                className={`px-2.5 py-1 rounded-lg text-[10px] font-black tracking-tighter transition-all cursor-pointer ${settings.language === 'en' ? 'bg-card text-primary shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
+                className={`px-2.5 py-1 rounded-lg text-[10px] font-bold tracking-tighter transition-all cursor-pointer ${settings.language === 'en' ? 'bg-card text-primary shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
                 onClick={() => handleLanguageChange('en')}
               >
                 EN
               </button>
               <button 
-                className={`px-2.5 py-1 rounded-lg text-[10px] font-black tracking-tighter transition-all cursor-pointer ${settings.language === 'ta' ? 'bg-card text-primary shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
+                className={`px-2.5 py-1 rounded-lg text-[10px] font-bold tracking-tighter transition-all cursor-pointer ${settings.language === 'ta' ? 'bg-card text-primary shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
                 onClick={() => handleLanguageChange('ta')}
               >
                 தமிழ்
               </button>
             </div>
+            <InstallButton variant="minimal" className="hidden md:flex" />
             <button 
               className="search-trigger"
               onClick={() => setIsSearchOpen(true)}

@@ -67,6 +67,7 @@ export default function DashboardPage() {
   const [customers, setCustomers] = useState<any[]>([]);
   const [cloudStats, setCloudStats] = useState<any>(null);
   const [marketTrends, setMarketTrends] = useState<any>(null);
+  const [latestRates, setLatestRates] = useState<{ gold22k: number; silver: number } | null>(null);
   const [mounted, setMounted] = useState(false);
 
   const [settings, setSettings] = useState(settingsStore.get());
@@ -108,6 +109,10 @@ export default function DashboardPage() {
           // Get Market Trends (Optimized via LS Caching)
           const trends = await metalRateService.getMarketTrends();
           setMarketTrends(trends);
+
+          // Get absolute latest rates for the pulse display
+          const live = await metalRateService.getLiveRates();
+          setLatestRates({ gold22k: live.gold22k, silver: live.silver });
         }
       } catch (err) {
         console.error('FAILED: fetchDashboardData caught error:', err);
@@ -155,7 +160,7 @@ export default function DashboardPage() {
     <>
       <div className="page-header">
         <div className="page-header-left">
-          <h2 className="text-4xl font-black tracking-tight mb-2">
+          <h2 className="text-4xl font-extrabold tracking-tight mb-2">
             {t.dashboard.title}
           </h2>
           <div className="flex items-center gap-3">
@@ -182,11 +187,11 @@ export default function DashboardPage() {
                       <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">
                         {t.common.gold} 22K (916) Pulse
                       </span>
-                      <div className={`px-2 py-1 rounded-lg text-[10px] font-black ${marketTrends.goldChange >= 0 ? 'bg-primary/10 text-primary' : 'bg-destructive/10 text-destructive'}`}>
+                      <div className={`px-2 py-1 rounded-lg text-[10px] font-bold ${marketTrends.goldChange >= 0 ? 'bg-primary/10 text-primary' : 'bg-destructive/10 text-destructive'}`}>
                         {marketTrends.goldChange >= 0 ? '+' : ''}{marketTrends.goldChange}%
                       </div>
                    </div>
-                   <div className="text-3xl font-black mb-4">₹{Math.round((settings.goldRate24K || 0) * (22/24)).toLocaleString('en-IN')}<small className="text-xs ml-1 opacity-40 font-bold uppercase">/gram</small></div>
+                   <div className="text-3xl font-black mb-4">₹{(latestRates?.gold22k || Math.round((settings.goldRate24K || 0) * (22/24))).toLocaleString('en-IN')}<small className="text-xs ml-1 opacity-40 font-bold uppercase">/gram</small></div>
                    <div className="h-12 min-w-0">
                       <ResponsiveContainer width="100%" height="100%" minHeight={48}>
                         <AreaChart data={marketTrends.history}>
@@ -207,11 +212,11 @@ export default function DashboardPage() {
                       <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">
                         {t.common.silver} Pulse
                       </span>
-                      <div className={`px-2 py-1 rounded-lg text-[10px] font-black ${marketTrends.silverChange >= 0 ? 'bg-primary/10 text-primary' : 'bg-destructive/10 text-destructive'}`}>
+                      <div className={`px-2 py-1 rounded-lg text-[10px] font-bold ${marketTrends.silverChange >= 0 ? 'bg-primary/10 text-primary' : 'bg-destructive/10 text-destructive'}`}>
                         {marketTrends.silverChange >= 0 ? '+' : ''}{marketTrends.silverChange}%
                       </div>
                    </div>
-                   <div className="text-3xl font-black mb-4">₹{(settings.silverRate999 || 0).toLocaleString('en-IN')}<small className="text-xs ml-1 opacity-40 font-bold uppercase">/gram</small></div>
+                   <div className="text-3xl font-black mb-4">₹{(latestRates?.silver || settings.silverRate999 || 0).toLocaleString('en-IN')}<small className="text-xs ml-1 opacity-40 font-bold uppercase">/gram</small></div>
                    <div className="h-12 min-w-0">
                       <ResponsiveContainer width="100%" height="100%" minHeight={48}>
                         <AreaChart data={marketTrends.history}>
@@ -239,7 +244,7 @@ export default function DashboardPage() {
 
         <div className="pv-card p-0 flex flex-col overflow-hidden border-2 border-destructive/10">
           <div className="flex items-center justify-between p-6 border-b border-border bg-destructive/5">
-            <h3 className="text-xs font-black uppercase tracking-[0.2em] text-destructive">Collection Risks</h3>
+            <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-destructive">Collection Risks</h3>
             <span className="badge overdue">{overdueLoans.length}</span>
           </div>
           <div className="p-4 flex flex-col gap-3 overflow-y-auto max-h-[360px]">
