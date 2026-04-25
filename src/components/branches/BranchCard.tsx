@@ -16,10 +16,10 @@ interface BranchCardProps {
     totalGoldWeight?: number;
   };
   onDelete?: (id: string, name: string) => void;
-  isManager?: boolean;
+  isAdmin?: boolean;
 }
 
-export default function BranchCard({ branch, onDelete, isManager }: BranchCardProps) {
+export default function BranchCard({ branch, onDelete, isAdmin }: BranchCardProps) {
   const router = useRouter();
 
   const handleSwitchBranch = () => {
@@ -42,7 +42,7 @@ export default function BranchCard({ branch, onDelete, isManager }: BranchCardPr
             <span className="branch-id">{branch.code}</span>
           </div>
         </div>
-        {isManager && (
+        {isAdmin && (
           <button 
             className={`delete-btn ${branch.isActive === false ? 'text-primary' : 'text-destructive'}`} 
             onClick={() => onDelete?.(branch.id, branch.name)}

@@ -348,6 +348,53 @@ export default function CollectionsPage() {
           </div>
         )}
       </div>
+
+      <div className="mobile-cards mt-4">
+        {loading ? (
+          <div className="py-20 text-center">
+            <Loader2 className="animate-spin mx-auto mb-4 text-primary" size={32} />
+          </div>
+        ) : payments.map((payment) => (
+          <div key={payment.id} className="pv-card flex flex-col gap-4 p-5 hover:shadow-lg transition-all duration-300">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-muted flex items-center justify-center text-muted-foreground">
+                  <FileText size={18} />
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-[10px] font-black uppercase opacity-40">Loan Number</span>
+                  <span className="font-black text-sm tracking-tight">{payment.loans?.loanNumber}</span>
+                </div>
+              </div>
+              <span className={`badge ${payment.type} px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest`}>
+                {payment.type === 'interest' ? 'Interest' : payment.type === 'full_closure' ? 'Closure' : 'Payment'}
+              </span>
+            </div>
+            
+            <div className="flex flex-col">
+              <span className="text-[10px] font-black uppercase opacity-40 mb-1">Customer</span>
+              <span className="text-sm font-bold">{payment.loans?.customerName}</span>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4 border-t border-border/50 pt-4 mt-2">
+              <div className="flex flex-col">
+                <span className="text-[10px] font-black uppercase opacity-40">Collected</span>
+                <span className="text-base font-black text-primary">{formatCurrency(payment.amount)}</span>
+              </div>
+              <div className="flex flex-col items-end">
+                <span className="text-[10px] font-black uppercase opacity-40">Date</span>
+                <span className="text-xs font-bold text-muted-foreground">{formatDate(payment.paymentDate)}</span>
+              </div>
+            </div>
+
+            <div className="flex gap-2 border-t border-border/50 pt-4">
+               <Link href={`/loans/${payment.loanId}`} className="pv-btn pv-btn-outline flex-1 h-10 rounded-xl font-black text-xs uppercase tracking-widest">
+                  {t.common.details}
+               </Link>
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

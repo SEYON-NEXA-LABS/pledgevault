@@ -41,7 +41,7 @@ export default function Header({ onMenuClick, settings: propSettings }: HeaderPr
   const router = useRouter();
 
   const isSuperadmin = auth.role === 'superadmin';
-  const isManager = auth.role === 'manager' || (auth.role as string) === 'admin';
+  const isAdmin = auth.role === 'admin' || auth.role === 'superadmin';
 
   useEffect(() => {
     if (propSettings) {
@@ -104,8 +104,8 @@ export default function Header({ onMenuClick, settings: propSettings }: HeaderPr
   const t = translations[lang] || translations.en;
 
   const activeBranchName = getActiveBranchName();
-  const canSwitchBranch = (settings.branches?.length || 0) > 0 || isManager || isSuperadmin;
-  const roleName = isSuperadmin ? t.sidebar.superadmin : (isManager ? t.sidebar.manager : t.sidebar.staff);
+  const canSwitchBranch = (settings.branches?.length || 0) > 0 || isAdmin || isSuperadmin;
+  const roleName = isSuperadmin ? t.sidebar.superadmin : (isAdmin ? t.sidebar.admin : t.sidebar.staff);
 
   const handleLanguageChange = (lang: 'en' | 'ta') => {
     const updated = { ...settings, language: lang };
@@ -152,7 +152,7 @@ export default function Header({ onMenuClick, settings: propSettings }: HeaderPr
                 </div>
                 
                 <div className="flex flex-col gap-1 mt-3">
-                  {(isManager || isSuperadmin) && (
+                  {isAdmin && (
                     <button
                       className={`pv-btn pv-btn-ghost w-full justify-start h-10 ${settings.activeBranchId === 'firm' ? 'active' : ''}`}
                       onClick={() => {

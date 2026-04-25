@@ -435,15 +435,30 @@ export default function LoansPage() {
                     <span className={`badge ${loan.status || 'active'}`}>{loan.status}</span>
                  </div>
                  <div className="flex flex-col gap-1">
-                    <span className="text-[10px] font-black uppercase text-muted-foreground opacity-40">Customer</span>
-                    <span className="text-sm font-bold">{loan.customerName}</span>
+                    <span className="text-[10px] font-black uppercase text-muted-foreground opacity-40">Customer & Assets</span>
+                    <div className="flex justify-between items-start">
+                       <span className="text-sm font-bold">{loan.customerName}</span>
+                       <div className="flex gap-1">
+                          {((loan as any).items || []).slice(0, 2).map((item: any) => (
+                            <span key={item.id} className="text-[8px] font-black uppercase px-1.5 py-0.5 rounded bg-primary/10 text-primary border border-primary/20">
+                              {item.itemType}
+                            </span>
+                          ))}
+                       </div>
+                    </div>
                  </div>
-                 <div className="grid grid-cols-2 gap-4 border-t border-border/50 pt-4 mt-2">
+                 <div className="grid grid-cols-3 gap-4 border-t border-border/50 pt-4 mt-2">
                     <div className="flex flex-col">
                        <span className="text-[10px] font-black uppercase text-muted-foreground opacity-40">Principal</span>
                        <span className="text-sm font-black text-primary">{formatCurrency(loan.loanAmount || 0)}</span>
                     </div>
                     <div className="flex flex-col">
+                       <span className="text-[10px] font-black uppercase text-muted-foreground opacity-40">Weight</span>
+                       <span className="text-sm font-black text-foreground">
+                         {formatWeight(((loan as any).items || []).reduce((s: number, i: any) => s + i.netWeight, 0))}
+                       </span>
+                    </div>
+                    <div className="flex flex-col items-end">
                        <span className="text-[10px] font-black uppercase text-muted-foreground opacity-40">Due Date</span>
                        <span className={`text-sm font-bold ${loan.status === 'overdue' ? 'text-destructive' : ''}`}>
                           {formatDate(loan.dueDate || '')}

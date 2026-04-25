@@ -73,7 +73,7 @@ export async function registerTrialAction(formData: any) {
         firm_id: firm.id,
         default_branch_id: mainBranch.id,
         full_name: fullName,
-        role: 'manager'
+        role: 'admin'
       }]);
 
     if (profileError) throw profileError;

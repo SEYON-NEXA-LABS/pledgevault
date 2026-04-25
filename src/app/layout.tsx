@@ -17,26 +17,30 @@ const hindMadurai = Hind_Madurai({
   variable: '--font-hind-madurai' 
 });
 
-export const metadata: Metadata = {
-  title: "PledgeVault — Gold & Silver Loan Management",
-  description: "Modern loan management system for pawn shops. Track gold & silver pledges, calculate interest, manage customers, and generate reports.",
-  keywords: "gold loan, silver loan, pawn shop, pledge management, jewel loan, loan management",
-  manifest: "/manifest.json",
-  appleWebApp: {
-    capable: true,
-    statusBarStyle: "default",
-    title: "PledgeVault",
-  },
-  icons: {
-    icon: [
-      { url: "/android-chrome-192x192.png", sizes: "192x192", type: "image/png" },
-      { url: "/android-chrome-512x512.png", sizes: "512x512", type: "image/png" }
-    ],
-    apple: [
-      { url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" }
-    ],
-  },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const version = process.env.NEXT_PUBLIC_APP_VERSION || Date.now().toString();
+  
+  return {
+    title: "PledgeVault — Gold & Silver Loan Management",
+    description: "Modern loan management system for pawn shops. Track gold & silver pledges, calculate interest, manage customers, and generate reports.",
+    keywords: "gold loan, silver loan, pawn shop, pledge management, jewel loan, loan management",
+    manifest: `/manifest.json?v=${version}`,
+    appleWebApp: {
+      capable: true,
+      statusBarStyle: "default",
+      title: "PledgeVault",
+    },
+    icons: {
+      icon: [
+        { url: `/android-chrome-192x192.png?v=${version}`, sizes: "192x192", type: "image/png" },
+        { url: `/android-chrome-512x512.png?v=${version}`, sizes: "512x512", type: "image/png" }
+      ],
+      apple: [
+        { url: `/apple-touch-icon.png?v=${version}`, sizes: "180x180", type: "image/png" }
+      ],
+    },
+  };
+}
 
 export const viewport = {
   width: "device-width",

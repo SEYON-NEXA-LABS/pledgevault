@@ -44,7 +44,7 @@ export default function BranchesPage() {
   const settings = settingsStore.get();
   const lang: Language = (settings.language || 'en') as Language;
   const t = translations[lang];
-  const isManager = authStore.isManager() || authStore.isSuperadmin();
+  const isAdmin = authStore.isAdmin() || authStore.isSuperadmin();
 
   useEffect(() => {
     fetchInitialData();
@@ -166,7 +166,7 @@ export default function BranchesPage() {
           <BranchCard 
             key={branch.id} 
             branch={branch} 
-            isManager={isManager}
+            isAdmin={isAdmin}
             onDelete={() => handleToggleArchive(branch.id, branch.name, branch.isActive === false)}
           />
         ))}

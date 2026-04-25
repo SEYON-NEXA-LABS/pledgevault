@@ -28,7 +28,7 @@ CREATE TABLE profiles (
   firm_id UUID REFERENCES firms(id) ON DELETE CASCADE,
   default_branch_id UUID, -- Optional: assigned by manager
   full_name TEXT,
-  role TEXT NOT NULL CHECK (role IN ('superadmin', 'manager', 'staff')),
+  role TEXT NOT NULL CHECK (role IN ('superadmin', 'admin', 'staff')),
   created_at TIMESTAMPTZ DEFAULT now(),
   updated_at TIMESTAMPTZ DEFAULT now()
 );

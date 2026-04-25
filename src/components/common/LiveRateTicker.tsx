@@ -45,7 +45,7 @@ export default function LiveRateTicker() {
 
   if (!rates && loading) return null;
 
-  const isManager = authStore.isManager() || authStore.isSuperadmin();
+  const isAdmin = authStore.isAdmin() || authStore.isSuperadmin();
 
   return (
     <div className="live-rate-ticker">
@@ -81,7 +81,7 @@ export default function LiveRateTicker() {
            </div>
         )}
 
-        {isManager && (
+        {isAdmin && (
           <button 
             onClick={fetchRates}
             className="refresh-btn"

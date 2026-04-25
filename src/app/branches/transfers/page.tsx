@@ -138,61 +138,110 @@ export default function TransfersPage() {
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 350px', gap: '32px' }}>
         {/* Transfer History Table */}
-        <div className="pv-card" style={{ padding: 0 }}>
-          <div className="card-header" style={{ padding: '24px 32px', borderBottom: '1px solid var(--border)' }}>
-            <h3 style={{ fontSize: '18px', fontWeight: 800, margin: 0, display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <History size={18} className="text-primary" />
-              {t.dashboard.movement}
-            </h3>
-          </div>
-          <div style={{ overflowX: 'auto' }}>
-            <table className="pv-table">
-              <thead>
-                <tr>
-                  <th>Date</th>
-                  <th>Type</th>
-                  <th>Source</th>
-                  <th>Destination</th>
-                  <th>Status</th>
-                  <th>Amount/Weight</th>
-                </tr>
-              </thead>
-              <tbody>
-                {transfers.length === 0 ? (
+        <div className="flex flex-col gap-8">
+          {/* Desktop Transfer History Table */}
+          <div className="pv-card hidden md:block" style={{ padding: 0 }}>
+            <div className="card-header" style={{ padding: '24px 32px', borderBottom: '1px solid var(--border)' }}>
+              <h3 style={{ fontSize: '18px', fontWeight: 800, margin: 0, display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <History size={18} className="text-primary" />
+                {t.dashboard.movement}
+              </h3>
+            </div>
+            <div style={{ overflowX: 'auto' }}>
+              <table className="pv-table">
+                <thead>
                   <tr>
-                    <td colSpan={6} style={{ textAlign: 'center', padding: '60px', color: 'var(--text-tertiary)' }}>
-                      No transfers recorded yet.
-                    </td>
+                    <th>Date</th>
+                    <th>Type</th>
+                    <th>Source</th>
+                    <th>Destination</th>
+                    <th>Status</th>
+                    <th>Amount/Weight</th>
                   </tr>
-                ) : transfers.map((t) => (
-                  <tr key={t.id}>
-                    <td style={{ fontSize: '13px' }}>{formatDate(t.createdAt)}</td>
-                    <td>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', fontWeight: 800, textTransform: 'uppercase' }}>
-                        {t.entityType === 'loan' && <Package size={14} className="text-primary" />}
-                        {t.entityType === 'gold' && <Coins size={14} style={{ color: 'var(--gold)' }} />}
-                        {t.entityType}
+                </thead>
+                <tbody>
+                  {transfers.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} style={{ textAlign: 'center', padding: '60px', color: 'var(--text-tertiary)' }}>
+                        No transfers recorded yet.
+                      </td>
+                    </tr>
+                  ) : transfers.map((t) => (
+                    <tr key={t.id}>
+                      <td style={{ fontSize: '13px' }}>{formatDate(t.createdAt)}</td>
+                      <td>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', fontWeight: 800, textTransform: 'uppercase' }}>
+                          {t.entityType === 'loan' && <Package size={14} className="text-primary" />}
+                          {t.entityType === 'gold' && <Coins size={14} style={{ color: 'var(--gold)' }} />}
+                          {t.entityType}
+                        </div>
+                      </td>
+                      <td style={{ fontSize: '14px', fontWeight: 700 }}>{t.from?.name}</td>
+                      <td style={{ fontSize: '14px', fontWeight: 700 }}>
+                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                           <ArrowRight size={14} className="text-muted-foreground" />
+                           {t.to?.name}
+                         </div>
+                      </td>
+                      <td>
+                        <span className="pv-badge" style={{ background: 'var(--status-active-bg)', color: 'var(--status-active)', fontWeight: 800 }}>
+                          {t.status.toUpperCase()}
+                        </span>
+                      </td>
+                      <td style={{ fontWeight: 800 }}>
+                        {t.amount > 0 ? formatCurrency(t.amount) : (t.weight > 0 ? `${t.weight}g` : '-')}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Mobile View for Transfer History */}
+          <div className="mobile-cards">
+             {transfers.length === 0 ? (
+               <div className="py-20 text-center opacity-30">
+                 <History size={40} className="mx-auto mb-4" />
+                 <p className="text-xs font-black uppercase tracking-widest">No Movements Recorded</p>
+               </div>
+             ) : transfers.map((t) => (
+               <div key={t.id} className="pv-card flex flex-col gap-4 p-5 hover:shadow-lg transition-all duration-300">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className={`p-2 rounded-lg ${t.entityType === 'gold' ? 'bg-gold/10 text-gold' : 'bg-primary/10 text-primary'}`}>
+                        {t.entityType === 'loan' ? <Package size={16} /> : <Coins size={16} />}
                       </div>
-                    </td>
-                    <td style={{ fontSize: '14px', fontWeight: 700 }}>{t.from?.name}</td>
-                    <td style={{ fontSize: '14px', fontWeight: 700 }}>
-                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                         <ArrowRight size={14} className="text-muted-foreground" />
-                         {t.to?.name}
-                       </div>
-                    </td>
-                    <td>
-                      <span className="pv-badge" style={{ background: 'var(--status-active-bg)', color: 'var(--status-active)', fontWeight: 800 }}>
-                        {t.status.toUpperCase()}
-                      </span>
-                    </td>
-                    <td style={{ fontWeight: 800 }}>
-                      {t.amount > 0 ? formatCurrency(t.amount) : (t.weight > 0 ? `${t.weight}g` : '-')}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                      <span className="text-[10px] font-black uppercase tracking-widest opacity-40">{t.entityType}</span>
+                    </div>
+                    <span className="badge active text-[9px] font-black uppercase tracking-widest">{t.status}</span>
+                  </div>
+
+                  <div className="flex flex-col gap-3 py-2">
+                     <div className="flex items-center justify-between">
+                        <div className="flex flex-col">
+                           <span className="text-[10px] font-black uppercase opacity-30">From</span>
+                           <span className="text-sm font-bold">{t.from?.name}</span>
+                        </div>
+                        <ArrowRight size={14} className="text-muted-foreground opacity-30" />
+                        <div className="flex flex-col items-end">
+                           <span className="text-[10px] font-black uppercase opacity-30">To</span>
+                           <span className="text-sm font-bold">{t.to?.name}</span>
+                        </div>
+                     </div>
+                  </div>
+
+                  <div className="flex justify-between items-center border-t border-border/50 pt-4 mt-2">
+                     <div className="flex flex-col">
+                        <span className="text-[10px] font-black uppercase opacity-40">Value/Weight</span>
+                        <span className="text-sm font-black text-primary">
+                          {t.amount > 0 ? formatCurrency(t.amount) : (t.weight > 0 ? `${t.weight}g` : '-')}
+                        </span>
+                     </div>
+                     <span className="text-[10px] font-bold text-muted-foreground">{formatDate(t.createdAt)}</span>
+                  </div>
+               </div>
+             ))}
           </div>
         </div>
 

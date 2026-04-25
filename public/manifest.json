@@ -5,10 +5,26 @@
   "id": "/?source=pwa",
   "start_url": "/?source=pwa",
   "display": "standalone",
-  "background_color": "#FFFFFF",
+  "background_color": "#0D2621",
   "theme_color": "#107B88",
   "orientation": "portrait",
   "scope": "/",
+  "shortcuts": [
+    {
+      "name": "New Loan",
+      "short_name": "Add Loan",
+      "description": "Start a new jewel loan appraisal",
+      "url": "/loans/new",
+      "icons": [{ "src": "/android-chrome-192x192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Search Pledges",
+      "short_name": "Search",
+      "description": "Quick search for loans or customers",
+      "url": "/loans",
+      "icons": [{ "src": "/android-chrome-192x192.png", "sizes": "192x192" }]
+    }
+  ],
   "icons": [
     {
       "src": "/android-chrome-192x192.png",

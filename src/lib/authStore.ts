@@ -1,6 +1,6 @@
 'use client';
 
-export type UserRole = 'superadmin' | 'manager' | 'staff';
+export type UserRole = 'superadmin' | 'admin' | 'staff';
 
 interface AuthState {
   userId: string | null;
@@ -48,10 +48,16 @@ export const authStore = {
     }
   },
 
-  isSuperadmin: () => authStore.get().role === 'superadmin',
-  isManager: () => {
-    const role = authStore.get().role;
-    return role === 'manager' || (role as string) === 'admin';
+  isSuperadmin: () => {
+    const role = (typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('pv_auth_state') || '{}') : {}).role;
+    return role === 'superadmin';
   },
-  isStaff: () => authStore.get().role === 'staff',
+  isAdmin: () => {
+    const role = (typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('pv_auth_state') || '{}') : {}).role;
+    return role === 'admin' || role === 'superadmin';
+  },
+  isStaff: () => {
+    const role = (typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('pv_auth_state') || '{}') : {}).role;
+    return role === 'staff';
+  },
 };

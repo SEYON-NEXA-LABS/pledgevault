@@ -80,7 +80,7 @@ export default function DashboardPage() {
     return () => window.removeEventListener('pv_settings_updated', handleUpdate);
   }, []);
   const activeBranchId = settings.activeBranchId;
-  const isManager = authStore.isManager() || authStore.isSuperadmin();
+  const isAdmin = authStore.isAdmin() || authStore.isSuperadmin();
 
   // Set default view mode based on role
   useEffect(() => {
@@ -341,7 +341,7 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {isManager && (
+        {isAdmin && (
           <div className="pv-card p-0 flex flex-col overflow-hidden">
             <div className="flex items-center justify-between p-6 border-b border-border bg-muted/10">
               <h3 className="text-xs font-black uppercase tracking-[0.2em] text-muted-foreground">{t.dashboard.assetComposition}</h3>
@@ -451,9 +451,20 @@ export default function DashboardPage() {
                   <div className="flex justify-between items-end">
                      <div className="flex flex-col">
                         <span className="font-black text-sm">{loan.customerName}</span>
-                        <span className="text-[10px] font-bold opacity-40">{loan.customerPhone}</span>
+                        <div className="flex gap-1 mt-1">
+                           {(loan.items || []).slice(0, 2).map((item: any, i: number) => (
+                             <span key={i} className="text-[8px] font-black uppercase px-1 py-0.5 rounded bg-primary/10 text-primary">
+                               {item.itemType}
+                             </span>
+                           ))}
+                        </div>
                      </div>
-                     <span className="font-black text-primary">{formatCurrency(loan.loanAmount)}</span>
+                     <div className="flex flex-col items-end">
+                        <span className="font-black text-primary">{formatCurrency(loan.loanAmount)}</span>
+                        <span className="text-[10px] font-black text-foreground">
+                           {formatWeight((loan.items || []).reduce((s: number, i: any) => s + i.netWeight, 0))}
+                        </span>
+                     </div>
                   </div>
                </div>
              ))}

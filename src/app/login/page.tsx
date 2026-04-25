@@ -21,7 +21,8 @@ import {
   Download,
   Zap,
   Building2,
-  HandCoins
+  HandCoins,
+  Shield
 } from 'lucide-react';
 import InstallButton from '@/components/pwa/InstallButton';
 import { useRouter } from 'next/navigation';
@@ -107,7 +108,7 @@ export default function LoginPage() {
             const branches = await supabaseService.getBranches(profile.firmId);
             setAvailableBranches(branches);
 
-            if (profile.role === 'manager' || profile.role === 'admin') {
+            if (profile.role === 'admin') {
               settingsStore.save({ activeBranchId: 'firm' });
               router.push('/');
               return;
@@ -135,9 +136,9 @@ export default function LoginPage() {
     }
   };
 
-  const handleDevLogin = async (role: 'manager' | 'staff') => {
+  const handleDevLogin = async (role: 'admin' | 'staff') => {
     const creds = {
-      manager: { email: 'admin@yourfirm.com', pass: 'password123' },
+      admin: { email: 'admin@yourfirm.com', pass: 'password123' },
       staff: { email: 'staff@yourfirm.com', pass: 'password123' }
     };
     
@@ -376,7 +377,7 @@ export default function LoginPage() {
              <div style={{ display: 'flex', gap: '8px', fontSize: '11px', color: 'var(--text-tertiary)', fontWeight: '700' }}>
                 <span>© 2026 {t.common.pledgevault}</span>
                 <span>•</span>
-                <span>v3.5.2</span>
+                <span className="font-mono lowercase opacity-60">Build: {process.env.NEXT_PUBLIC_APP_VERSION || 'dev'}</span>
              </div>
           </footer>
 
@@ -386,8 +387,8 @@ export default function LoginPage() {
                 <Sparkles size={10} /> <span>Dev Shortcuts</span>
               </div>
               <div className="dev-btns">
-                <button type="button" onClick={() => handleDevLogin('manager')} className="dev-btn manager">
-                  <ShieldCheck size={12} /> Manager
+                <button type="button" onClick={() => handleDevLogin('admin')} className="dev-btn admin">
+                  <Shield size={16} /> Admin Login
                 </button>
                 <button type="button" onClick={() => handleDevLogin('staff')} className="dev-btn staff">
                   <Monitor size={12} /> Staff

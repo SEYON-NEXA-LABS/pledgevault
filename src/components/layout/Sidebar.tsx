@@ -69,7 +69,7 @@ export default function Sidebar({ isOpen, onToggle, overdueCount = 0, totalLoans
   const t = translations[lang] || translations.en;
   const settings = settingsStore.get();
   const auth = authStore.get();
-  const isManager = authStore.isManager() || authStore.isSuperadmin();
+  const isAdmin = authStore.isAdmin() || authStore.isSuperadmin();
 
   // Auto-expand settings if we are on a settings page
   React.useEffect(() => {
@@ -186,8 +186,10 @@ export default function Sidebar({ isOpen, onToggle, overdueCount = 0, totalLoans
               <div className="text-sm font-bold truncate">
                 {auth.userName || 'User'}
               </div>
-              <div className="text-[10px] font-black text-primary uppercase tracking-wider">
-                {authStore.isSuperadmin() ? t.sidebar.superadmin : (authStore.isManager() ? t.sidebar.manager : t.sidebar.staff)}
+              <div className="text-[10px] font-black text-primary uppercase tracking-wider flex items-center gap-2">
+                {authStore.isSuperadmin() ? t.sidebar.superadmin : (authStore.isAdmin() ? t.sidebar.admin : t.sidebar.staff)}
+                <span className="opacity-30 select-none">•</span>
+                <span className="opacity-30 font-mono lower-case">v.{process.env.NEXT_PUBLIC_APP_VERSION || 'dev'}</span>
               </div>
             </div>
             <button className="pv-btn pv-btn-ghost w-9 h-9 p-0 text-muted-foreground hover:text-destructive shrink-0" onClick={handleSignOut} title={t.common.signOut}>

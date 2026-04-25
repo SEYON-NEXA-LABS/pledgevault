@@ -39,7 +39,7 @@ export default function TeamTab() {
     email: '',
     password: '',
     branchId: '',
-    role: 'staff' as 'staff' | 'manager'
+    role: 'staff' as 'staff' | 'admin'
   });
 
   const fetchTeam = async () => {
@@ -170,11 +170,14 @@ export default function TeamTab() {
                   </td>
                   <td>
                     <div className={`pv-badge`} style={{ 
-                      background: member.role === 'manager' ? 'var(--brand-deep)' : 'var(--bg-primary)',
-                      color: member.role === 'manager' ? 'var(--gold)' : 'var(--text-tertiary)',
-                      fontWeight: 800
+                      background: member.role === 'admin' ? 'var(--brand-deep)' : 'var(--bg-primary)',
+                      color: member.role === 'admin' ? 'var(--gold)' : 'var(--text-tertiary)',
+                      fontWeight: 800,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px'
                     }}>
-                       {member.role === 'manager' ? <Shield size={10} /> : <User size={10} />}
+                       {member.role === 'admin' ? <Shield size={10} /> : <User size={10} />}
                        {member.role.toUpperCase()}
                     </div>
                   </td>
@@ -204,7 +207,7 @@ export default function TeamTab() {
                     <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
                       <button className="pv-btn pv-btn-outline pv-btn-sm" onClick={() => setViewingMember(member)} title="View Details"><Eye size={16} /></button>
                       <button className="pv-btn pv-btn-outline pv-btn-sm" onClick={() => setEditingMember(member)} title="Edit Member"><Edit2 size={16} /></button>
-                      {member.role !== 'manager' && (
+                      {member.role !== 'admin' && (
                         <button className="pv-btn pv-btn-outline pv-btn-sm" style={{ color: 'var(--status-overdue)', borderColor: 'var(--status-overdue)' }} onClick={() => handleRemove(member.id, member.fullName)} title="Remove"><Trash2 size={16} /></button>
                       )}
                     </div>
@@ -243,8 +246,8 @@ export default function TeamTab() {
                   <div className="pv-input-group">
                     <label>Role</label>
                     <select className="pv-input" value={formData.role} onChange={e => setFormData({...formData, role: e.target.value as any})}>
-                      <option value="staff">Staff Member</option>
-                      <option value="manager">Lead Manager</option>
+                      <option value="staff">Staff</option>
+                      <option value="admin">Admin</option>
                     </select>
                   </div>
                   <div className="pv-input-group">
@@ -294,8 +297,8 @@ export default function TeamTab() {
                       value={editingMember.role || ''} 
                       onChange={e => setEditingMember({...editingMember, role: e.target.value as any})} 
                     >
-                      <option value="staff">Staff Member</option>
-                      <option value="manager">Lead Manager</option>
+                      <option value="staff">Staff</option>
+                      <option value="admin">Admin</option>
                     </select>
                   </div>
                   <div className="pv-input-group">

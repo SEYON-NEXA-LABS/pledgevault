@@ -398,16 +398,6 @@ export default function LoanDetailsPage() {
                             transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
                             boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
                           }}
-                          onMouseEnter={(e) => {
-                            e.currentTarget.style.transform = 'scale(1.15)';
-                            e.currentTarget.style.borderColor = 'var(--brand-primary)';
-                            e.currentTarget.style.boxShadow = '0 4px 12px rgba(16, 123, 136, 0.2)';
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.transform = 'scale(1)';
-                            e.currentTarget.style.borderColor = 'var(--border)';
-                            e.currentTarget.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
-                          }}
                         >
                           <img src={item.photoBase64} alt="Item" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                         </div>
@@ -429,6 +419,43 @@ export default function LoanDetailsPage() {
               </tfoot>
             </table>
           </div>
+
+          {/* Mobile view for Pledged Items */}
+          <div className="mobile-cards p-4">
+            {loan.items.map((item) => (
+              <div key={item.id} className="pv-card flex flex-col gap-3 p-4">
+                <div className="flex justify-between items-start">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-card border border-border flex items-center justify-center overflow-hidden">
+                      {item.photoBase64 ? (
+                        <img src={item.photoBase64} alt="Item" className="w-full h-full object-cover" onClick={() => setSelectedPhoto(item.photoBase64!)} />
+                      ) : (
+                        <Scale size={20} className="text-muted-foreground opacity-30" />
+                      )}
+                    </div>
+                    <div>
+                      <div className="font-black text-sm">{item.itemType}</div>
+                      <div className="text-[10px] font-bold text-muted-foreground uppercase">{item.purity} {item.metalType === 'gold' ? 'K' : ''} {item.metalType}</div>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-sm font-black text-primary">{formatWeight(item.netWeight)}</div>
+                    <div className="text-[10px] font-bold opacity-40">Gross: {formatWeight(item.grossWeight)}</div>
+                  </div>
+                </div>
+                <div className="flex justify-between items-center pt-3 border-t border-border/40">
+                   <div className="flex flex-col">
+                      <span className="text-[9px] font-bold text-muted-foreground uppercase">Appraisal Rate</span>
+                      <span className="text-xs font-black">{formatCurrency(item.ratePerGram || 0)}</span>
+                   </div>
+                   <div className="text-right">
+                      <span className="text-[9px] font-bold text-muted-foreground uppercase">Valuation</span>
+                      <span className="text-sm font-black">{formatCurrency(item.itemValue)}</span>
+                   </div>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -438,30 +465,50 @@ export default function LoanDetailsPage() {
         </div>
         <div className="card-body no-padding overflow-hidden">
           {payments.length > 0 ? (
-            <div className="data-table-wrapper">
-              <table className="data-table">
-                <thead>
-                  <tr>
-                    <th>Date</th>
-                    <th>Amount</th>
-                    <th>Type</th>
-                    <th>Remarks</th>
-                    <th>Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {payments.map((payment) => (
-                    <tr key={payment.id}>
-                      <td>{formatDate(payment.paymentDate)}</td>
-                      <td style={{ fontWeight: 700, color: 'var(--status-active)' }}>+ {formatCurrency(payment.amount)}</td>
-                      <td><span className="badge" style={{ background: 'rgba(0,0,0,0.05)', color: 'var(--text-secondary)' }}>{payment.type.replace('_', ' ')}</span></td>
-                      <td style={{ color: 'var(--text-secondary)' }}>{payment.remarks || '-'}</td>
-                      <td><span style={{ color: 'var(--status-active)', display: 'flex', alignItems: 'center', gap: '4px' }}><CheckCircle2 size={14} /> Received</span></td>
+            <>
+              <div className="data-table-wrapper">
+                <table className="data-table">
+                  <thead>
+                    <tr>
+                      <th>Date</th>
+                      <th>Amount</th>
+                      <th>Type</th>
+                      <th>Remarks</th>
+                      <th>Status</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody>
+                    {payments.map((payment) => (
+                      <tr key={payment.id}>
+                        <td>{formatDate(payment.paymentDate)}</td>
+                        <td style={{ fontWeight: 700, color: 'var(--status-active)' }}>+ {formatCurrency(payment.amount)}</td>
+                        <td><span className="badge" style={{ background: 'rgba(0,0,0,0.05)', color: 'var(--text-secondary)' }}>{payment.type.replace('_', ' ')}</span></td>
+                        <td style={{ color: 'var(--text-secondary)' }}>{payment.remarks || '-'}</td>
+                        <td><span style={{ color: 'var(--status-active)', display: 'flex', alignItems: 'center', gap: '4px' }}><CheckCircle2 size={14} /> Received</span></td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              
+              {/* Mobile view for Payment History */}
+              <div className="mobile-cards p-4">
+                 {payments.map((payment) => (
+                   <div key={payment.id} className="flex justify-between items-center p-4 pv-card">
+                      <div className="flex flex-col">
+                         <span className="text-sm font-black text-primary">{formatCurrency(payment.amount)}</span>
+                         <span className="text-[10px] font-bold text-muted-foreground opacity-50">{formatDate(payment.paymentDate)}</span>
+                      </div>
+                      <div className="text-right">
+                         <span className="badge" style={{ background: 'rgba(0,0,0,0.05)', color: 'var(--text-secondary)', marginBottom: '4px' }}>{payment.type.replace('_', ' ')}</span>
+                         <div className="text-[9px] font-black text-active flex items-center gap-1 justify-end" style={{ color: 'var(--status-active)' }}>
+                            <CheckCircle2 size={10} /> Received
+                         </div>
+                      </div>
+                   </div>
+                 ))}
+              </div>
+            </>
           ) : (
             <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-tertiary)' }}>
               No payments recorded yet.

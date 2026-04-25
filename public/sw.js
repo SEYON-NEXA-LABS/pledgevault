@@ -1,14 +1,18 @@
-const CACHE_NAME = 'pledgevault-v1.1';
+// Extract version from registration URL (sw.js?v=...)
+const urlParams = new URLSearchParams(self.location.search);
+const VERSION = urlParams.get('v') || '1.2.1';
+const CACHE_NAME = `pledgevault-v${VERSION}`;
+
 const ASSETS_TO_CACHE = [
   '/',
-  '/manifest.json'
+  '/manifest.json',
+  '/offline.html' // Minimal fallback
 ];
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      // Use cache.addAll only for essential assets, ignore failures for non-critical ones
       return cache.addAll(ASSETS_TO_CACHE).catch(err => console.warn('PWA Cache Warning:', err));
     })
   );
@@ -20,40 +24,50 @@ self.addEventListener('activate', (event) => {
       return Promise.all(
         cacheNames.filter((name) => name !== CACHE_NAME).map((name) => caches.delete(name))
       );
-    })
+    }).then(() => self.clients.claim())
   );
 });
 
 self.addEventListener('fetch', (event) => {
-  // 1. Skip non-GET requests (Login, POST, etc.)
   if (event.request.method !== 'GET') return;
 
-  // 2. Skip Supabase / API requests - let them hit the network directly
   const url = new URL(event.request.url);
+  
+  // 1. Skip Supabase / API - Always Network
   if (url.hostname.includes('supabase.co') || url.pathname.includes('/api/')) {
     return;
   }
 
-  // 3. Dynamic Strategy for other GET requests
+  // 2. Navigation Requests (HTML) -> NETWORK FIRST
+  // This ensures the user always sees the latest deployment when online
+  if (event.request.mode === 'navigate') {
+    event.respondWith(
+      fetch(event.request)
+        .then((networkResponse) => {
+          const responseToCache = networkResponse.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, responseToCache));
+          return networkResponse;
+        })
+        .catch(() => caches.match(event.request))
+    );
+    return;
+  }
+
+  // 3. Static Assets (Images, Fonts) -> CACHE FIRST, then Network
   event.respondWith(
     caches.match(event.request).then((cachedResponse) => {
       if (cachedResponse) return cachedResponse;
 
       return fetch(event.request).then((networkResponse) => {
-        // Don't cache if not a successful response or from a different origin
         if (!networkResponse || networkResponse.status !== 200 || networkResponse.type !== 'basic') {
           return networkResponse;
         }
 
         const responseToCache = networkResponse.clone();
-        caches.open(CACHE_NAME).then((cache) => {
-          cache.put(event.request, responseToCache);
-        });
-
+        caches.open(CACHE_NAME).then((cache) => cache.put(event.request, responseToCache));
         return networkResponse;
       }).catch(() => {
-        // If fetch fails and we have nothing in cache, just let it fail naturally
-        // unless it's a navigation request, then we could show an offline page.
+        // Silent fail for non-navigation
       });
     })
   );

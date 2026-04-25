@@ -77,36 +77,54 @@ const WeightInput = ({ value, onChange, onStep, metalType, placeholder, isWarnin
   const presets = metalType === 'gold' ? goldPresets : silverPresets;
 
   return (
-    <div className="weight-input-container" style={{ 
-      borderColor: isWarning ? '#f59e0b' : '',
-      background: isWarning ? '#fffbeb' : ''
-    }}>
-      {!hideSteppers && <button className="weight-stepper" onClick={() => onStep(-0.01)}>−</button>}
-      <input
-        type="text"
-        className="weight-input-naked"
-        placeholder={placeholder || "0.00"}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        onFocus={() => setShowQuickPicks(true)}
-        onBlur={() => setTimeout(() => setShowQuickPicks(false), 200)}
-        autoComplete="off"
-      />
-      {!hideSteppers && <button className="weight-stepper" onClick={() => onStep(0.01)}>+</button>}
+    <div className="flex flex-col gap-2 w-full">
+      <div className="weight-input-container !h-14 sm:!h-10" style={{ 
+        borderColor: isWarning ? '#f59e0b' : '',
+        background: isWarning ? '#fffbeb' : ''
+      }}>
+        {!hideSteppers && (
+          <button 
+            className="weight-stepper !w-12 !h-full active:bg-muted" 
+            onClick={() => onStep(-0.01)}
+          >
+            <span className="text-xl">−</span>
+          </button>
+        )}
+        <input
+          type="text"
+          className="weight-input-naked text-center font-black !text-lg"
+          placeholder={placeholder || "0.00"}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          onFocus={() => setShowQuickPicks(true)}
+          onBlur={() => setTimeout(() => setShowQuickPicks(false), 200)}
+          autoComplete="off"
+          inputMode="decimal"
+        />
+        {!hideSteppers && (
+          <button 
+            className="weight-stepper !w-12 !h-full active:bg-muted" 
+            onClick={() => onStep(0.01)}
+          >
+            <span className="text-xl">+</span>
+          </button>
+        )}
+      </div>
       
       {showQuickPicks && (
-        <div className="quick-pick-container">
+        <div className="flex gap-2 overflow-x-auto py-2 no-scrollbar">
           {presets.map(p => (
-            <div 
+            <button 
               key={p} 
-              className="quick-pick-tag" 
+              type="button"
+              className="px-4 py-2 rounded-xl bg-muted font-black text-xs uppercase tracking-widest whitespace-nowrap active:bg-primary active:text-white transition-colors border border-border/50" 
               onClick={() => {
                 onChange(p);
                 setShowQuickPicks(false);
               }}
             >
               {parseFloat(p)}g
-            </div>
+            </button>
           ))}
         </div>
       )}
@@ -168,9 +186,9 @@ function NewLoanContent() {
   const [payoutMethod, setPayoutMethod] = useState<'cash' | 'bank' | 'upi'>('cash');
   const [payoutReference, setPayoutReference] = useState('');
   
-  // Manager Override state
-  const [showManagerOverrideModal, setShowManagerOverrideModal] = useState(false);
-  const [managerPin, setManagerPin] = useState('');
+  // Admin Authorization state
+  const [showAdminOverrideModal, setShowAdminOverrideModal] = useState(false);
+  const [adminPin, setAdminPin] = useState('');
   const HIGH_VALUE_THRESHOLD = 500000; // 5 Lakhs
 
   const settings = typeof window !== 'undefined' ? settingsStore.get() : null;
@@ -464,9 +482,9 @@ function NewLoanContent() {
     
     // Check High Value Override
     const computedAmount = loanAmountOverride ? parseFloat(loanAmountOverride) : computedLoanAmount;
-    const isManager = authStore.isManager() || authStore.isSuperadmin();
-    if (!isManager && computedAmount >= HIGH_VALUE_THRESHOLD) {
-      setShowManagerOverrideModal(true);
+    const isAdmin = authStore.isAdmin() || authStore.isSuperadmin();
+    if (!isAdmin && computedAmount >= HIGH_VALUE_THRESHOLD) {
+      setShowAdminOverrideModal(true);
       return;
     }
 
@@ -494,9 +512,9 @@ function NewLoanContent() {
     }
     
     // Check High Value Override
-    const isManager = authStore.isManager() || authStore.isSuperadmin();
-    if (!isManager && finalLoanAmount >= HIGH_VALUE_THRESHOLD && !bypassOverride) {
-      setShowManagerOverrideModal(true);
+    const isAdmin = authStore.isAdmin() || authStore.isSuperadmin();
+    if (!isAdmin && finalLoanAmount >= HIGH_VALUE_THRESHOLD && !bypassOverride) {
+      setShowAdminOverrideModal(true);
       return;
     }
 
@@ -731,7 +749,7 @@ function NewLoanContent() {
                 )}
               </div>
 
-              {authStore.isManager() && (
+              {authStore.isAdmin() && (
                 <div style={{ marginBottom: '24px', padding: '16px', background: 'var(--status-active-bg)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--brand-glow)' }}>
                   <label style={{ fontSize: '11px', fontWeight: 800, color: 'var(--brand-deep)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                     <Building2 size={14} /> {t.appraisal.receivingBranch}
@@ -1014,7 +1032,7 @@ function NewLoanContent() {
         </div>
       </div>
 
-      {showManagerOverrideModal && (
+      {showAdminOverrideModal && (
         <div className="modal-overlay" style={{
           position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
           background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -1022,19 +1040,19 @@ function NewLoanContent() {
         }}>
           <div className="pv-card" style={{ width: '400px', maxWidth: '95%', animation: 'fadeInScale 0.3s ease', padding: 0, overflow: 'hidden' }}>
             <div className="modal-header" style={{ background: 'var(--status-overdue-bg)', color: 'var(--status-overdue)', padding: '20px 24px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><AlertCircle size={20} /> <h3 style={{ color: 'var(--status-overdue)', margin: 0 }}>{t.appraisal.managerOverride}</h3></div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><AlertCircle size={20} /> <h3 style={{ color: 'var(--status-overdue)', margin: 0 }}>{t.appraisal.adminOverride}</h3></div>
             </div>
             <div className="modal-body" style={{ padding: '24px' }}>
               <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '16px' }}>
-                {t.appraisal.managerOverrideDesc}
+                {t.appraisal.adminOverrideDesc}
               </p>
               <div className="pv-input-group" style={{ marginBottom: '20px' }}>
-                <label>{t.appraisal.managerPin}</label>
+                <label>{t.appraisal.adminPin}</label>
                 <input 
                   type="password" 
                   className="pv-input" 
-                  value={managerPin}
-                  onChange={e => setManagerPin(e.target.value)}
+                  value={adminPin}
+                  onChange={e => setAdminPin(e.target.value)}
                   placeholder="••••"
                   maxLength={4}
                   autoFocus
@@ -1042,10 +1060,10 @@ function NewLoanContent() {
                 />
               </div>
               <div style={{ display: 'flex', gap: '12px' }}>
-                <button className="pv-btn pv-btn-outline" style={{ flex: 1 }} onClick={() => setShowManagerOverrideModal(false)}>{t.common.cancel}</button>
+                <button className="pv-btn pv-btn-outline" style={{ flex: 1 }} onClick={() => setShowAdminOverrideModal(false)}>{t.common.cancel}</button>
                 <button className="pv-btn pv-btn-gold" style={{ flex: 1 }} onClick={() => {
-                  if (managerPin === '1234') {
-                    setShowManagerOverrideModal(false);
+                  if (adminPin === '1234') {
+                    setShowAdminOverrideModal(false);
                     handleSave(true);
                   } else {
                     alert('Invalid PIN!');

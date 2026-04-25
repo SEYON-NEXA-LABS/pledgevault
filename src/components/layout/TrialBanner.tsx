@@ -24,7 +24,7 @@ export default function TrialBanner() {
   if (!mounted) return null;
 
   const isActiveStaff = authStore.isStaff();
-  const isManager = authStore.isManager();
+  const isAdmin = authStore.isAdmin();
   const daysLeft = subscriptionStore.getDaysRemaining();
   const isTrial = subscriptionStore.isTrial();
   const isExpired = subscriptionStore.isExpired();
@@ -39,7 +39,7 @@ export default function TrialBanner() {
           {isExpired ? (
             <>
               <Clock size={16} className="shake" />
-              <span><strong>TRIAL EXPIRED.</strong> {isManager ? 'Renew access to continue record management.' : 'Contact your manager to renew access.'}</span>
+              <span><strong>TRIAL EXPIRED.</strong> {isAdmin ? 'Renew access to continue record management.' : 'Contact your administrator to renew access.'}</span>
             </>
           ) : (
             <>
@@ -49,7 +49,7 @@ export default function TrialBanner() {
           )}
         </div>
         
-        {isManager && (
+        {isAdmin && (
           <Link href="/settings?tab=subscription" className="banner-cta">
             <Zap size={12} />
             {isExpired ? 'Renew Now' : 'Upgrade to Pro'}

@@ -71,7 +71,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
           let targetBranchId = settingsStore.get().activeBranchId;
 
-          if (auth.role === 'manager' || auth.role === 'superadmin') {
+          if (auth.role === 'admin' || auth.role === 'superadmin') {
             if (!targetBranchId) targetBranchId = 'firm';
           } else if (auth.role === 'staff') {
             if (profile?.defaultBranchId) {
@@ -89,7 +89,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           // Single Theme Logic (Always Emerald/Gold)
           document.documentElement.setAttribute('data-theme', 'emerald');
 
-          if (authStore.isManager() || authStore.isSuperadmin()) {
+          if (authStore.isAdmin() || authStore.isSuperadmin()) {
              metalRateService.autoSyncIfStale().catch(e => console.warn('Daily market sync check failed:', e));
           }
 

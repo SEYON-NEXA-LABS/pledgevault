@@ -51,6 +51,7 @@ const COLORS = ['#107B88', '#1A3C34', '#D4A843', '#28A745', '#DC3545'];
 export default function ReportsPage() {
   const [reportData, setReportData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [mounted, setMounted] = useState(false);
   const [dateRange, setDateRange] = useState('30d');
   const [customRange, setCustomRange] = useState({
@@ -88,8 +89,10 @@ export default function ReportsPage() {
       if (profile?.firms?.plan) {
         setCurrentPlan(profile.firms.plan as PlanTier);
       }
-    } catch (err) {
+      setError(null);
+    } catch (err: any) {
       console.error('Error fetching reports data:', err);
+      setError(err.message || 'Failed to compile financial reports. Please verify your connection.');
     } finally {
       setLoading(false);
     }
@@ -131,8 +134,8 @@ export default function ReportsPage() {
             {t.reports.subtitle}
           </p>
         </div>
-        <div className="page-header-right flex items-center gap-3">
-          <div className="bg-muted/30 p-1 rounded-xl border border-border/50 flex">
+        <div className="page-header-right flex items-center gap-3 w-full sm:w-auto overflow-x-auto no-scrollbar pb-2 sm:pb-0">
+          <div className="bg-muted/30 p-1 rounded-xl border border-border/50 flex shrink-0">
              {['today', '7d', '30d', 'year'].map(p => (
                <button 
                 key={p}
@@ -143,9 +146,9 @@ export default function ReportsPage() {
                </button>
              ))}
           </div>
-          <button className="pv-btn pv-btn-outline h-11 gap-2">
+          <button className="pv-btn pv-btn-outline h-11 gap-2 shrink-0">
             <Download size={18} />
-            <span className="text-[10px] font-black uppercase tracking-widest">Export</span>
+            <span className="text-[10px] font-black uppercase tracking-widest hidden sm:inline">Export</span>
           </button>
         </div>
       </div>
@@ -154,6 +157,24 @@ export default function ReportsPage() {
         <div className="flex flex-col items-center justify-center min-h-[50vh] gap-4">
            <Loader2 className="animate-spin text-primary" size={40} />
            <p className="text-xs font-black uppercase tracking-widest opacity-40">Compiling Financial Data...</p>
+        </div>
+      ) : error ? (
+        <div className="flex flex-col items-center justify-center min-h-[50vh] gap-6 text-center">
+           <div className="w-20 h-20 bg-destructive/10 text-destructive rounded-3xl flex items-center justify-center text-4xl shadow-inner">
+              ⚠️
+           </div>
+           <div>
+              <h3 className="text-2xl font-black tracking-tight mb-2">Audit Report Failed</h3>
+              <p className="text-sm font-bold text-muted-foreground opacity-60 max-w-md mx-auto leading-relaxed">
+                 {error}
+              </p>
+           </div>
+           <button 
+            onClick={() => fetchData()}
+            className="pv-btn pv-btn-primary h-12 px-8"
+           >
+             Retry Audit
+           </button>
         </div>
       ) : (
         <>
@@ -182,7 +203,7 @@ export default function ReportsPage() {
             />
             <StatCard 
               title={t.reports.activeLoans} 
-              value={summary.activeCount.toString()} 
+              value={(summary.activeCount || 0).toString()} 
               icon={History} 
               variant="primary"
             />
@@ -243,18 +264,23 @@ export default function ReportsPage() {
                   <div key={loan.id} className="flex items-center justify-between p-4 rounded-2xl bg-destructive/5 border border-destructive/10 hover:bg-destructive/10 transition-colors">
                     <div className="flex items-center gap-4">
                        <div className="w-10 h-10 rounded-xl bg-destructive/20 flex items-center justify-center text-destructive font-black text-xs">
-                          {loan.loanNumber.substring(0, 2)}
+                          {(loan.loanNumber || 'LN').substring(0, 2)}
                        </div>
                        <div>
                           <span className="block text-sm font-black text-zinc-900 dark:text-zinc-100">{loan.customerName}</span>
                           <span className="text-[10px] font-bold text-destructive uppercase tracking-widest">
-                             {loan.loanNumber} • Due {formatDateShort(loan.dueDate)}
+                             {loan.loanNumber || 'N/A'} • Due {formatDateShort(loan.dueDate)}
                           </span>
                        </div>
                     </div>
-                    <div className="text-right">
-                       <span className="block font-black text-primary">{formatCurrency(loan.loanAmount)}</span>
-                       <Link href={`/loans/${loan.id}`} className="text-[9px] font-black uppercase opacity-40 hover:opacity-100 transition-opacity">Audit Case</Link>
+                    <div className="flex flex-col items-end gap-2">
+                       <div className="text-right">
+                          <span className="block font-black text-primary">{formatCurrency(loan.loanAmount)}</span>
+                       </div>
+                       <div className="flex gap-1.5 sm:hidden">
+                          <a href={`tel:${loan.customerPhone}`} className="p-1.5 rounded-lg bg-primary/10 text-primary"><TrendingUp size={12} className="rotate-90" /></a>
+                          <Link href={`/loans/${loan.id}`} className="p-1.5 rounded-lg bg-primary/10 text-primary"><ArrowUpRight size={12} /></Link>
+                       </div>
                     </div>
                   </div>
                 )) : (

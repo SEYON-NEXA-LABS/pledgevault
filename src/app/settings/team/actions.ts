@@ -4,7 +4,7 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 
-export async function addStaffMemberAction(staffData: { fullName: string, email: string, password: string, branchId?: string, role: 'staff' | 'manager' }) {
+export async function addStaffMemberAction(staffData: { fullName: string, email: string, password: string, branchId?: string, role: 'staff' | 'admin' }) {
   try {
     const supabase = await createClient();
     const adminClient = createAdminClient();
@@ -19,8 +19,8 @@ export async function addStaffMemberAction(staffData: { fullName: string, email:
       .eq('id', user.id)
       .single();
 
-    if (profileFetchError || !profile || profile.role !== 'manager') {
-      throw new Error('Unauthorized: Only firm managers can manage the team.');
+    if (profileFetchError || !profile || profile.role !== 'admin') {
+      throw new Error('Unauthorized: Only firm admins can manage the team.');
     }
 
     // 2. Create the user via Admin API (to avoid logging out the current admin)
@@ -68,7 +68,7 @@ export async function removeStaffMemberAction(staffId: string) {
       .eq('id', user.id)
       .single();
 
-    if (profileFetchError || !profile || profile.role !== 'manager') {
+    if (profileFetchError || !profile || profile.role !== 'admin') {
       throw new Error('Unauthorized');
     }
 
@@ -83,18 +83,18 @@ export async function removeStaffMemberAction(staffId: string) {
       throw new Error('User not found in your firm.');
     }
 
-    // 2. MANDATORY MANAGER RULE: Prevent deleting the last manager
-    if (targetProfile.role === 'manager') {
+    // 2. MANDATORY ADMIN RULE: Prevent deleting the last admin
+    if (targetProfile.role === 'admin') {
       const { count, error: countError } = await adminClient
         .from('profiles')
         .select('*', { count: 'exact', head: true })
         .eq('firm_id', profile.firm_id)
-        .eq('role', 'manager');
+        .eq('role', 'admin');
       
       if (countError) throw countError;
       
       if ((count || 0) <= 1) {
-        throw new Error('Cannot remove the last manager. Every firm must have at least one manager.');
+        throw new Error('Cannot remove the last admin. Every firm must have at least one admin.');
       }
     }
 

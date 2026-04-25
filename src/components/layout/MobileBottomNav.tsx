@@ -24,6 +24,12 @@ export default function MobileBottomNav() {
   const pathname = usePathname();
   const auth = authStore.get();
   
+  const triggerHaptic = () => {
+    if (typeof window !== 'undefined' && window.navigator.vibrate) {
+      window.navigator.vibrate(10);
+    }
+  };
+
   if (!auth.isAuthenticated || authStore.isSuperadmin()) return null;
 
   return (
@@ -31,6 +37,7 @@ export default function MobileBottomNav() {
       {/* Floating Action Button for New Loan */}
       <Link 
         href="/loans/new" 
+        onClick={triggerHaptic}
         className="fixed bottom-24 right-6 w-14 h-14 bg-primary text-primary-foreground rounded-full shadow-2xl flex items-center justify-center z-[60] active:scale-90 transition-transform border-4 border-background"
       >
         <HandCoins size={24} />
@@ -45,6 +52,7 @@ export default function MobileBottomNav() {
             <Link
               key={item.href}
               href={item.href}
+              onClick={triggerHaptic}
               className={`mobile-nav-item ${isActive ? 'active' : ''}`}
             >
               <div className={`p-1.5 rounded-xl transition-all ${isActive ? 'bg-primary/10' : ''}`}>

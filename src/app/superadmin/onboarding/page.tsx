@@ -48,7 +48,7 @@ export default function SuperadminOnboarding() {
     registrationNumber: ''
   });
 
-  const [managerData, setManagerData] = useState({
+  const [adminData, setAdminData] = useState({
     email: '',
     password: '',
     fullName: ''
@@ -80,9 +80,9 @@ export default function SuperadminOnboarding() {
       shortCode: firmData.shortCode,
       plan: firmData.plan,
       primaryColor: firmData.primaryColor,
-      email: managerData.email,
-      password: managerData.password,
-      fullName: managerData.fullName,
+      email: adminData.email,
+      password: adminData.password,
+      fullName: adminData.fullName,
       staffMembers: staffMembers
     });
 
@@ -115,7 +115,7 @@ export default function SuperadminOnboarding() {
             <div style={{ display: 'flex', gap: '16px', opacity: step >= 2 ? 1 : 0.4 }}>
               <div style={{ width: '28px', height: '28px', borderRadius: '50%', border: '2px solid white', borderColor: step >= 2 ? 'var(--gold)' : 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: 800, color: step >= 2 ? 'var(--gold)' : 'white' }}>{step > 2 ? <CheckCircle size={16} /> : '2'}</div>
               <div>
-                <div style={{ fontWeight: 700, fontSize: '15px' }}>Manager Root</div>
+                <div style={{ fontWeight: 700, fontSize: '15px' }}>Admin Root</div>
                 <div style={{ fontSize: '12px', opacity: 0.6 }}>Root Admin Account</div>
               </div>
             </div>
@@ -314,7 +314,7 @@ export default function SuperadminOnboarding() {
 
               <div style={{ marginTop: '32px', display: 'flex', justifyContent: 'flex-end', paddingTop: '24px', borderTop: '1px solid var(--border)' }}>
                 <button className="pv-btn pv-btn-gold" onClick={() => setStep(2)}>
-                  Manager Root <ArrowRight size={18} />
+                  Admin Root <ArrowRight size={18} />
                 </button>
               </div>
             </div>
@@ -333,9 +333,9 @@ export default function SuperadminOnboarding() {
                     <input 
                       className="pv-input"
                       style={{ paddingLeft: '44px' }}
-                      placeholder="Owner / Manager Name" 
-                      value={managerData.fullName}
-                      onChange={e => setManagerData({...managerData, fullName: e.target.value})}
+                      placeholder="Owner / Admin Name" 
+                      value={adminData.fullName}
+                      onChange={e => setAdminData({...adminData, fullName: e.target.value})}
                     />
                   </div>
                 </div>
@@ -348,8 +348,8 @@ export default function SuperadminOnboarding() {
                       className="pv-input"
                       style={{ paddingLeft: '44px' }}
                       placeholder="owner@shop.com" 
-                      value={managerData.email}
-                      onChange={e => setManagerData({...managerData, email: e.target.value})}
+                      value={adminData.email}
+                      onChange={e => setAdminData({...adminData, email: e.target.value})}
                     />
                   </div>
                 </div>
@@ -362,8 +362,8 @@ export default function SuperadminOnboarding() {
                       className="pv-input"
                       style={{ paddingLeft: '44px' }}
                       placeholder="Min 8 chars" 
-                      value={managerData.password}
-                      onChange={e => setManagerData({...managerData, password: e.target.value})}
+                      value={adminData.password}
+                      onChange={e => setAdminData({...adminData, password: e.target.value})}
                     />
                   </div>
                 </div>
@@ -396,7 +396,7 @@ export default function SuperadminOnboarding() {
                 {staffMembers.length === 0 && (
                   <div style={{ textAlign: 'center', padding: '40px', background: 'var(--bg-primary)', borderRadius: '16px', border: '1px dashed var(--border)' }}>
                     <Users size={32} style={{ color: 'var(--text-tertiary)', marginBottom: '12px' }} />
-                    <p style={{ fontSize: '13px', color: 'var(--text-tertiary)', fontWeight: 600 }}>No staff added yet. Root manager will be created in deployment.</p>
+                    <p style={{ fontSize: '13px', color: 'var(--text-tertiary)', fontWeight: 600 }}>No staff added yet. Root admin will be created in deployment.</p>
                   </div>
                 )}
                 {staffMembers.map((staff, idx) => (
@@ -449,11 +449,11 @@ export default function SuperadminOnboarding() {
               <h2 style={{ fontSize: '32px', letterSpacing: '-1px', marginBottom: '8px' }}>Onboarding Complete!</h2>
               <p style={{ color: 'var(--text-tertiary)', maxWidth: '400px', margin: '0 auto 32px' }}>
                 <strong>{firmData.name}</strong> has been successfully registered. 
-                Invitation sent to <strong>{managerData.email}</strong>.
+                Invitation sent to <strong>{adminData.email}</strong>.
               </p>
               <div style={{ background: 'var(--bg-primary)', padding: '24px', borderRadius: '20px', border: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: '12px', textAlign: 'left', marginBottom: '32px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}><span style={{ color: 'var(--text-tertiary)', fontWeight: 600 }}>Instance ID</span> <span style={{ fontWeight: 800, fontFamily: 'var(--font-mono)' }}>FIRM_{Date.now().toString(36).toUpperCase()}</span></div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}><span style={{ color: 'var(--text-tertiary)', fontWeight: 600 }}>Root Role</span> <span className="pv-badge" style={{ background: 'var(--brand-deep)', color: 'white', fontWeight: 800 }}>FIRM_MANAGER</span></div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}><span style={{ color: 'var(--text-tertiary)', fontWeight: 600 }}>Root Role</span> <span className="pv-badge" style={{ background: 'var(--brand-deep)', color: 'white', fontWeight: 800 }}>FIRM_ADMIN</span></div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}><span style={{ color: 'var(--text-tertiary)', fontWeight: 600 }}>Staff Count</span> <span style={{ fontWeight: 800 }}>{staffMembers.length} Members</span></div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}><span style={{ color: 'var(--text-tertiary)', fontWeight: 600 }}>Sync Status</span> <span className="pv-badge" style={{ background: 'var(--status-active-bg)', color: 'var(--status-active)', fontWeight: 800 }}>ACTIVE</span></div>
               </div>

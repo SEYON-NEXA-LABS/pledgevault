@@ -501,9 +501,10 @@ export const supabaseService = {
       throw new Error('Authentication required to create a payment. Please sign in again.');
     }
     
+    const dbPaymentData = toSnake(payment);
     const { data, error } = await supabase
       .from('payments')
-      .insert([{ ...payment, created_by: user.id }])
+      .insert([{ ...dbPaymentData, created_by: user.id }])
       .select()
       .single();
     if (error) throw error;

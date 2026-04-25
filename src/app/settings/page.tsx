@@ -48,7 +48,7 @@ type SettingsTab = 'profile' | 'general' | 'subscription' | 'team';
 function SettingsContent() {
   const [settings, setSettings] = useState<ShopSettings>(DEFAULT_SETTINGS);
   const [activeTab, setActiveTab] = useState<SettingsTab>('profile');
-  const isManager = authStore.isManager() || authStore.isSuperadmin();
+  const isAdmin = authStore.isAdmin() || authStore.isSuperadmin();
   const [currentPlan, setCurrentPlan] = useState<PlanTier>('free');
   const [firmId, setFirmId] = useState<string | null>(null);
   const [mounted, setMounted] = useState(false);
@@ -61,12 +61,12 @@ function SettingsContent() {
 
   useEffect(() => {
     const tab = searchParams.get('tab') as SettingsTab;
-    if (tab === 'general' && !isManager) {
+    if (tab === 'general' && !isAdmin) {
       setActiveTab('profile');
       return;
     }
     setActiveTab(tab || 'profile');
-  }, [searchParams, isManager]);
+  }, [searchParams, isAdmin]);
 
   useEffect(() => {
     setMounted(true);
@@ -233,36 +233,36 @@ function SettingsContent() {
         )}
       </div>
 
-      <div className="tabs-navigation" style={{ display: 'flex', gap: '8px', marginBottom: '32px', borderBottom: '1px solid var(--border)', paddingBottom: '0' }}>
+      <div className="tabs-navigation w-full overflow-x-auto no-scrollbar" style={{ display: 'flex', gap: '8px', marginBottom: '32px', borderBottom: '1px solid var(--border)', paddingBottom: '0' }}>
         <button 
-          className={`pv-btn ${activeTab === 'profile' ? 'pv-btn-primary' : 'pv-btn-outline'}`}
+          className={`pv-btn shrink-0 ${activeTab === 'profile' ? 'pv-btn-primary' : 'pv-btn-outline'}`}
           onClick={() => setActiveTab('profile')}
           style={{ height: '44px', borderRadius: '12px 12px 0 0', borderBottom: 'none' }}
         >
-          <User size={18} /> {t.sidebar.settings}
+          <User size={18} /> <span className="text-xs font-black uppercase tracking-tight">{t.sidebar.settings}</span>
         </button>
-        {isManager && (
+        {isAdmin && (
           <>
             <button 
-              className={`pv-btn ${activeTab === 'general' ? 'pv-btn-primary' : 'pv-btn-outline'}`}
+              className={`pv-btn shrink-0 ${activeTab === 'general' ? 'pv-btn-primary' : 'pv-btn-outline'}`}
               onClick={() => setActiveTab('general')}
               style={{ height: '44px', borderRadius: '12px 12px 0 0', borderBottom: 'none' }}
             >
-              <Building size={18} /> {t.settings.general}
+              <Building size={18} /> <span className="text-xs font-black uppercase tracking-tight">{t.settings.general}</span>
             </button>
             <button 
-              className={`pv-btn ${activeTab === 'subscription' ? 'pv-btn-primary' : 'pv-btn-outline'}`}
+              className={`pv-btn shrink-0 ${activeTab === 'subscription' ? 'pv-btn-primary' : 'pv-btn-outline'}`}
               onClick={() => setActiveTab('subscription')}
               style={{ height: '44px', borderRadius: '12px 12px 0 0', borderBottom: 'none' }}
             >
-              <CreditCard size={18} /> {t.settings.subscription}
+              <CreditCard size={18} /> <span className="text-xs font-black uppercase tracking-tight">{t.settings.subscription}</span>
             </button>
             <button 
-              className={`pv-btn ${activeTab === 'team' ? 'pv-btn-primary' : 'pv-btn-outline'}`}
+              className={`pv-btn shrink-0 ${activeTab === 'team' ? 'pv-btn-primary' : 'pv-btn-outline'}`}
               onClick={() => setActiveTab('team')}
               style={{ height: '44px', borderRadius: '12px 12px 0 0', borderBottom: 'none' }}
             >
-              <Users size={18} /> {t.settings.team}
+              <Users size={18} /> <span className="text-xs font-black uppercase tracking-tight">{t.settings.team}</span>
             </button>
           </>
         )}
@@ -282,8 +282,8 @@ function SettingsContent() {
         <ProfileTab />
       )}
 
-      {activeTab === 'general' && isManager && (
-        <div className="settings-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '32px' }}>
+      {activeTab === 'general' && isAdmin && (
+        <div className="settings-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 400px), 1fr))', gap: '32px' }}>
           {/* Shop Information */}
           <div className="pv-card">
             <div className="card-header" style={{ borderBottom: '1px solid var(--border)', paddingBottom: '20px', marginBottom: '20px' }}>
@@ -412,7 +412,7 @@ function SettingsContent() {
             </div>
             <div className="flex flex-col gap-5">
               <div className="pv-input-group">
-                <label>Manager Context</label>
+                <label>Admin Context</label>
                 <select name="activeBranchId" className="pv-input" value={settings.activeBranchId || 'firm'} onChange={handleChange}>
                   <option value="firm">All Branches</option>
                   {settings.branches.map(b => (
@@ -443,6 +443,29 @@ function SettingsContent() {
                     </div>
                   </div>
                 ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* System Architecture Section */}
+      {activeTab === 'general' && isAdmin && (
+        <div className="mt-8 px-1">
+          <div className="pv-card p-8 bg-muted/10 border-dashed border-2">
+            <div className="flex items-center justify-between">
+              <div className="flex flex-col gap-1">
+                <h3 className="font-black text-xs uppercase tracking-widest">System Architecture</h3>
+                <p className="text-[11px] text-muted-foreground font-bold">PledgeVault Cloud Environment</p>
+              </div>
+              <div className="flex items-center gap-3">
+                 <div className="flex flex-col items-end">
+                    <span className="text-[10px] font-black uppercase opacity-40 tracking-tight">Active Deployment</span>
+                    <span className="font-mono text-sm font-black text-primary uppercase">v.{process.env.NEXT_PUBLIC_APP_VERSION || 'dev'}</span>
+                 </div>
+                 <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center shadow-inner">
+                    <Database size={18} />
+                 </div>
               </div>
             </div>
           </div>
