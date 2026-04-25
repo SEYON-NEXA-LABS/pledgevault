@@ -111,17 +111,9 @@ export default function Sidebar({ isOpen, onToggle, overdueCount = 0, totalLoans
 
       <aside className={`sidebar ${isOpen ? 'open' : ''} glass-card`}>
         {/* Logo Section */}
-        <div className="h-24 flex items-center gap-4 px-8 border-b border-sidebar-border/50">
-          <div className="w-12 h-12 rounded-2xl flex items-center justify-center bg-white/10 backdrop-blur-md border border-white/10 shadow-lg overflow-hidden">
-            <img src="/android-chrome-192x192.png" alt="Logo" className="w-8 h-8 object-contain" />
-          </div>
-          <div className="flex flex-col">
-            <h1 className="text-xl font-black tracking-tight leading-none mb-1">
-              {authStore.isSuperadmin() ? 'PledgeVault' : (settings.shopName || 'PledgeVault')}
-            </h1>
-            <p className="text-[10px] text-muted-foreground font-black uppercase tracking-[0.2em] opacity-60">
-               {t.common.management}
-            </p>
+        <div className="h-24 flex items-center justify-center px-8 border-b border-sidebar-border/50">
+          <div className="w-14 h-14 rounded-2xl flex items-center justify-center bg-white/10 backdrop-blur-md border border-white/10 shadow-lg overflow-hidden">
+            <img src="/android-chrome-192x192.png" alt="Logo" className="w-10 h-10 object-contain" />
           </div>
         </div>
 

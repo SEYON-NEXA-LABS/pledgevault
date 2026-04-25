@@ -170,19 +170,19 @@ export default function LoanDetailsPage() {
           </div>
           <p className="subtitle" style={{ color: 'var(--text-tertiary)' }}>Started on {formatDate(loan.startDate)} • Due on {formatDate(loan.dueDate)}</p>
         </div>
-        <div className="page-header-right">
-          <button className="pv-btn pv-btn-outline" onClick={() => setShowPrintModal(true)}>
-            <Printer size={18} /> Print Receipt
+        <div className="flex flex-wrap gap-2 md:gap-4">
+          <button className="pv-btn pv-btn-outline h-10 md:h-12 px-4" onClick={() => setShowPrintModal(true)}>
+            <Printer size={18} /> <span className="hidden sm:inline">Print Receipt</span>
           </button>
           {(loan.status === 'active' || loan.status === 'overdue') && (
-            <button className="pv-btn pv-btn-gold" onClick={() => setShowPaymentModal(true)}>
-              <Plus size={18} /> Record Payment
+            <button className="pv-btn pv-btn-gold h-10 md:h-12 px-6" onClick={() => setShowPaymentModal(true)}>
+              <Plus size={18} /> <span className="hidden sm:inline">Record Payment</span><span className="sm:hidden">Pay</span>
             </button>
           )}
         </div>
       </div>
 
-      <div className="content-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1.2fr', gap: '24px' }}>
+      <div className="content-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {/* Column 1: Customer */}
         <div className="pv-card">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
@@ -350,83 +350,85 @@ export default function LoanDetailsPage() {
         <div style={{ marginBottom: '20px' }}>
           <h3 style={{ fontSize: '18px', display: 'flex', alignItems: 'center', gap: '10px' }}><Scale size={18} /> Pledged Items ({loan.items.length})</h3>
         </div>
-        <div className="card-body no-padding">
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>Item Type</th>
-                <th>Metal</th>
-                <th>Purity</th>
-                <th>Weight (Net)</th>
-                <th>Appraisal Rate</th>
-                <th>Valuation</th>
-                <th>Photo</th>
-                <th>Remarks</th>
-              </tr>
-            </thead>
-            <tbody>
-              {loan.items.map((item) => (
-                <tr key={item.id}>
-                  <td><span style={{ fontWeight: 600 }}>{item.itemType}</span></td>
-                  <td><span className={`badge ${item.metalType}`}>{item.metalType}</span></td>
-                  <td>{item.purity} {item.metalType === 'gold' ? 'K' : ''}</td>
-                  <td>
-                    <div className="flex flex-col">
-                      <span className="text-sm font-black text-primary">{formatWeight(item.netWeight)}</span>
-                      <span className="text-[10px] text-muted-foreground opacity-40 font-bold">Gross: {formatWeight(item.grossWeight)}</span>
-                    </div>
-                  </td>
-                  <td>
-                    <div className="flex flex-col">
-                      <span className="text-xs font-black">{formatCurrency(item.ratePerGram || 0)}</span>
-                      <span className="text-[9px] text-muted-foreground opacity-40 font-bold uppercase tracking-tighter">per gram</span>
-                    </div>
-                  </td>
-                  <td className="font-black text-sm">{formatCurrency(item.itemValue)}</td>
-                  <td>
-                    {item.photoBase64 ? (
-                      <div 
-                        onClick={() => setSelectedPhoto(item.photoBase64!)}
-                        style={{ 
-                          width: '40px', 
-                          height: '40px', 
-                          borderRadius: '8px', 
-                          overflow: 'hidden', 
-                          cursor: 'pointer',
-                          border: '2px solid var(--border)',
-                          transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-                          boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
-                        }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.transform = 'scale(1.15)';
-                          e.currentTarget.style.borderColor = 'var(--brand-primary)';
-                          e.currentTarget.style.boxShadow = '0 4px 12px rgba(16, 123, 136, 0.2)';
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.transform = 'scale(1)';
-                          e.currentTarget.style.borderColor = 'var(--border)';
-                          e.currentTarget.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
-                        }}
-                      >
-                        <img src={item.photoBase64} alt="Item" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                      </div>
-                    ) : (
-                      <span style={{ color: 'var(--text-tertiary)' }}><Camera size={14} /></span>
-                    )}
-                  </td>
-                  <td style={{ color: 'var(--text-tertiary)', fontSize: '13px' }}>{item.description || '-'}</td>
+        <div className="card-body no-padding overflow-hidden">
+          <div className="data-table-wrapper">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>Item Type</th>
+                  <th>Metal</th>
+                  <th>Purity</th>
+                  <th>Weight (Net)</th>
+                  <th>Appraisal Rate</th>
+                  <th>Valuation</th>
+                  <th>Photo</th>
+                  <th>Remarks</th>
                 </tr>
-              ))}
-            </tbody>
-            <tfoot>
-              <tr style={{ background: 'var(--bg-input)', fontWeight: 700 }}>
-                <td colSpan={4}>TOTAL</td>
-                <td>{formatWeight(loan.totalNetWeight)}</td>
-                <td>{formatCurrency(loan.totalAppraisedValue)}</td>
-                <td>LTV: {loan.ltvPercent}%</td>
-              </tr>
-            </tfoot>
-          </table>
+              </thead>
+              <tbody>
+                {loan.items.map((item) => (
+                  <tr key={item.id}>
+                    <td><span style={{ fontWeight: 600 }}>{item.itemType}</span></td>
+                    <td><span className={`badge ${item.metalType}`}>{item.metalType}</span></td>
+                    <td>{item.purity} {item.metalType === 'gold' ? 'K' : ''}</td>
+                    <td>
+                      <div className="flex flex-col">
+                        <span className="text-sm font-black text-primary">{formatWeight(item.netWeight)}</span>
+                        <span className="text-[10px] text-muted-foreground opacity-40 font-bold">Gross: {formatWeight(item.grossWeight)}</span>
+                      </div>
+                    </td>
+                    <td>
+                      <div className="flex flex-col">
+                        <span className="text-xs font-black">{formatCurrency(item.ratePerGram || 0)}</span>
+                        <span className="text-[9px] text-muted-foreground opacity-40 font-bold uppercase tracking-tighter">per gram</span>
+                      </div>
+                    </td>
+                    <td className="font-black text-sm">{formatCurrency(item.itemValue)}</td>
+                    <td>
+                      {item.photoBase64 ? (
+                        <div 
+                          onClick={() => setSelectedPhoto(item.photoBase64!)}
+                          style={{ 
+                            width: '40px', 
+                            height: '40px', 
+                            borderRadius: '8px', 
+                            overflow: 'hidden', 
+                            cursor: 'pointer',
+                            border: '2px solid var(--border)',
+                            transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                            boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.transform = 'scale(1.15)';
+                            e.currentTarget.style.borderColor = 'var(--brand-primary)';
+                            e.currentTarget.style.boxShadow = '0 4px 12px rgba(16, 123, 136, 0.2)';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.transform = 'scale(1)';
+                            e.currentTarget.style.borderColor = 'var(--border)';
+                            e.currentTarget.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
+                          }}
+                        >
+                          <img src={item.photoBase64} alt="Item" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        </div>
+                      ) : (
+                        <span style={{ color: 'var(--text-tertiary)' }}><Camera size={14} /></span>
+                      )}
+                    </td>
+                    <td style={{ color: 'var(--text-tertiary)', fontSize: '13px' }}>{item.description || '-'}</td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot>
+                <tr style={{ background: 'var(--bg-input)', fontWeight: 700 }}>
+                  <td colSpan={4}>TOTAL</td>
+                  <td>{formatWeight(loan.totalNetWeight)}</td>
+                  <td>{formatCurrency(loan.totalAppraisedValue)}</td>
+                  <td colSpan={2}>LTV: {loan.ltvPercent}%</td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
         </div>
       </div>
 
@@ -434,30 +436,32 @@ export default function LoanDetailsPage() {
         <div style={{ marginBottom: '20px' }}>
           <h3 style={{ fontSize: '18px', display: 'flex', alignItems: 'center', gap: '10px' }}><History size={18} /> Payment History</h3>
         </div>
-        <div className="card-body no-padding">
+        <div className="card-body no-padding overflow-hidden">
           {payments.length > 0 ? (
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>Date</th>
-                  <th>Amount</th>
-                  <th>Type</th>
-                  <th>Remarks</th>
-                  <th>Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {payments.map((payment) => (
-                  <tr key={payment.id}>
-                    <td>{formatDate(payment.paymentDate)}</td>
-                    <td style={{ fontWeight: 700, color: 'var(--status-active)' }}>+ {formatCurrency(payment.amount)}</td>
-                    <td><span className="badge" style={{ background: 'rgba(0,0,0,0.05)', color: 'var(--text-secondary)' }}>{payment.type.replace('_', ' ')}</span></td>
-                    <td style={{ color: 'var(--text-secondary)' }}>{payment.remarks || '-'}</td>
-                    <td><span style={{ color: 'var(--status-active)', display: 'flex', alignItems: 'center', gap: '4px' }}><CheckCircle2 size={14} /> Received</span></td>
+            <div className="data-table-wrapper">
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th>Amount</th>
+                    <th>Type</th>
+                    <th>Remarks</th>
+                    <th>Status</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {payments.map((payment) => (
+                    <tr key={payment.id}>
+                      <td>{formatDate(payment.paymentDate)}</td>
+                      <td style={{ fontWeight: 700, color: 'var(--status-active)' }}>+ {formatCurrency(payment.amount)}</td>
+                      <td><span className="badge" style={{ background: 'rgba(0,0,0,0.05)', color: 'var(--text-secondary)' }}>{payment.type.replace('_', ' ')}</span></td>
+                      <td style={{ color: 'var(--text-secondary)' }}>{payment.remarks || '-'}</td>
+                      <td><span style={{ color: 'var(--status-active)', display: 'flex', alignItems: 'center', gap: '4px' }}><CheckCircle2 size={14} /> Received</span></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           ) : (
             <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-tertiary)' }}>
               No payments recorded yet.

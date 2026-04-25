@@ -81,17 +81,11 @@ export default function LoansPage() {
           (activeBranchId && isValidUuid(activeBranchId)) ? activeBranchId : undefined,
           page,
           pageSize,
-          search || undefined
-          // Note: The service might need status filter support too, adding it next
+          search || undefined,
+          statusFilter
         );
         
-        // Temporarily filter status locally if service doesn't support it yet
-        let filteredData = result.data;
-        if (statusFilter !== 'all') {
-          filteredData = result.data.filter(l => l.status === statusFilter);
-        }
-
-        setLoans(filteredData);
+        setLoans(result.data);
         setTotal(result.total);
       } else {
         // Fallback for demo/local mode
@@ -199,11 +193,11 @@ export default function LoansPage() {
             className="bg-transparent border-none outline-none text-sm font-bold w-full"
           />
         </div>
-        <div style={{ display: 'flex', gap: '8px' }}>
+        <div className="flex items-center gap-2 overflow-x-auto pb-2 md:pb-0 no-scrollbar w-full md:w-auto">
           {STATUS_FILTERS.map((f) => (
             <button
               key={f.value}
-              className={`pv-btn pv-btn-sm ${statusFilter === f.value ? 'pv-btn-primary' : 'pv-btn-outline'}`}
+              className={`pv-btn pv-btn-sm whitespace-nowrap px-4 ${statusFilter === f.value ? 'pv-btn-primary' : 'pv-btn-outline'}`}
               onClick={() => {
                 setStatusFilter(f.value);
                 setPage(0);
@@ -213,7 +207,7 @@ export default function LoansPage() {
             </button>
           ))}
           <button 
-            className={`pv-btn pv-btn-sm ${showFilters ? 'pv-btn-gold' : 'pv-btn-outline'}`}
+            className={`pv-btn pv-btn-sm whitespace-nowrap ${showFilters ? 'pv-btn-gold' : 'pv-btn-outline'}`}
             onClick={() => setShowFilters(!showFilters)}
           >
             <Filter size={16} /> Filters
@@ -262,7 +256,7 @@ export default function LoansPage() {
                 <tr>
                   <th>{t.loans.loanId}</th>
                   <th>{t.loans.customer}</th>
-                  <th>{t.sidebar.dashboard}</th>
+                  <th>{t.loans.items}</th>
                   <th>{t.loans.weight}</th>
                   <th>{t.loans.amount}</th>
                   <th>{t.loans.interest}</th>
@@ -335,8 +329,8 @@ export default function LoansPage() {
                         </div>
                       </td>
                       <td>
-                        <div className="flex gap-1.5 flex-wrap">
-                          {items.map((item: any) => (
+                        <div className="flex gap-1.5 flex-wrap max-w-[140px]">
+                          {items.length > 0 ? items.map((item: any) => (
                             <span 
                               key={item.id} 
                               className={`badge ${item.metalType === 'gold' ? 'active' : 'demo'} px-2 py-0.5 rounded-md text-[9px] font-black uppercase border border-current opacity-80`}
@@ -344,36 +338,59 @@ export default function LoansPage() {
                             >
                               {item.itemType}
                             </span>
-                          ))}
+                          )) : (
+                            <span className="text-[10px] font-bold text-muted-foreground opacity-30 italic">Uncategorized</span>
+                          )}
                         </div>
                       </td>
                       <td>
-                        {goldWeight > 0 && (
-                          <div className="text-[13px] font-bold">
-                            <span className="text-primary">{formatWeight(goldWeight)}</span>
-                            <span className="text-[10px] text-muted-foreground opacity-40 ml-1 uppercase">Gold</span>
-                          </div>
-                        )}
-                        {silverWeight > 0 && (
-                          <div className="text-[13px] font-bold">
-                            <span className="text-muted-foreground">{formatWeight(silverWeight)}</span>
-                            <span className="text-[10px] text-muted-foreground opacity-40 ml-1 uppercase">Silver</span>
-                          </div>
-                        )}
+                        <div className="flex flex-col gap-1">
+                          {goldWeight > 0 && (
+                            <div className="flex items-center gap-1.5">
+                              <div className="w-1.5 h-1.5 rounded-full bg-gold shadow-[0_0_8px_rgba(255,215,0,0.5)]" />
+                              <span className="text-sm font-black text-foreground">{formatWeight(goldWeight)}</span>
+                              <span className="text-[9px] font-black text-gold uppercase tracking-widest">AU</span>
+                            </div>
+                          )}
+                          {silverWeight > 0 && (
+                            <div className="flex items-center gap-1.5">
+                              <div className="w-1.5 h-1.5 rounded-full bg-slate-400" />
+                              <span className="text-sm font-black text-foreground">{formatWeight(silverWeight)}</span>
+                              <span className="text-[9px] font-black text-muted-foreground uppercase tracking-widest">AG</span>
+                            </div>
+                          )}
+                          {goldWeight === 0 && silverWeight === 0 && (
+                            <span className="text-sm font-bold text-muted-foreground opacity-20">---</span>
+                          )}
+                        </div>
                       </td>
-                      <td className="font-black text-sm">{formatCurrency(loan.loanAmount || 0)}</td>
                       <td>
-                        <span className="text-[13px] font-bold">{loan.interestRate || 0}<small className="opacity-40 ml-0.5">%</small></span>
+                        <div className="flex flex-col">
+                          <span className="text-sm font-black text-primary tracking-tight">
+                            {formatCurrency(loan.loanAmount || 0)}
+                          </span>
+                          <span className="text-[9px] font-black text-muted-foreground uppercase tracking-widest opacity-40">INR Payout</span>
+                        </div>
                       </td>
                       <td>
-                        <span className={`text-[13px] ${loan.status === 'overdue' ? 'text-destructive font-black' : 'font-bold opacity-80'}`}>
-                          {formatDate(loan.dueDate || '')}
-                        </span>
-                        {loan.status === 'overdue' && (
-                          <div className="text-[10px] text-destructive font-black uppercase tracking-wider">
-                            {getDaysOverdue(loan.dueDate || '')}d overdue
-                          </div>
-                        )}
+                        <div className="flex items-center gap-1">
+                          <span className="text-sm font-black text-foreground">{loan.interestRate || 0}%</span>
+                          <span className="text-[9px] font-black text-muted-foreground uppercase opacity-40">MTH</span>
+                        </div>
+                      </td>
+                      <td>
+                        <div className="flex flex-col">
+                          <span className={`text-sm ${loan.status === 'overdue' ? 'text-destructive font-black' : 'font-bold'}`}>
+                            {formatDate(loan.dueDate || '')}
+                          </span>
+                          {loan.status === 'overdue' ? (
+                            <span className="text-[9px] text-destructive font-black uppercase tracking-wider">
+                              {getDaysOverdue(loan.dueDate || '')}d Delay
+                            </span>
+                          ) : (
+                            <span className="text-[9px] text-muted-foreground font-black uppercase opacity-40">Expiry</span>
+                          )}
+                        </div>
                       </td>
                       <td>
                         <span className={`badge ${loan.status || 'active'}`} style={{ fontWeight: 800 }}>

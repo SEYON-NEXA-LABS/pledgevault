@@ -129,17 +129,33 @@ export const supabaseService = {
     };
   },
 
-  async getLoans(firmId: string, branchId?: string, page: number = 0, pageSize: number = 10, search?: string) {
+  async getLoans(
+    firmId: string, 
+    branchId?: string, 
+    page: number = 0, 
+    pageSize: number = 10, 
+    search?: string,
+    status?: string
+  ) {
     if (!isValidUUID(firmId)) return { data: [], total: 0 };
     
     let query = supabase
       .from('loans')
-      .select('id, loan_number, customer_id, customer_name, customer_phone, branch_id, loan_amount, status, interest_rate, start_date, due_date, created_at', { count: 'exact' })
+      .select(`
+        id, loan_number, customer_id, customer_name, customer_phone, branch_id, 
+        loan_amount, status, interest_rate, start_date, due_date, created_at,
+        total_net_weight,
+        items:loan_items(id, item_type, metal_type, net_weight)
+      `, { count: 'exact' })
       .eq('firm_id', firmId)
       .order('created_at', { ascending: false });
 
     if (branchId && branchId !== 'firm') {
       query = query.eq('branch_id', branchId);
+    }
+
+    if (status && status !== 'all') {
+      query = query.eq('status', status);
     }
 
     if (search) {

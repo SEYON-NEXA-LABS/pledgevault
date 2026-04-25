@@ -83,7 +83,7 @@ export default function CustomersPage() {
         <div className="page-header-left">
           <h2 className="text-4xl font-black tracking-tight mb-2">{t.customers.title}</h2>
           <p className="text-sm font-bold text-muted-foreground opacity-70">
-            {t.customers.totalLoans} — {customers.length} {t.common.all}
+            {t.customers.totalCustomers} — {total} {t.common.all}
           </p>
         </div>
         <div className="page-header-right">

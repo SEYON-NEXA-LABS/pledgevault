@@ -95,8 +95,8 @@ export const translations = {
     loans: {
       title: 'Loans',
       loanId: 'Loan ID',
-      amount: 'Amount',
-      weight: 'Weight',
+      amount: 'Principal',
+      weight: 'Net Weight',
       interest: 'Interest',
       customer: 'Customer',
       dueDate: 'Due Date',
@@ -127,6 +127,7 @@ export const translations = {
       idProof: 'ID Proof',
       totalLoans: 'Total Loans',
       activeBalance: 'Active Balance',
+      totalCustomers: 'Total Customers',
       addCustomer: 'New Customer',
     },
     branches: {
@@ -378,8 +379,8 @@ export const translations = {
     loans: {
       title: 'கடன்கள்',
       loanId: 'கடன் எண்',
-      amount: 'தொகை',
-      weight: 'எடை',
+      amount: 'அசல்',
+      weight: 'நிகர எடை',
       interest: 'வட்டி',
       customer: 'வாடிக்கையாளர்',
       dueDate: 'காலக்கெடு',
@@ -410,6 +411,7 @@ export const translations = {
       idProof: 'அடையாளச் சான்று',
       totalLoans: 'மொத்த கடன்கள்',
       activeBalance: 'செயலில் உள்ள இருப்பு',
+      totalCustomers: 'மொத்த வாடிக்கையாளர்கள்',
       addCustomer: 'புதிய வாடிக்கையாளர்',
     },
     branches: {

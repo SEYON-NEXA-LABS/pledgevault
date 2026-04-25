@@ -19,7 +19,9 @@ import {
   Sparkles,
   Trophy,
   Download,
-  Zap
+  Zap,
+  Building2,
+  HandCoins
 } from 'lucide-react';
 import InstallButton from '@/components/pwa/InstallButton';
 import { useRouter } from 'next/navigation';
@@ -176,22 +178,53 @@ export default function LoginPage() {
                </div>
             </div>
             
-            <div className="space-y-6 max-w-sm">
-               <div className="flex items-center gap-4 text-white/80">
-                 <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center shrink-0">
-                   <ShieldCheck size={20} className="text-gold" />
+            <div className="space-y-8 max-w-sm">
+               <div className="flex items-start gap-4 text-white/90">
+                 <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center shrink-0 border border-white/10 shadow-lg">
+                   <ShieldCheck size={22} className="text-gold" />
                  </div>
-                 <p className="text-sm font-medium leading-relaxed">
-                   Enterprise-grade security for your financial vault and pledges.
-                 </p>
+                 <div className="flex flex-col gap-1">
+                   <h3 className="text-sm font-bold text-white tracking-tight">Audit-Ready Compliance</h3>
+                   <p className="text-[12px] text-white/60 leading-relaxed font-medium">
+                     Enterprise-grade security with immutable audit trails for every transaction and pledge.
+                   </p>
+                 </div>
                </div>
-               <div className="flex items-center gap-4 text-white/80">
-                 <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center shrink-0">
-                   <Zap size={20} className="text-gold" />
+
+               <div className="flex items-start gap-4 text-white/90">
+                 <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center shrink-0 border border-white/10 shadow-lg">
+                   <Zap size={22} className="text-gold" />
                  </div>
-                 <p className="text-sm font-medium leading-relaxed">
-                   Real-time market rate synchronization for accurate appraisals.
-                 </p>
+                 <div className="flex flex-col gap-1">
+                   <h3 className="text-sm font-bold text-white tracking-tight">Precision Appraisal</h3>
+                   <p className="text-[12px] text-white/60 leading-relaxed font-medium">
+                     Real-time Gold & Silver rate synchronization ensuring accurate valuations and minimized risk.
+                   </p>
+                 </div>
+               </div>
+
+               <div className="flex items-start gap-4 text-white/90">
+                 <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center shrink-0 border border-white/10 shadow-lg">
+                   <Building2 size={22} className="text-gold" />
+                 </div>
+                 <div className="flex flex-col gap-1">
+                   <h3 className="text-sm font-bold text-white tracking-tight">Multi-Branch Command</h3>
+                   <p className="text-[12px] text-white/60 leading-relaxed font-medium">
+                     Centralized management for multiple branches with unified reporting and inter-branch transfers.
+                   </p>
+                 </div>
+               </div>
+
+               <div className="flex items-start gap-4 text-white/90">
+                 <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center shrink-0 border border-white/10 shadow-lg">
+                   <HandCoins size={22} className="text-gold" />
+                 </div>
+                 <div className="flex flex-col gap-1">
+                   <h3 className="text-sm font-bold text-white tracking-tight">Lifecycle Loan Management</h3>
+                   <p className="text-[12px] text-white/60 leading-relaxed font-medium">
+                     End-to-end tracking from instant payout to automated interest accrual and overdue notifications.
+                   </p>
+                 </div>
                </div>
             </div>
           </div>

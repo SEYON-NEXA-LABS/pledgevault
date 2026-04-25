@@ -118,6 +118,12 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     }
 
     initializeLiveState();
+
+    // Close sidebar on mobile when navigating
+    if (typeof window !== 'undefined' && window.innerWidth < 1024 && sidebarOpen) {
+      setSidebarOpen(false);
+    }
+
     return () => window.removeEventListener('pv_settings_updated', syncLang);
   }, [pathname, isPublicPage]);
 

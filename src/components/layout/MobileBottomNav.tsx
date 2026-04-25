@@ -27,22 +27,34 @@ export default function MobileBottomNav() {
   if (!auth.isAuthenticated || authStore.isSuperadmin()) return null;
 
   return (
-    <nav className="mobile-bottom-nav">
-      {navItems.map((item) => {
-        const isActive = pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href));
-        const Icon = item.icon;
+    <div className="md:hidden">
+      {/* Floating Action Button for New Loan */}
+      <Link 
+        href="/loans/new" 
+        className="fixed bottom-24 right-6 w-14 h-14 bg-primary text-primary-foreground rounded-full shadow-2xl flex items-center justify-center z-[60] active:scale-90 transition-transform border-4 border-background"
+      >
+        <HandCoins size={24} />
+      </Link>
 
-        return (
-          <Link
-            key={item.href}
-            href={item.href}
-            className={`mobile-nav-item ${isActive ? 'active' : ''}`}
-          >
-            <Icon size={20} strokeWidth={isActive ? 2.5 : 2} />
-            <span>{item.label}</span>
-          </Link>
-        );
-      })}
-    </nav>
+      <nav className="mobile-bottom-nav">
+        {navItems.map((item) => {
+          const isActive = pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href));
+          const Icon = item.icon;
+
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              className={`mobile-nav-item ${isActive ? 'active' : ''}`}
+            >
+              <div className={`p-1.5 rounded-xl transition-all ${isActive ? 'bg-primary/10' : ''}`}>
+                <Icon size={20} strokeWidth={isActive ? 2.5 : 2} />
+              </div>
+              <span>{item.label}</span>
+            </Link>
+          );
+        })}
+      </nav>
+    </div>
   );
 }
