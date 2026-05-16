@@ -59,7 +59,9 @@ export async function updateSession(request: NextRequest) {
     !request.nextUrl.pathname.startsWith('/login') &&
     !request.nextUrl.pathname.startsWith('/start-trial') &&
     !request.nextUrl.pathname.startsWith('/auth') &&
-    !request.nextUrl.pathname.startsWith('/track')
+    !request.nextUrl.pathname.startsWith('/track') &&
+    !request.nextUrl.pathname.startsWith('/api') &&
+    !request.nextUrl.pathname.endsWith('manifest.json')
   ) {
 
     const url = request.nextUrl.clone();

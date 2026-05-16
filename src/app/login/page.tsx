@@ -241,7 +241,7 @@ export default function LoginPage() {
           <div className="login-form-blob blob-1" />
           <div className="login-form-blob blob-2" />
 
-          <div className="mx-auto w-full max-w-[440px] flex flex-col justify-center flex-1 py-12">
+          <div className="mx-auto w-full max-w-[440px] flex flex-col justify-center flex-1 py-4 md:py-8">
             {/* Mobile Brand Presence (visible only on small screens) */}
             <div className="mobile-brand-header lg:hidden">
                <div className="mobile-logo-wrap">
@@ -253,9 +253,7 @@ export default function LoginPage() {
                </div>
             </div>
 
-
           <div className="right-header">
-
              <div className="lang-switcher-top">
                 <button 
                   type="button" 
@@ -278,8 +276,7 @@ export default function LoginPage() {
              </div>
           </div>
 
-          <form onSubmit={handleLogin} className={`login-form-modern ${lang === 'ta' ? 'lang-ta' : ''}`} style={{ gap: '24px' }}>
-
+          <form onSubmit={handleLogin} className={`login-form-modern ${lang === 'ta' ? 'lang-ta' : ''}`} style={{ gap: '16px' }}>
 
             {error && (
               <div className="alert-modern error">
@@ -355,8 +352,6 @@ export default function LoginPage() {
             </div>
 
             <button className="pv-btn pv-btn-primary" style={{ width: '100%', height: '60px', marginTop: '32px', borderRadius: 'var(--radius-md)', fontSize: '16px' }} disabled={loading}>
-
-
               {loading ? (
                 <Loader2 className="spin" size={20} />
               ) : (
@@ -378,9 +373,7 @@ export default function LoginPage() {
             </Link>
           </div>
 
-          <footer style={{ marginTop: '32px', paddingTop: '24px', borderTop: '1px solid var(--border)' }}>
-
-
+          <footer style={{ marginTop: '20px', paddingTop: '16px', borderTop: '1px solid var(--border)' }}>
              <div style={{ display: 'flex', gap: '8px', fontSize: '11px', color: 'var(--text-tertiary)', fontWeight: '700' }}>
                 <span>© 2026 {t.common.pledgevault}</span>
                 <span>•</span>
