@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#107B88">
+  <title>PledgeVault - Offline</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background: linear-gradient(135deg, #0D2621 0%, #1a4d46 100%);
+      color: #1a1a1a;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+
+    .offline-container {
+      background: white;
+      border-radius: 24px;
+      padding: 40px 32px;
+      max-width: 420px;
+      width: 100%;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+      text-align: center;
+      animation: slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    @keyframes slideUp {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .offline-icon {
+      width: 80px;
+      height: 80px;
+      background: #f0f4f8;
+      border-radius: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 24px;
+      font-size: 40px;
+    }
+
+    h1 {
+      font-size: 24px;
+      font-weight: 700;
+      margin-bottom: 8px;
+      color: #1a1a1a;
+      letter-spacing: -0.5px;
+    }
+
+    .subtitle {
+      font-size: 14px;
+      color: #666;
+      margin-bottom: 32px;
+      line-height: 1.6;
+    }
+
+    .offline-message {
+      background: #f5f5f5;
+      border-left: 4px solid #107B88;
+      padding: 16px;
+      border-radius: 12px;
+      margin-bottom: 32px;
+      text-align: left;
+      font-size: 13px;
+      color: #555;
+      line-height: 1.6;
+    }
+
+    .offline-message strong {
+      color: #1a1a1a;
+      display: block;
+      margin-bottom: 8px;
+    }
+
+    .action-area {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    button {
+      padding: 14px 20px;
+      border: none;
+      border-radius: 12px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .btn-primary {
+      background: #107B88;
+      color: white;
+    }
+
+    .btn-primary:active {
+      transform: scale(0.98);
+    }
+
+    .btn-secondary {
+      background: #f0f4f8;
+      color: #107B88;
+      border: 1px solid #e0e8f0;
+    }
+
+    .btn-secondary:active {
+      background: #e8f0f6;
+    }
+
+    .offline-footer {
+      margin-top: 32px;
+      padding-top: 24px;
+      border-top: 1px solid #f0f0f0;
+      font-size: 12px;
+      color: #999;
+    }
+
+    .logo-badge {
+      display: inline-block;
+      background: #f0f4f8;
+      padding: 8px 16px;
+      border-radius: 8px;
+      margin-bottom: 16px;
+      font-size: 11px;
+      font-weight: 700;
+      color: #107B88;
+      letter-spacing: 0.3px;
+      text-transform: uppercase;
+    }
+
+    @media (max-width: 480px) {
+      .offline-container {
+        padding: 32px 24px;
+      }
+
+      h1 {
+        font-size: 20px;
+      }
+
+      .offline-icon {
+        width: 64px;
+        height: 64px;
+        font-size: 32px;
+      }
+
+      button {
+        padding: 12px 16px;
+        font-size: 13px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="offline-container">
+    <div class="logo-badge">⚠️ No Connection</div>
+    <div class="offline-icon">📡</div>
+    <h1>You're Offline</h1>
+    <p class="subtitle">PledgeVault needs an internet connection to work properly.</p>
+
+    <div class="offline-message">
+      <strong>What you can do:</strong>
+      <div>Check your WiFi or mobile connection, then try again.</div>
+    </div>
+
+    <div class="action-area">
+      <button class="btn-primary" onclick="window.location.reload()">
+        Retry Connection
+      </button>
+      <button class="btn-secondary" onclick="window.history.back()">
+        Go Back
+      </button>
+    </div>
+
+    <div class="offline-footer">
+      <div>PledgeVault Enterprise v1.2.1</div>
+      <div style="margin-top: 8px; opacity: 0.7;">This page was cached and is displayed locally.</div>
+    </div>
+  </div>
+
+  <script>
+    // Auto-detect when connection is restored
+    window.addEventListener('online', () => {
+      document.body.style.opacity = '0.7';
+      setTimeout(() => {
+        window.location.href = '/';
+      }, 300);
+    });
+  </script>
+</body>
+</html>

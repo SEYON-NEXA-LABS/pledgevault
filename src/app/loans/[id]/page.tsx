@@ -35,9 +35,11 @@ import {
   LOAN_STATUS_LABELS 
 } from '@/lib/constants';
 import { calculateAccruedInterestFromDates } from '@/lib/interest';
+import { getPurityFactor } from '@/lib/gold';
 import { Loan, Payment, Customer, ShopSettings } from '@/lib/types';
 import Link from 'next/link';
 import ReceiptContent from '@/components/printing/ReceiptContent';
+import DigitalReceiptModal from '@/components/dashboard/DigitalReceiptModal';
 
 export default function LoanDetailsPage() {
   const { id } = useParams();
@@ -49,6 +51,7 @@ export default function LoanDetailsPage() {
   const [loading, setLoading] = useState(true);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [showPrintModal, setShowPrintModal] = useState(false);
+  const [showDigitalModal, setShowDigitalModal] = useState(false);
   const [receiptType, setReceiptType] = useState<'modern' | 'thermal'>('modern');
   const [paymentAmount, setPaymentAmount] = useState('');
   const [paymentType, setPaymentType] = useState<'interest' | 'principal' | 'full_closure' | 'partial'>('partial');
@@ -154,6 +157,27 @@ export default function LoanDetailsPage() {
     }
   };
 
+  const handleShareWhatsApp = () => {
+    if (!loan || !customer) return;
+
+    const balance = loan.loanAmount + liveInterest - (loan.amountPaid || 0);
+    const message = `*${settings?.shopName || 'PledgeVault'} - Loan Receipt*
+---------------------------
+*Loan No:* ${loan.loanNumber}
+*Customer:* ${loan.customerName}
+*Loan Amount:* ${formatCurrency(loan.loanAmount)}
+*Start Date:* ${formatDate(loan.startDate)}
+*Due Date:* ${formatDate(loan.dueDate)}
+*Items:* ${loan.items.length} items (${formatWeight(loan.totalNetWeight)})
+---------------------------
+*Current Balance:* ${formatCurrency(balance)}
+---------------------------
+Thank you for your business!`;
+
+    const url = `https://wa.me/${loan.customerPhone.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`;
+    window.open(url, '_blank');
+  };
+
   const goldItems = loan.items.filter(i => i.metalType === 'gold');
   const silverItems = loan.items.filter(i => i.metalType === 'silver');
 
@@ -171,6 +195,9 @@ export default function LoanDetailsPage() {
           <p className="subtitle" style={{ color: 'var(--text-tertiary)' }}>Started on {formatDate(loan.startDate)} • Due on {formatDate(loan.dueDate)}</p>
         </div>
         <div className="flex flex-wrap gap-2 md:gap-4">
+          <button className="pv-btn pv-btn-outline h-10 md:h-12 px-4" style={{ color: '#22c55e', borderColor: '#22c55e' }} onClick={() => setShowDigitalModal(true)}>
+            <ImageIcon size={18} /> <span className="hidden sm:inline">Share Image</span>
+          </button>
           <button className="pv-btn pv-btn-outline h-10 md:h-12 px-4" onClick={() => setShowPrintModal(true)}>
             <Printer size={18} /> <span className="hidden sm:inline">Print Receipt</span>
           </button>
@@ -298,7 +325,8 @@ export default function LoanDetailsPage() {
                       {formatCurrency(
                         loan.items.reduce((acc, item) => {
                           const rate = item.metalType === 'gold' ? currentRates.gold : currentRates.silver;
-                          const adjustedRate = item.metalType === 'gold' ? (rate * (Number(item.purity) / 1000)) : rate;
+                          const purityFactor = getPurityFactor(item.metalType, item.purity);
+                          const adjustedRate = rate * purityFactor;
                           return acc + (item.netWeight * adjustedRate);
                         }, 0)
                       )}
@@ -643,6 +671,15 @@ export default function LoanDetailsPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {showDigitalModal && settings && customer && (
+        <DigitalReceiptModal 
+          loan={loan} 
+          customer={customer} 
+          settings={settings} 
+          onClose={() => setShowDigitalModal(false)} 
+        />
       )}
 
       {/* Photo Lightbox (Shadcn Style) */}

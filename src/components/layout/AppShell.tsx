@@ -23,7 +23,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const [showMandatorySelector, setShowMandatorySelector] = useState(false);
   const [branches, setBranches] = useState<any[]>([]);
 
-  const isPublicPage = pathname === '/login' || pathname === '/start-trial';
+  const isPublicPage = pathname === '/login' || pathname === '/start-trial' || pathname?.startsWith('/track');
   const [lang, setLang] = useState<Language>('en');
 
   useEffect(() => {
@@ -90,7 +90,10 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           document.documentElement.setAttribute('data-theme', 'emerald');
 
           if (authStore.isAdmin() || authStore.isSuperadmin()) {
-             metalRateService.autoSyncIfStale().catch(e => console.warn('Daily market sync check failed:', e));
+            // Use a slight delay to ensure everything is stable before background sync
+            setTimeout(() => {
+              metalRateService.autoSyncIfStale().catch(e => console.warn('Daily market sync check failed:', e));
+            }, 2000);
           }
 
           const stats = await supabaseService.getDashboardStats(auth.firmId as string, targetBranchId);
@@ -190,7 +193,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
       {/* Mandatory Branch Selector for Staff */}
       {showMandatorySelector && !isPublicPage && (
-        <div className="fixed inset-0 z-[100] bg-background flex items-center justify-center p-6 animate-in fade-in duration-500">
+        <div className="fixed inset-0 z-100 bg-background flex items-center justify-center p-6 animate-in fade-in duration-500">
           <div className="pv-card sm:max-w-[440px] w-full text-center p-12 shadow-2xl border-primary/20">
             <div className="w-20 h-20 bg-primary/10 text-primary rounded-3xl flex items-center justify-center text-4xl mx-auto mb-8 shadow-inner">
                 🏠

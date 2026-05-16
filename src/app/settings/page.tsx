@@ -68,6 +68,15 @@ function SettingsContent() {
     setActiveTab(tab || 'profile');
   }, [searchParams, isAdmin]);
 
+  const [resetMode, setResetMode] = useState(false);
+
+  useEffect(() => {
+    if (searchParams.get('reset') === 'true') {
+      setResetMode(true);
+      setActiveTab('profile');
+    }
+  }, [searchParams]);
+
   useEffect(() => {
     setMounted(true);
     setSettings(settingsStore.get());
@@ -267,6 +276,16 @@ function SettingsContent() {
           </>
         )}
       </div>
+
+      {resetMode && (
+        <div className="pv-card mb-8 border-brand-primary bg-brand-primary/5 flex items-center gap-4 p-6 anim-in">
+          <Shield size={24} className="text-brand-primary" />
+          <div>
+            <h4 className="font-black text-brand-primary uppercase tracking-tight">Security Action Required</h4>
+            <p className="text-xs font-bold text-muted-foreground">You've accessed this page via a password reset link. Please update your security credentials below.</p>
+          </div>
+        </div>
+      )}
 
       {saved && (
         <div className="pv-card pv-glass anim-fade-in" style={{ 

@@ -15,12 +15,15 @@ export default function RealTimeRateSync({ onSync, compact = false }: RealTimeRa
   const handleSync = async () => {
     setLoading(true);
     try {
-      const data = await metalRateService.getLiveRates();
-      onSync({ 
-        gold24k: data.gold24k, 
-        gold22k: data.gold22k, 
-        silver: data.silver 
-      });
+      const result = await metalRateService.forceSync();
+      
+      if (result.success && result.data) {
+        onSync({ 
+          gold24k: result.data.gold_24k, 
+          gold22k: Math.round(result.data.gold_24k * (22/24)), 
+          silver: result.data.silver 
+        });
+      }
     } catch (err) {
       console.error('Manual rate sync failed:', err);
     } finally {

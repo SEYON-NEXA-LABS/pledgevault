@@ -30,7 +30,7 @@ export const metalRateService = {
 
     return {
       gold24k: latest.gold_24k,
-      gold22k: Math.round(latest.gold_24k * (22 / 24)),
+      gold22k: latest.gold_22k || Math.round(latest.gold_24k * (22 / 24)),
       silver: latest.silver,
       isFromDb: true,
       updatedAt: latest.created_at,
@@ -77,7 +77,7 @@ export const metalRateService = {
       lastUpdate: current.created_at,
       history: history.reverse().map(h => ({
         date: h.created_at,
-        gold: h.gold_24k,
+        gold: h.gold_22k || Math.round(h.gold_24k * (22 / 24)),
         silver: h.silver
       }))
     };
@@ -134,5 +134,18 @@ export const metalRateService = {
 
     // Initial Sync
     return await syncMarketRatesAction();
+  },
+
+  /**
+   * forceSync
+   * Bypasses all throttling and forces a live API fetch.
+   */
+  async forceSync() {
+    console.log('⚡ [Service] Forcing Market Rate Sync...');
+    const result = await syncMarketRatesAction(true);
+    if (result.success) {
+      localStorage.removeItem(CACHE_KEY);
+    }
+    return result;
   }
 };

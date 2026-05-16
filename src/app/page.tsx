@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import {
@@ -9,15 +9,10 @@ import {
   AlertTriangle,
   TrendingUp,
   Plus,
-  Eye,
   ArrowRight,
-  CircleDollarSign,
-  MessageSquare,
-  RefreshCw,
-  Search,
-  X,
   Phone,
   MessageCircle,
+  ExternalLink,
 } from 'lucide-react';
 import {
   BarChart,
@@ -35,14 +30,13 @@ import {
   Legend,
 } from 'recharts';
 import StatCard from '@/components/layout/StatCard';
-import DailyCalendarCard from '@/components/dashboard/DailyCalendarCard';
+import QuickAppraisal from '@/components/dashboard/QuickAppraisal';
 import { settingsStore } from '@/lib/store';
 import { supabaseService } from '@/lib/supabase/service';
 import { metalRateService } from '@/lib/supabase/metalRateService';
 import { authStore } from '@/lib/authStore';
-import { supabase } from '@/lib/supabase/client';
-import { formatCurrency, formatWeight, formatDate, getDaysOverdue, GOLD_PURITY_MAP, SILVER_PURITY_MAP } from '@/lib/constants';
-import { Loan, GoldPurity, SilverPurity } from '@/lib/types';
+import { formatCurrency, formatWeight, getDaysOverdue } from '@/lib/constants';
+import { Loan } from '@/lib/types';
 import { translations, Language } from '@/lib/i18n/translations';
 
 // Color palette for charts using theme-aware variables
@@ -64,7 +58,6 @@ function getMetalColor(name: string, index: number): string {
 
 export default function DashboardPage() {
   const [loans, setLoans] = useState<Loan[]>([]);
-  const [customers, setCustomers] = useState<any[]>([]);
   const [cloudStats, setCloudStats] = useState<any>(null);
   const [marketTrends, setMarketTrends] = useState<any>(null);
   const [latestRates, setLatestRates] = useState<{ gold22k: number; silver: number } | null>(null);
@@ -79,48 +72,53 @@ export default function DashboardPage() {
     window.addEventListener('pv_settings_updated', handleUpdate);
     return () => window.removeEventListener('pv_settings_updated', handleUpdate);
   }, []);
+
   const activeBranchId = settings.activeBranchId;
   const isAdmin = authStore.isAdmin() || authStore.isSuperadmin();
 
-  // Set default view mode based on role
   useEffect(() => {
     if (authStore.isSuperadmin()) return redirect('/superadmin');
   }, [auth.role]);
 
+  const lastFetchId = useRef<string>('');
+
+  const fetchDashboardData = async () => {
+    try {
+      const isValidUUID = (id: string | null) => {
+        if (!id) return false;
+        return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id);
+      };
+
+      if (isValidUUID(auth.firmId)) {
+        const stats = await supabaseService.getDashboardStats(auth.firmId as string, activeBranchId);
+        setCloudStats(stats);
+        if (stats.recentLoans) setLoans(stats.recentLoans);
+
+        const trends = await metalRateService.getMarketTrends();
+        setMarketTrends(trends);
+
+        const live = await metalRateService.getLiveRates();
+        setLatestRates({ gold22k: live.gold22k, silver: live.silver });
+      }
+    } catch (err) {
+      console.error('FAILED: fetchDashboardData caught error:', err);
+    }
+  };
+
   useEffect(() => {
     setMounted(true);
+  }, []);
 
-    // Fetch consolidated dashboard data
-    const fetchDashboardData = async () => {
-      try {
-        const isValidUUID = (id: string | null) => {
-          if (!id) return false;
-          return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id);
-        };
+  useEffect(() => {
+    if (!mounted || !auth.firmId) return;
 
-        if (isValidUUID(auth.firmId)) {
-          // Get Optimized RPC stats (Includes recent loans, counts, and metrics)
-          const stats = await supabaseService.getDashboardStats(auth.firmId as string, activeBranchId);
-          setCloudStats(stats);
-          
-          // Use stats for initial states
-          if (stats.recentLoans) setLoans(stats.recentLoans);
-
-          // Get Market Trends (Optimized via LS Caching)
-          const trends = await metalRateService.getMarketTrends();
-          setMarketTrends(trends);
-
-          // Get absolute latest rates for the pulse display
-          const live = await metalRateService.getLiveRates();
-          setLatestRates({ gold22k: live.gold22k, silver: live.silver });
-        }
-      } catch (err) {
-        console.error('FAILED: fetchDashboardData caught error:', err);
-      }
-    };
+    // Prevent duplicate fetches for the same branch/firm in the same render cycle
+    const currentFetchId = `${auth.firmId}-${activeBranchId}`;
+    if (lastFetchId.current === currentFetchId) return;
+    lastFetchId.current = currentFetchId;
 
     fetchDashboardData();
-  }, [activeBranchId, auth.firmId]);
+  }, [mounted, activeBranchId, auth.firmId]);
 
   if (!mounted) {
     return (
@@ -131,29 +129,22 @@ export default function DashboardPage() {
   }
 
   const isBranchView = activeBranchId !== 'firm';
-  const activeLoans = loans.filter((l) => l.status === 'active' || l.status === 'overdue');
   const overdueLoans = loans.filter((l) => l.status === 'overdue');
-
   const currentBranch = settings.branches.find(b => b.id === activeBranchId);
 
-  // Stats calculation (Using consolidated cloud metrics)
   const totalActiveLoanCount = cloudStats?.totalActiveLoans ?? 0;
   const totalActiveLoanValue = cloudStats?.totalActiveLoanValue ?? 0;
   const totalGoldWeight = cloudStats?.totalGoldWeight ?? 0;
-  const totalSilverWeight = cloudStats?.totalSilverWeight ?? 0;
   const monthlyInterest = cloudStats?.totalMonthlyInterest ?? 0;
 
-  // Chart data
   const recentLoans = [...loans]
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
     .slice(0, 5);
 
-  // Use server-side monthly trends if available, otherwise fallback to local calculation (for dev/demo)
   const monthlyData = (cloudStats?.monthlyTrends && cloudStats.monthlyTrends.length > 0) 
     ? cloudStats.monthlyTrends 
     : getMonthlyData(loans);
 
-  // Metal distribution from cloud stats
   const metalData = cloudStats?.metalDistribution || [];
 
   return (
@@ -177,62 +168,53 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Top Action Row: Market Pulse & High Risks */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-8 mb-8">
         <div className="xl:col-span-2 flex flex-col gap-5">
-           {marketTrends && (
-             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                <div className="pv-card relative overflow-hidden p-6 border-l-4 border-l-[#D4AF37]">
-                   <div className="flex justify-between items-start mb-4">
-                      <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">
-                        {t.common.gold} 22K (916) Pulse
-                      </span>
-                      <div className={`px-2 py-1 rounded-lg text-[10px] font-bold ${marketTrends.goldChange >= 0 ? 'bg-primary/10 text-primary' : 'bg-destructive/10 text-destructive'}`}>
-                        {marketTrends.goldChange >= 0 ? '+' : ''}{marketTrends.goldChange}%
-                      </div>
-                   </div>
-                   <div className="text-3xl font-black mb-4">₹{(latestRates?.gold22k || Math.round((settings.goldRate24K || 0) * (22/24))).toLocaleString('en-IN')}<small className="text-xs ml-1 opacity-40 font-bold uppercase">/gram</small></div>
-                   <div className="h-12 min-w-0">
-                      <ResponsiveContainer width="100%" height="100%" minHeight={48}>
-                        <AreaChart data={marketTrends.history}>
-                          <defs>
-                            <linearGradient id="colorGold" x1="0" y1="0" x2="0" y2="1">
-                              <stop offset="5%" stopColor="#D4AF37" stopOpacity={0.2}/>
-                              <stop offset="95%" stopColor="#D4AF37" stopOpacity={0}/>
-                            </linearGradient>
-                          </defs>
-                          <Area type="monotone" dataKey="gold" stroke="#D4AF37" strokeWidth={2} fill="url(#colorGold)" isAnimationActive={false} />
-                        </AreaChart>
-                      </ResponsiveContainer>
-                   </div>
-                </div>
 
-                <div className="pv-card relative overflow-hidden p-6 border-l-4 border-l-[#B0B8C1]">
-                   <div className="flex justify-between items-start mb-4">
-                      <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">
-                        {t.common.silver} Pulse
-                      </span>
-                      <div className={`px-2 py-1 rounded-lg text-[10px] font-bold ${marketTrends.silverChange >= 0 ? 'bg-primary/10 text-primary' : 'bg-destructive/10 text-destructive'}`}>
-                        {marketTrends.silverChange >= 0 ? '+' : ''}{marketTrends.silverChange}%
-                      </div>
-                   </div>
-                   <div className="text-3xl font-black mb-4">₹{(latestRates?.silver || settings.silverRate999 || 0).toLocaleString('en-IN')}<small className="text-xs ml-1 opacity-40 font-bold uppercase">/gram</small></div>
-                   <div className="h-12 min-w-0">
-                      <ResponsiveContainer width="100%" height="100%" minHeight={48}>
-                        <AreaChart data={marketTrends.history}>
-                          <defs>
-                            <linearGradient id="colorSilver" x1="0" y1="0" x2="0" y2="1">
-                              <stop offset="5%" stopColor="#B0B8C1" stopOpacity={0.2}/>
-                              <stop offset="95%" stopColor="#B0B8C1" stopOpacity={0}/>
-                            </linearGradient>
-                          </defs>
-                          <Area type="monotone" dataKey="silver" stroke="#B0B8C1" strokeWidth={2} fill="url(#colorSilver)" isAnimationActive={false} />
-                        </AreaChart>
-                      </ResponsiveContainer>
-                   </div>
+            {/* TradingView Verification Charts */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="pv-card p-0 overflow-hidden border-t-4 border-t-primary">
+                <div className="p-3 border-b border-border bg-muted/5 flex justify-between items-center">
+                  <div className="flex items-center gap-2">
+                    <TrendingUp size={14} className="text-primary" />
+                    <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">XAU/INR Live (Gold)</span>
+                  </div>
+                  <Link href="https://www.tradingview.com/symbols/XAUINR/" target="_blank" className="text-[9px] font-black text-primary hover:underline flex items-center gap-1">
+                    Full Chart <ExternalLink size={10} />
+                  </Link>
                 </div>
-             </div>
-           )}
+                <div className="h-[120px] w-full">
+                  <iframe 
+                    src="https://s.tradingview.com/embed-widget/mini-symbol-overview/?locale=en#%7B%22symbol%22%3A%22FX_IDC%3AXAUINR%22%2C%22width%22%3A%22100%25%22%2C%22height%22%3A120%2C%22dateRange%22%3A%221D%22%2C%22colorTheme%22%3A%22light%22%2C%22trendLineColor%22%3A%22rgba(41%2C%2098%2C%20255%2C%201)%22%2C%22underLineColor%22%3A%22rgba(41%2C%2098%2C%20255%2C%200.3)%22%2C%22underLineBottomColor%22%3A%22rgba(41%2C%2098%2C%20255%2C%200)%22%2C%22isTransparent%22%3Afalse%2C%22autosize%22%3Atrue%2C%22largeChartUrl%22%3A%22%22%7D"
+                    width="100%"
+                    height="120"
+                    frameBorder="0"
+                    style={{ border: 'none' }}
+                  ></iframe>
+                </div>
+              </div>
+
+              <div className="pv-card p-0 overflow-hidden border-t-4 border-t-slate-400">
+                <div className="p-3 border-b border-border bg-muted/5 flex justify-between items-center">
+                  <div className="flex items-center gap-2">
+                    <TrendingUp size={14} className="text-slate-500" />
+                    <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">XAG/INR Live (Silver)</span>
+                  </div>
+                  <Link href="https://www.tradingview.com/symbols/XAGINR/" target="_blank" className="text-[9px] font-black text-primary hover:underline flex items-center gap-1">
+                    Full Chart <ExternalLink size={10} />
+                  </Link>
+                </div>
+                <div className="h-[120px] w-full">
+                  <iframe 
+                    src="https://s.tradingview.com/embed-widget/mini-symbol-overview/?locale=en#%7B%22symbol%22%3A%22FX_IDC%3AXAGINR%22%2C%22width%22%3A%22100%25%22%2C%22height%22%3A120%2C%22dateRange%22%3A%221D%22%2C%22colorTheme%22%3A%22light%22%2C%22trendLineColor%22%3A%22rgba(41%2C%2098%2C%20255%2C%201)%22%2C%22underLineColor%22%3A%22rgba(41%2C%2098%2C%20255%2C%200.3)%22%2C%22underLineBottomColor%22%3A%22rgba(41%2C%2098%2C%20255%2C%200)%22%2C%22isTransparent%22%3Afalse%2C%22autosize%22%3Atrue%2C%22largeChartUrl%22%3A%22%22%7D"
+                    width="100%"
+                    height="120"
+                    frameBorder="0"
+                    style={{ border: 'none' }}
+                  ></iframe>
+                </div>
+              </div>
+            </div>
 
            <div className="stats-grid m-0">
              <StatCard title={t.dashboard.activeLoans} value={totalActiveLoanCount.toString()} subtitle={formatCurrency(totalActiveLoanValue)} icon={HandCoins} variant="vibrant" />
@@ -242,155 +224,105 @@ export default function DashboardPage() {
            </div>
         </div>
 
-        <div className="pv-card p-0 flex flex-col overflow-hidden border-2 border-destructive/10">
-          <div className="flex items-center justify-between p-6 border-b border-border bg-destructive/5">
-            <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-destructive">Collection Risks</h3>
-            <span className="badge overdue">{overdueLoans.length}</span>
-          </div>
-          <div className="p-4 flex flex-col gap-3 overflow-y-auto max-h-[360px]">
-            {overdueLoans.length > 0 ? (
-              overdueLoans.slice(0, 4).map((loan) => (
-                <div key={loan.id} className="flex items-center gap-4 p-4 bg-muted/30 border border-border/50 rounded-xl hover:bg-muted/50 transition-colors">
-                  <div className="flex-1">
-                    <div className="font-black text-sm">{loan.loanNumber}</div>
-                    <div className="text-[10px] font-bold text-muted-foreground uppercase opacity-50">{loan.customerName}</div>
-                    <div className="text-[10px] font-black text-destructive uppercase tracking-widest mt-1">
-                      Late {getDaysOverdue(loan.dueDate)}d
+        <div className="xl:col-span-1">
+          <QuickAppraisal />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
+        {/* Immediate Collection (Overdue Feed) */}
+        <div className="lg:col-span-1 flex flex-col gap-4">
+           <div className="flex items-center gap-2 mb-1">
+              <AlertTriangle size={18} className="text-destructive" />
+              <h3 className="text-xs font-black uppercase tracking-widest">Immediate Collection</h3>
+           </div>
+           <div className="flex flex-col gap-3 h-[380px] overflow-y-auto pr-2 custom-scrollbar">
+              {overdueLoans.length > 0 ? (
+                overdueLoans.map((loan) => (
+                  <div key={loan.id} className="pv-card flex flex-col gap-3 p-4 hover:border-destructive/30 transition-all bg-destructive/2">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <div className="font-black text-xs">{loan.loanNumber}</div>
+                        <div className="text-[9px] font-bold text-muted-foreground uppercase opacity-60">{loan.customerName}</div>
+                      </div>
+                      <span className="badge overdue">-{getDaysOverdue(loan.dueDate)}d</span>
+                    </div>
+                    <div className="flex justify-between items-end">
+                      <div className="text-lg font-black">{formatCurrency(loan.loanAmount + (loan.interestAccrued || 0) - (loan.amountPaid || 0))}</div>
+                      <div className="flex gap-1">
+                        <a href={`tel:${loan.customerPhone}`} className="pv-btn pv-btn-outline pv-btn-icon h-7 w-7"><Phone size={12} /></a>
+                        <button
+                          onClick={() => {
+                            const message = `PV Reminder: Dear ${loan.customerName}, your pledge ${loan.loanNumber} is overdue by ${getDaysOverdue(loan.dueDate)} days. Please visit our shop to renew or close.`;
+                            window.open(`https://wa.me/91${loan.customerPhone}?text=${encodeURIComponent(message)}`, '_blank');
+                          }}
+                          className="pv-btn pv-btn-outline pv-btn-icon h-7 w-7 text-green-600 border-green-600/20"
+                        >
+                          <MessageCircle size={12} />
+                        </button>
+                      </div>
                     </div>
                   </div>
-                  <div className="flex gap-2">
-                    <a 
-                      href={`tel:${loan.customerPhone}`}
-                      className="pv-btn pv-btn-outline pv-btn-icon text-primary border-primary/20 h-9 w-9"
-                      title="Call"
-                    >
-                      <Phone size={14} />
-                    </a>
-                    <a 
-                      href={`sms:${loan.customerPhone}?body=${encodeURIComponent(`Reminder: Your pledge ${loan.loanNumber} is overdue. Please visit our shop.`)}`}
-                      className="pv-btn pv-btn-outline pv-btn-icon text-blue-500 border-blue-500/20 h-9 w-9"
-                      title="SMS"
-                    >
-                      <MessageSquare size={14} />
-                    </a>
-                    <button
-                      onClick={() => {
-                        const message = `PV Reminder: Dear ${loan.customerName}, your pledge ${loan.loanNumber} is overdue by ${getDaysOverdue(loan.dueDate)} days. Balance: ${formatCurrency(loan.loanAmount + (loan.interestAccrued || 0) - (loan.amountPaid || 0))}. Please visit our shop to renew or close.`;
-                        window.open(`https://wa.me/91${loan.customerPhone}?text=${encodeURIComponent(message)}`, '_blank');
-                      }}
-                      className="pv-btn pv-btn-outline pv-btn-icon text-green-600 border-green-600/20 h-9 w-9"
-                      title="WhatsApp"
-                    >
-                      <MessageCircle size={14} />
-                    </button>
-                  </div>
-                </div>
-              ))
-            ) : (
-              <div className="flex flex-col items-center justify-center py-16 text-muted-foreground opacity-30">
-                <CircleDollarSign size={40} className="mb-2" />
-                <h3 className="text-[10px] font-black uppercase tracking-widest text-center">Safe Vault</h3>
-              </div>
-            )}
-            {overdueLoans.length > 4 && (
-              <Link href="/loans?status=overdue" className="text-center text-[10px] font-black text-primary uppercase tracking-[0.2em] py-2 hover:underline">
-                View All Risks
-              </Link>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Charts Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-        <div className="pv-card p-0 flex flex-col overflow-hidden">
-          <div className="flex items-center justify-between p-6 border-b border-border bg-muted/10">
-            <h3 className="text-xs font-black uppercase tracking-[0.2em] text-muted-foreground">{t.dashboard.loanVolume}</h3>
-            <span className="text-[10px] font-black opacity-40 uppercase tracking-widest">{t.dashboard.viewAll}</span>
-          </div>
-          <div className="p-6 h-[320px] min-w-0">
-              <ResponsiveContainer width="100%" height="100%" minHeight={200}>
-                <BarChart data={monthlyData} barCategoryGap="20%">
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
-                  <XAxis
-                    dataKey="month"
-                    tick={{ fontSize: 10, fontWeight: 800, fill: 'hsl(var(--muted-foreground))' }}
-                    axisLine={false}
-                    tickLine={false}
-                  />
-                  <YAxis
-                    tick={{ fontSize: 10, fontWeight: 800, fill: 'hsl(var(--muted-foreground))' }}
-                    axisLine={false}
-                    tickLine={false}
-                  />
-                   <Tooltip
-                    cursor={{ fill: 'oklch(0.966 0.005 106.5)' }}
-                    contentStyle={{
-                      background: 'oklch(1 0 0)',
-                      border: '1px solid oklch(0.93 0.007 106.5)',
-                      borderRadius: '12px',
-                      padding: '12px',
-                      boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)',
-                      color: 'oklch(0.153 0.006 107.1)'
-                    }}
-                  />
-                  <Bar dataKey="gold" fill="oklch(0.7 0.15 80)" radius={[4, 4, 0, 0]} name="Gold Loans" stackId="a" />
-                  <Bar dataKey="silver" fill="oklch(0.8 0.05 200)" radius={[4, 4, 0, 0]} name="Silver Loans" stackId="a" />
-                </BarChart>
-              </ResponsiveContainer>
-          </div>
-        </div>
-
-        {isAdmin && (
-          <div className="pv-card p-0 flex flex-col overflow-hidden">
-            <div className="flex items-center justify-between p-6 border-b border-border bg-muted/10">
-              <h3 className="text-xs font-black uppercase tracking-[0.2em] text-muted-foreground">{t.dashboard.assetComposition}</h3>
-              <span className="text-[10px] font-black opacity-40 uppercase tracking-widest">{t.common.all}</span>
-            </div>
-            <div className="p-6 h-[320px] min-w-0">
-              {metalData.length > 0 ? (
-                <ResponsiveContainer width="100%" height="100%" minHeight={200}>
-                  <PieChart>
-                    <Pie
-                      data={metalData}
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={70}
-                      outerRadius={100}
-                      paddingAngle={4}
-                      dataKey="value"
-                      labelLine={false}
-                    >
-                      {metalData.map((entry: { name: string; value: number }, index: number) => (
-                        <Cell
-                          key={`cell-${index}`}
-                          fill={getMetalColor(entry.name, index)}
-                        />
-                      ))}
-                    </Pie>
-                     <Tooltip 
-                      contentStyle={{
-                        background: 'oklch(1 0 0)',
-                        border: '1px solid oklch(0.93 0.007 106.5)',
-                        borderRadius: '12px',
-                        boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)',
-                        color: 'oklch(0.153 0.006 107.1)'
-                      }}
-                    />
-                    <Legend verticalAlign="bottom" height={36} iconType="circle"/>
-                  </PieChart>
-                </ResponsiveContainer>
+                ))
               ) : (
-                <div className="flex items-center justify-center h-full text-muted-foreground text-sm font-bold opacity-50 italic">
-                  No inventory data available yet
+                <div className="h-full flex flex-center border-2 border-dashed border-border rounded-2xl opacity-40">
+                  <span className="text-[10px] font-black uppercase tracking-widest">No Overdue Loans</span>
                 </div>
               )}
+           </div>
+        </div>
+
+        {/* Analytical Charts */}
+        <div className="lg:col-span-2 flex flex-col gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 h-full">
+            <div className="pv-card p-0 flex flex-col overflow-hidden h-full">
+              <div className="flex items-center justify-between p-4 border-b border-border bg-muted/10">
+                <h3 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{t.dashboard.loanVolume}</h3>
+              </div>
+              <div style={{ padding: '16px', height: '320px', minWidth: 0, overflow: 'hidden', position: 'relative' }}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={monthlyData} barCategoryGap="20%">
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
+                      <XAxis dataKey="month" tick={{ fontSize: 9, fontWeight: 800 }} axisLine={false} tickLine={false} />
+                      <YAxis tick={{ fontSize: 9, fontWeight: 800 }} axisLine={false} tickLine={false} />
+                      <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)' }} />
+                      <Bar dataKey="gold" fill="oklch(0.7 0.15 80)" radius={[4, 4, 0, 0]} name="Gold" stackId="a" />
+                      <Bar dataKey="silver" fill="oklch(0.8 0.05 200)" radius={[4, 4, 0, 0]} name="Silver" stackId="a" />
+                    </BarChart>
+                  </ResponsiveContainer>
+              </div>
+            </div>
+
+            <div className="pv-card p-0 flex flex-col overflow-hidden h-full">
+              <div className="flex items-center justify-between p-4 border-b border-border bg-muted/10">
+                <h3 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{t.dashboard.assetComposition}</h3>
+              </div>
+              <div style={{ padding: '16px', height: '320px', minWidth: 0, overflow: 'hidden', position: 'relative' }}>
+                {metalData.length > 0 ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={metalData}
+                        cx="50%" cy="50%" innerRadius={50} outerRadius={80}
+                        paddingAngle={4} dataKey="value"
+                      >
+                        {metalData.map((entry: any, index: number) => (
+                          <Cell key={`cell-${index}`} fill={getMetalColor(entry.name, index)} />
+                        ))}
+                      </Pie>
+                      <Tooltip contentStyle={{ borderRadius: '12px', border: 'none' }} />
+                      <Legend verticalAlign="bottom" height={36} iconType="circle" wrapperStyle={{ fontSize: '10px', fontWeight: 700 }}/>
+                    </PieChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="flex items-center justify-center h-full text-[10px] font-black uppercase opacity-30 italic">No Data</div>
+                )}
+              </div>
             </div>
           </div>
-        )}
+        </div>
       </div>
 
-      {/* Lower Row: Recent Pledges */}
       <div className="grid grid-cols-1 gap-8">
         <div className="pv-card p-0 flex flex-col overflow-hidden">
           <div className="flex items-center justify-between p-6 border-b border-border bg-muted/10">
@@ -441,41 +373,12 @@ export default function DashboardPage() {
               </tbody>
             </table>
           </div>
-          <div className="mobile-cards">
-             {recentLoans.map((loan) => (
-               <div key={loan.id} className="pv-card flex flex-col gap-3 p-4 mb-3 mx-4">
-                  <div className="flex justify-between items-center">
-                     <span className="font-black text-xs opacity-50">{loan.loanNumber}</span>
-                     <span className={`badge ${loan.status}`}>{loan.status}</span>
-                  </div>
-                  <div className="flex justify-between items-end">
-                     <div className="flex flex-col">
-                        <span className="font-black text-sm">{loan.customerName}</span>
-                        <div className="flex gap-1 mt-1">
-                           {(loan.items || []).slice(0, 2).map((item: any, i: number) => (
-                             <span key={i} className="text-[8px] font-black uppercase px-1 py-0.5 rounded bg-primary/10 text-primary">
-                               {item.itemType}
-                             </span>
-                           ))}
-                        </div>
-                     </div>
-                     <div className="flex flex-col items-end">
-                        <span className="font-black text-primary">{formatCurrency(loan.loanAmount)}</span>
-                        <span className="text-[10px] font-black text-foreground">
-                           {formatWeight((loan.items || []).reduce((s: number, i: any) => s + i.netWeight, 0))}
-                        </span>
-                     </div>
-                  </div>
-               </div>
-             ))}
-          </div>
         </div>
       </div>
     </>
   );
 }
 
-// Helper: Group loans by month and metal type for chart
 function getMonthlyData(loans: Loan[]) {
   const months: Record<string, { gold: number; silver: number }> = {};
   const now = new Date();

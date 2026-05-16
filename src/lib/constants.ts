@@ -93,7 +93,7 @@ export function formatCurrency(amount: number): string {
 }
 
 export function formatWeight(grams: number): string {
-  return `${grams.toFixed(2)}g`;
+  return `${grams.toFixed(3)} gm`;
 }
 
 export function formatDate(dateStr: string): string {

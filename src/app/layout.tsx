@@ -4,6 +4,7 @@ import "./globals.css";
 import AppShell from "@/components/layout/AppShell";
 import TrialExpiredGate from "@/components/auth/TrialExpiredGate";
 import PWARegistration from "@/components/pwa/PWARegistration";
+import OfflineModal from "@/components/layout/OfflineModal";
 
 const outfit = Outfit({ 
   subsets: ['latin'], 
@@ -60,6 +61,7 @@ export default function RootLayout({
     <html lang="en" className={`${outfit.variable} ${hindMadurai.variable}`} data-scroll-behavior="smooth">
       <body className="antialiased">
         <PWARegistration />
+        <OfflineModal />
         <TrialExpiredGate>
           <AppShell>{children}</AppShell>
         </TrialExpiredGate>

@@ -136,6 +136,27 @@ export default function LoginPage() {
     }
   };
 
+  const [resetSuccess, setResetSuccess] = useState(false);
+
+  const handleResetPassword = async () => {
+    if (!email) {
+      setError('Please enter your email address first.');
+      return;
+    }
+    setLoading(true);
+    setError(null);
+    const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/auth/callback?next=/settings/profile`,
+    });
+
+    if (resetError) {
+      setError(resetError.message);
+    } else {
+      setResetSuccess(true);
+    }
+    setLoading(false);
+  };
+
   const handleDevLogin = async (role: 'admin' | 'staff') => {
     const creds = {
       admin: { email: 'admin@yourfirm.com', pass: 'password123' },
@@ -160,11 +181,13 @@ export default function LoginPage() {
   return (
     <div className="login-screen">
       <div className="login-card-dual anim-in">
-        <div className="login-pane-brand relative overflow-hidden flex flex-col justify-between p-12">
+        <div className="login-pane-brand relative flex flex-col justify-between p-16">
           {/* Animated Background Gradients */}
-          <div className="absolute inset-0 bg-gradient-to-br from-primary via-primary/90 to-emerald-900" />
-          <div className="absolute top-[-10%] right-[-10%] w-[60%] h-[60%] rounded-full bg-gold/20 blur-[100px] animate-pulse" />
-          <div className="absolute bottom-[-10%] left-[-10%] w-[50%] h-[50%] rounded-full bg-white/10 blur-[80px]" />
+          <div className="absolute inset-0 bg-linear-to-br from-primary via-primary to-emerald-950" />
+
+          <div className="absolute -top-24 -right-24 w-96 h-96 rounded-full bg-gold/20 blur-[120px] animate-pulse" />
+          <div className="absolute -bottom-24 -left-24 w-80 h-80 rounded-full bg-white/5 blur-[100px]" />
+
           
           <div className="brand-zone relative z-10">
             <div className="brand-logo-large mb-8">
@@ -179,55 +202,27 @@ export default function LoginPage() {
                </div>
             </div>
             
-            <div className="space-y-8 max-w-sm">
-               <div className="flex items-start gap-4 text-white/90">
-                 <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center shrink-0 border border-white/10 shadow-lg">
-                   <ShieldCheck size={22} className="text-gold" />
+            <div className="space-y-10 max-w-md">
+               {[
+                 { icon: <ShieldCheck size={26} />, title: "Audit-Ready Compliance", desc: "Enterprise-grade security with immutable audit trails for every transaction and pledge." },
+                 { icon: <Zap size={26} />, title: "Precision Appraisal", desc: "Real-time Gold & Silver rate synchronization ensuring accurate valuations and minimized risk." },
+                 { icon: <Building2 size={26} />, title: "Multi-Branch Command", desc: "Centralized management for multiple branches with unified reporting and inter-branch transfers." },
+                 { icon: <HandCoins size={26} />, title: "Lifecycle Loan Management", desc: "End-to-end tracking from instant payout to automated interest accrual and overdue notifications." }
+               ].map((feature, i) => (
+                 <div key={i} className="flex items-start gap-5 text-white group cursor-default">
+                   <div className="w-12 h-12 rounded-2xl bg-white/10 flex items-center justify-center shrink-0 border border-white/10 shadow-2xl transition-all group-hover:bg-white/20 group-hover:scale-110">
+                     <span className="text-gold">{feature.icon}</span>
+                   </div>
+                   <div className="flex flex-col gap-1.5">
+                     <h3 className="text-base font-bold text-white tracking-tight">{feature.title}</h3>
+                     <p className="text-[13px] text-white/60 leading-relaxed font-medium">
+                       {feature.desc}
+                     </p>
+                   </div>
                  </div>
-                 <div className="flex flex-col gap-1">
-                   <h3 className="text-sm font-bold text-white tracking-tight">Audit-Ready Compliance</h3>
-                   <p className="text-[12px] text-white/60 leading-relaxed font-medium">
-                     Enterprise-grade security with immutable audit trails for every transaction and pledge.
-                   </p>
-                 </div>
-               </div>
-
-               <div className="flex items-start gap-4 text-white/90">
-                 <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center shrink-0 border border-white/10 shadow-lg">
-                   <Zap size={22} className="text-gold" />
-                 </div>
-                 <div className="flex flex-col gap-1">
-                   <h3 className="text-sm font-bold text-white tracking-tight">Precision Appraisal</h3>
-                   <p className="text-[12px] text-white/60 leading-relaxed font-medium">
-                     Real-time Gold & Silver rate synchronization ensuring accurate valuations and minimized risk.
-                   </p>
-                 </div>
-               </div>
-
-               <div className="flex items-start gap-4 text-white/90">
-                 <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center shrink-0 border border-white/10 shadow-lg">
-                   <Building2 size={22} className="text-gold" />
-                 </div>
-                 <div className="flex flex-col gap-1">
-                   <h3 className="text-sm font-bold text-white tracking-tight">Multi-Branch Command</h3>
-                   <p className="text-[12px] text-white/60 leading-relaxed font-medium">
-                     Centralized management for multiple branches with unified reporting and inter-branch transfers.
-                   </p>
-                 </div>
-               </div>
-
-               <div className="flex items-start gap-4 text-white/90">
-                 <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center shrink-0 border border-white/10 shadow-lg">
-                   <HandCoins size={22} className="text-gold" />
-                 </div>
-                 <div className="flex flex-col gap-1">
-                   <h3 className="text-sm font-bold text-white tracking-tight">Lifecycle Loan Management</h3>
-                   <p className="text-[12px] text-white/60 leading-relaxed font-medium">
-                     End-to-end tracking from instant payout to automated interest accrual and overdue notifications.
-                   </p>
-                 </div>
-               </div>
+               ))}
             </div>
+
           </div>
 
           <div className="relative z-10 flex flex-col gap-6">
@@ -240,8 +235,27 @@ export default function LoginPage() {
           </div>
         </div>
 
-        <div className="login-pane-form">
+        <div className="login-pane-form no-scrollbar">
+
+          {/* Decorative Background Elements */}
+          <div className="login-form-blob blob-1" />
+          <div className="login-form-blob blob-2" />
+
+          <div className="mx-auto w-full max-w-[440px] flex flex-col justify-center flex-1 py-12">
+            {/* Mobile Brand Presence (visible only on small screens) */}
+            <div className="mobile-brand-header lg:hidden">
+               <div className="mobile-logo-wrap">
+                  <img src="/android-chrome-192x192.png" alt="Logo" />
+               </div>
+               <div className="flex flex-col">
+                  <h1 className="mobile-brand-name">{branding.name}</h1>
+                  <p className="mobile-tagline">{t.common.secureVault}</p>
+               </div>
+            </div>
+
+
           <div className="right-header">
+
              <div className="lang-switcher-top">
                 <button 
                   type="button" 
@@ -264,11 +278,20 @@ export default function LoginPage() {
              </div>
           </div>
 
-          <form onSubmit={handleLogin} className={`login-form-modern ${lang === 'ta' ? 'lang-ta' : ''}`}>
+          <form onSubmit={handleLogin} className={`login-form-modern ${lang === 'ta' ? 'lang-ta' : ''}`} style={{ gap: '24px' }}>
+
+
             {error && (
               <div className="alert-modern error">
                 <AlertCircle size={14} />
                 <span>{error}</span>
+              </div>
+            )}
+
+            {resetSuccess && (
+              <div className="alert-modern success">
+                <CheckCircle2 size={14} />
+                <span>Password reset link sent to your email.</span>
               </div>
             )}
 
@@ -314,7 +337,8 @@ export default function LoginPage() {
             <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '4px' }}>
               <button
                 type="button"
-                onClick={() => alert('Password reset will be sent to your registered email address.')}
+                onClick={handleResetPassword}
+                disabled={loading}
                 style={{
                   background: 'none',
                   border: 'none',
@@ -323,13 +347,16 @@ export default function LoginPage() {
                   fontWeight: 700,
                   cursor: 'pointer',
                   padding: 0,
+                  opacity: loading ? 0.5 : 1
                 }}
               >
                 {t.login.forgotPassword}
               </button>
             </div>
 
-            <button className="pv-btn pv-btn-primary" style={{ width: '100%', height: '56px', marginTop: '24px', borderRadius: 'var(--radius-md)', fontSize: '15px' }} disabled={loading}>
+            <button className="pv-btn pv-btn-primary" style={{ width: '100%', height: '60px', marginTop: '32px', borderRadius: 'var(--radius-md)', fontSize: '16px' }} disabled={loading}>
+
+
               {loading ? (
                 <Loader2 className="spin" size={20} />
               ) : (
@@ -341,43 +368,25 @@ export default function LoginPage() {
           </form>
 
           {/* Start Trial CTA */}
-          <div style={{
-            marginTop: '32px',
-            padding: '20px 24px',
-            background: 'var(--brand-soft)',
-            borderRadius: 'var(--radius-md)',
-            border: '1px solid var(--border)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: '16px',
-          }}>
-            <div>
-              <span style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 600 }}>
-                {t.login.newUser}
-              </span>
+          <div className="login-cta-box">
+            <div className="login-cta-text">
+              <span className="cta-label">{t.login.newUser}</span>
+              <span className="cta-main">Ready to modernize your firm?</span>
             </div>
-            <Link
-              href="/start-trial"
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '6px',
-                color: 'var(--brand-primary)',
-                fontSize: '13px',
-                fontWeight: 800,
-                textDecoration: 'none',
-                whiteSpace: 'nowrap',
-              }}
-            >
-              {t.login.startTrial} <ArrowRight size={14} />
+            <Link href="/start-trial" className="cta-link">
+              {t.login.startTrial} <ArrowRight size={16} />
             </Link>
           </div>
-          <footer style={{ marginTop: '24px', paddingTop: '20px', borderTop: '1px solid var(--border)' }}>
+
+          <footer style={{ marginTop: '32px', paddingTop: '24px', borderTop: '1px solid var(--border)' }}>
+
+
              <div style={{ display: 'flex', gap: '8px', fontSize: '11px', color: 'var(--text-tertiary)', fontWeight: '700' }}>
                 <span>© 2026 {t.common.pledgevault}</span>
                 <span>•</span>
-                <span className="font-mono lowercase opacity-60">Build: {process.env.NEXT_PUBLIC_APP_VERSION || 'dev'}</span>
+                <span className="font-mono lowercase opacity-60">
+                   {process.env.NEXT_PUBLIC_APP_VERSION || (process.env.NODE_ENV === 'development' ? 'dev' : '')}
+                </span>
              </div>
           </footer>
 
@@ -398,6 +407,8 @@ export default function LoginPage() {
           )}
         </div>
       </div>
+    </div>
+
 
       <BranchSelectorModal 
         isOpen={showBranchSelector} 

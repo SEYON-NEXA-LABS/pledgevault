@@ -10,9 +10,21 @@ import { GOLD_PURITY_MAP, SILVER_PURITY_MAP } from './constants';
  */
 export function getPurityFactor(metalType: MetalType, purity: string): number {
   if (metalType === 'gold') {
-    return GOLD_PURITY_MAP[purity as GoldPurity]?.factor || 1;
+    const mapped = GOLD_PURITY_MAP[purity as GoldPurity]?.factor;
+    if (mapped !== undefined) return mapped;
+
+    // Fallback for custom numeric purity (e.g. "22" for Karat or "916" for Fineness)
+    const num = parseFloat(purity);
+    if (isNaN(num)) return 1;
+    return num <= 24 ? num / 24 : num / 1000;
   }
-  return SILVER_PURITY_MAP[purity as SilverPurity]?.factor || 1;
+  
+  const mapped = SILVER_PURITY_MAP[purity as SilverPurity]?.factor;
+  if (mapped !== undefined) return mapped;
+  
+  const num = parseFloat(purity);
+  if (isNaN(num)) return 1;
+  return num > 24 ? num / 1000 : 1; // Silver usually > 24 if fineness, else fallback to 1 (pure)
 }
 
 /**

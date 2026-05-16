@@ -13,6 +13,7 @@ import {
   Phone,
   MessageCircle,
   MessageSquare,
+  ShieldCheck,
 } from 'lucide-react';
 import { loanStore, settingsStore } from '@/lib/store';
 import { translations, Language } from '@/lib/i18n/translations';
@@ -131,6 +132,22 @@ export default function LoansPage() {
   if (!mounted) {
     return <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-tertiary)' }}>Loading...</div>;
   }
+
+  const handleShareTrackLink = (loan: any) => {
+    const trackLink = `${window.location.origin}/track/${loan.id}`;
+    const shareMessage = `Dear ${loan.customerName}, your loan #${loan.loanNumber} status can be tracked live at: ${trackLink}`;
+
+    if (navigator.share) {
+      navigator.share({
+        title: `PledgeVault Tracker #${loan.loanNumber}`,
+        text: shareMessage,
+        url: trackLink
+      }).catch(console.error);
+    } else {
+      navigator.clipboard.writeText(trackLink);
+      alert('Tracking link copied to clipboard!');
+    }
+  };
 
   const handleCloseLoan = async (loanId: string) => {
     if (confirm('Are you sure you want to close this loan? This marks the pledge as redeemed.')) {
@@ -402,6 +419,13 @@ export default function LoansPage() {
                           <Link href={`/loans/${loan.id}`} className="pv-btn pv-btn-sm pv-btn-outline font-black text-[10px] uppercase tracking-widest h-8 px-3">
                             {t.common.details}
                           </Link>
+                          <button 
+                            onClick={() => handleShareTrackLink(loan)}
+                            className="pv-btn pv-btn-sm pv-btn-outline font-black text-[10px] uppercase tracking-widest h-8 w-8 p-0"
+                            title="Share Tracking Link"
+                          >
+                            <ShieldCheck size={14} className="text-brand-primary" />
+                          </button>
                           {loan.status === 'draft' && (
                             <Link href={`/loans/new?draftId=${loan.id}`} className="pv-btn pv-btn-sm pv-btn-gold font-black text-[10px] uppercase tracking-widest h-8 px-3">
                                {t.loans.resume}
@@ -469,6 +493,12 @@ export default function LoansPage() {
                     <Link href={`/loans/${loan.id}`} className="pv-btn pv-btn-outline flex-1 h-10 rounded-xl font-black text-xs uppercase tracking-widest">
                        Details
                     </Link>
+                    <button 
+                      onClick={() => handleShareTrackLink(loan)}
+                      className="pv-btn pv-btn-outline w-10 h-10 rounded-xl flex items-center justify-center"
+                    >
+                       <ShieldCheck size={18} className="text-brand-primary" />
+                    </button>
                     {(loan.status === 'active' || loan.status === 'overdue') && (
                        <button 
                         className="pv-btn pv-btn-outline text-destructive border-destructive/20 hover:bg-destructive/5 flex-1 h-10 rounded-xl font-black text-xs uppercase tracking-widest"

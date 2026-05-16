@@ -30,7 +30,8 @@ export default function TrialExpiredGate({ children }: { children: React.ReactNo
   const isExemptRoute = 
     pathname === '/login' || 
     pathname === '/start-trial' ||
-    pathname.startsWith('/settings');
+    pathname.startsWith('/settings') ||
+    pathname.startsWith('/track');
 
   const shouldBlock = isExpired && !isSuperadmin && !isExemptRoute;
 

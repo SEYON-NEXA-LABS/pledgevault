@@ -78,13 +78,13 @@ const WeightInput = ({ value, onChange, onStep, metalType, placeholder, isWarnin
 
   return (
     <div className="flex flex-col gap-2 w-full">
-      <div className="weight-input-container !h-14 sm:!h-10" style={{ 
+      <div className="weight-input-container h-14! sm:h-10!" style={{ 
         borderColor: isWarning ? '#f59e0b' : '',
         background: isWarning ? '#fffbeb' : ''
       }}>
         {!hideSteppers && (
           <button 
-            className="weight-stepper !w-12 !h-full active:bg-muted" 
+            className="weight-stepper w-12! h-full! active:bg-muted" 
             onClick={() => onStep(-0.01)}
           >
             <span className="text-xl">−</span>
@@ -92,7 +92,7 @@ const WeightInput = ({ value, onChange, onStep, metalType, placeholder, isWarnin
         )}
         <input
           type="text"
-          className="weight-input-naked text-center font-black !text-lg"
+          className="weight-input-naked text-center font-black text-lg!"
           placeholder={placeholder || "0.00"}
           value={value}
           onChange={(e) => onChange(e.target.value)}
@@ -103,7 +103,7 @@ const WeightInput = ({ value, onChange, onStep, metalType, placeholder, isWarnin
         />
         {!hideSteppers && (
           <button 
-            className="weight-stepper !w-12 !h-full active:bg-muted" 
+            className="weight-stepper w-12! h-full! active:bg-muted" 
             onClick={() => onStep(0.01)}
           >
             <span className="text-xl">+</span>
@@ -138,6 +138,7 @@ function NewLoanContent() {
   const [mounted, setMounted] = useState(false);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [selectedCustomerId, setSelectedCustomerId] = useState('');
+  const [fullSelectedCustomer, setFullSelectedCustomer] = useState<Customer | null>(null);
   const [customerSearch, setCustomerSearch] = useState('');
   const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
 
@@ -149,6 +150,7 @@ function NewLoanContent() {
   const [loanAmountOverride, setLoanAmountOverride] = useState('');
   const [remarks, setRemarks] = useState('');
   const [saving, setSaving] = useState(false);
+  const [createdLoan, setCreatedLoan] = useState<Loan | null>(null);
   const [draftId, setDraftId] = useState<string | null>(null);
   const [lang, setLang] = useState<Language>('ta');
   const t = translations[lang] || translations.en;
@@ -167,10 +169,6 @@ function NewLoanContent() {
     return () => window.removeEventListener('pv_settings_updated', sync);
   }, []);
 
-  const handleLangToggle = (newLang: Language) => {
-    setLang(newLang);
-    settingsStore.save({ language: newLang });
-  };
   const [dragIndex, setDragIndex] = useState<number | null>(null);
   const [activeMenuIndex, setActiveMenuIndex] = useState<number | null>(null);
   const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
@@ -180,6 +178,7 @@ function NewLoanContent() {
   const [selectedBranchId, setSelectedBranchId] = useState('');
   const [goldRate, setGoldRate] = useState(7200);
   const [silverRate, setSilverRate] = useState(90);
+  const [isEditingRates, setIsEditingRates] = useState(false);
   
   // Payout Stage state
   const [isPayoutStage, setIsPayoutStage] = useState(false);
@@ -196,25 +195,32 @@ function NewLoanContent() {
   const auth = authStore.get();
   const canOverrideInterest = isStaff ? (settings?.allowStaffOverridesInterest ?? true) : true;
   const canOverrideLtv = isStaff ? (settings?.allowStaffOverridesLtv ?? true) : true;
+  const [isSearchingCustomers, setIsSearchingCustomers] = useState(false);
 
   useEffect(() => {
     setMounted(true);
+    const s = settingsStore.get();
+    
+    // 1. Inherit Branch from Header/Store
+    if (s.activeBranchId && s.activeBranchId !== 'firm') {
+      setSelectedBranchId(s.activeBranchId);
+    } else if (s.branches.length > 0) {
+      setSelectedBranchId(s.branches[0].id);
+    }
+    
+    // 2. Default Values from Store
+    setInterestRate(s.defaultInterestRate.toString());
+    setInterestMode(s.defaultInterestMode);
+    setTenure(s.defaultTenure.toString());
+    setLtvPercent(s.defaultLtvGold.toString());
     
     // Close photo menu on click outside
     const handleClickOutside = () => setActiveMenuIndex(null);
     window.addEventListener('click', handleClickOutside);
     
-    if (auth.firmId) {
-      supabaseService.getCustomers(auth.firmId, 0, 10).then(res => {
-        setCustomers(res.data as Customer[]);
-      }).catch(console.error);
-    }
-    
-    const s = settingsStore.get();
-    setInterestRate(s.defaultInterestRate.toString());
-    setInterestMode(s.defaultInterestMode);
-    setTenure(s.defaultTenure.toString());
-    setLtvPercent(s.defaultLtvGold.toString());
+    // Egress Optimized: We no longer fetch all customers on mount.
+    // Initial results are empty until user searches.
+    setCustomers([]);
     
     // Proactive Sync: Get live rates on mount so we match the header immediately
     metalRateService.getLiveRates().then((live: any) => {
@@ -228,11 +234,16 @@ function NewLoanContent() {
 
     // Check for draftId in URL
     const dId = searchParams.get('draftId');
+    const qMetal = searchParams.get('metal');
+    const qWeight = searchParams.get('weight');
+    const qPurity = searchParams.get('purity');
+    const qRate = searchParams.get('rate');
+
     if (dId) {
       setDraftId(dId);
       supabaseService.getLoanWithDetails(dId).then(draft => {
         if (draft && draft.status === 'draft') {
-          setSelectedCustomerId(draft.customerId);
+          handleSelectCustomer(draft.customerId);
           setInterestMode(draft.interestMode);
           setInterestRate(draft.interestRate.toString());
           setTenure(draft.tenureMonths.toString());
@@ -251,31 +262,45 @@ function NewLoanContent() {
           }
         }
       }).catch(console.error);
+    } else if (qWeight) {
+      // Handle Quick Appraisal Params
+      setItems([{
+        ...emptyItem(),
+        metalType: (qMetal as any) || 'gold',
+        grossWeight: qWeight,
+        netWeight: qWeight,
+        purity: qPurity || (qMetal === 'silver' ? '999' : '916')
+      }]);
+      if (qRate) {
+        if (qMetal === 'silver') setSilverRate(parseFloat(qRate));
+        else setGoldRate(parseFloat(qRate));
+      }
     }
     setSilverRate(s.silverRate999 || 90);
 
-    // Initialize branch selection
-    if (authStore.isStaff() && s.activeBranchId && s.activeBranchId !== 'firm') {
-      setSelectedBranchId(s.activeBranchId);
-    } else {
-      setSelectedBranchId('');
-    }
     
     // Fetch enforcement data
     fetchEnforcementData();
   }, [searchParams]);
 
-  // Debounced Customer Search for New Loan
+  // Debounced Customer Search for New Loan (Egress Optimized)
   useEffect(() => {
-    if (!mounted || !auth.firmId || !customerSearch || customerSearch.length < 2) return;
+    if (!mounted || !auth.firmId || customerSearch.length < 2) {
+      setCustomers([]);
+      setShowCustomerDropdown(false);
+      return;
+    }
     
+    setIsSearchingCustomers(true);
     const timer = setTimeout(async () => {
       try {
-        const res = await supabaseService.getCustomers(auth.firmId!, 0, 10, customerSearch);
-        setCustomers(res.data as Customer[]);
+        const results = await supabaseService.searchCustomers(auth.firmId!, customerSearch);
+        setCustomers(results as Customer[]);
         setShowCustomerDropdown(true);
       } catch (err) {
         console.error('Customer search failed:', err);
+      } finally {
+        setIsSearchingCustomers(false);
       }
     }, 400);
     
@@ -460,6 +485,27 @@ function NewLoanContent() {
       )
     : customers;
 
+  const handleSelectCustomer = async (id: string) => {
+    setSelectedCustomerId(id);
+    setCustomerSearch('');
+    setShowCustomerDropdown(false);
+    
+    try {
+      const full = await supabaseService.getCustomerWithDetails(id);
+      setFullSelectedCustomer(full);
+    } catch (err) {
+      console.error('Failed to fetch full customer profile:', err);
+      const basic = customers.find(c => c.id === id);
+      if (basic) setFullSelectedCustomer(basic as Customer);
+    }
+  };
+
+  const handleClearCustomer = () => {
+    setSelectedCustomerId('');
+    setFullSelectedCustomer(null);
+    setCustomerSearch('');
+  };
+
   const handleReviewQuote = () => {
     if (!enforcement.allowed) {
       alert(`${t.plans.restricted}: ${enforcement.reason === 'expired' ? t.plans.expiredTitle : t.plans.limitReached}`);
@@ -585,9 +631,8 @@ function NewLoanContent() {
       ? supabaseService.updateLoan(draftId, { ...loanPayload, status: 'active' })
       : supabaseService.createLoan(loanPayload);
 
-    savePromise.then(() => {
-      // settingsStore.incrementLoanCounter(); // Handle offline fallback gracefully later if needed
-      router.push('/loans');
+    savePromise.then((newLoan) => {
+      setCreatedLoan(newLoan as Loan);
     }).catch((err) => {
       console.error(err);
       alert('Failed to save loan to Supabase');
@@ -656,6 +701,85 @@ function NewLoanContent() {
     }
   };
 
+  if (createdLoan) {
+    const trackLink = `${window.location.origin}/track/${createdLoan.id}`;
+    const shareMessage = `Dear ${createdLoan.customerName}, your loan #${createdLoan.loanNumber} for ${formatCurrency(createdLoan.loanAmount)} has been successfully issued. Track your asset live at: ${trackLink}`;
+    const waLink = `https://wa.me/${createdLoan.customerPhone.replace(/\D/g, '')}?text=${encodeURIComponent(shareMessage)}`;
+    const smsLink = `sms:${createdLoan.customerPhone}?body=${encodeURIComponent(shareMessage)}`;
+
+    return (
+      <div className="fixed inset-0 z-2000 bg-brand-deep/95 backdrop-blur-xl flex items-center justify-center p-6 animate-in fade-in zoom-in duration-500">
+        <div className="max-w-md w-full bg-white rounded-[32px] overflow-hidden shadow-[0_40px_100px_rgba(0,0,0,0.5)] border-0">
+          <div className="bg-linear-to-br from-brand-primary to-brand-deep p-12 text-center text-white relative">
+            <div className="absolute top-4 right-4 bg-white/20 px-3 py-1 rounded-full text-[9px] font-black tracking-widest uppercase">Vault Secured</div>
+            <div className="w-24 h-24 bg-white/10 rounded-3xl flex items-center justify-center mx-auto mb-6 backdrop-blur-md border border-white/20">
+              <CheckCircle2 size={48} className="text-white" />
+            </div>
+            <h2 className="text-3xl font-black mb-2 leading-tight">Loan Issued!</h2>
+            <p className="text-white/60 text-xs font-bold uppercase tracking-widest">#{createdLoan.loanNumber}</p>
+          </div>
+          
+          <div className="p-10 space-y-8">
+            <div className="text-center space-y-2">
+               <p className="text-sm font-bold text-brand-deep/60">Share digital receipt with <span className="text-brand-deep">{createdLoan.customerName}</span></p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <a 
+                href={waLink} 
+                target="_blank" 
+                className="flex flex-col items-center gap-3 p-6 bg-green-50 rounded-2xl border border-green-100 hover:bg-green-100 transition-all group"
+              >
+                <div className="w-12 h-12 bg-green-500 text-white rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <Plus size={24} className="rotate-45" /> {/* Using Plus rotated as placeholder for WA or use Lucide MessageCircle */}
+                </div>
+                <span className="text-[11px] font-black uppercase tracking-widest text-green-700">WhatsApp</span>
+              </a>
+
+              <a 
+                href={smsLink} 
+                className="flex flex-col items-center gap-3 p-6 bg-blue-50 rounded-2xl border border-blue-100 hover:bg-blue-100 transition-all group"
+              >
+                <div className="w-12 h-12 bg-blue-500 text-white rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <RefreshCcw size={20} />
+                </div>
+                <span className="text-[11px] font-black uppercase tracking-widest text-blue-700">Send SMS</span>
+              </a>
+            </div>
+
+            <div className="p-4 bg-brand-soft rounded-xl border border-brand-glow flex items-center justify-between">
+              <div className="truncate text-[10px] font-bold text-brand-primary uppercase tracking-widest mr-4">{trackLink}</div>
+              <button 
+                onClick={() => {
+                  navigator.clipboard.writeText(trackLink);
+                  alert('Link copied to clipboard!');
+                }}
+                className="pv-btn pv-btn-ghost pv-btn-xs whitespace-nowrap"
+              >
+                Copy Link
+              </button>
+            </div>
+
+            <div className="pt-6 flex flex-col gap-3">
+              <button 
+                onClick={() => router.push('/loans')}
+                className="pv-btn pv-btn-primary w-full h-14 rounded-2xl font-black text-xs uppercase tracking-widest"
+              >
+                Go to Dashboard
+              </button>
+              <button 
+                onClick={() => window.location.reload()}
+                className="pv-btn pv-btn-outline w-full h-14 rounded-2xl font-black text-xs uppercase tracking-widest"
+              >
+                Create Another Loan
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (!mounted) {
     return <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-tertiary)' }}>Loading...</div>;
   }
@@ -671,44 +795,6 @@ function NewLoanContent() {
           <p className="subtitle" style={{ color: 'var(--text-tertiary)' }}>{t.appraisal.subtitle}</p>
         </div>
 
-        <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-          <div className="lang-switcher" style={{ 
-            display: 'flex', 
-            background: 'var(--bg-muted)', 
-            padding: '4px', 
-            borderRadius: 'var(--radius-md)',
-            border: '1px solid var(--border)'
-          }}>
-            <button 
-              onClick={() => handleLangToggle('en')}
-              style={{ 
-                padding: '6px 12px', 
-                fontSize: '11px', 
-                fontWeight: 800, 
-                borderRadius: '4px',
-                background: lang === 'en' ? 'var(--brand-primary)' : 'transparent',
-                color: lang === 'en' ? 'white' : 'var(--text-secondary)',
-                border: 'none',
-                cursor: 'pointer',
-                transition: 'all 0.2s'
-              }}
-            >EN</button>
-            <button 
-              onClick={() => handleLangToggle('ta')}
-              style={{ 
-                padding: '6px 12px', 
-                fontSize: '11px', 
-                fontWeight: 800, 
-                borderRadius: '4px',
-                background: lang === 'ta' ? 'var(--brand-primary)' : 'transparent',
-                color: lang === 'ta' ? 'white' : 'var(--text-secondary)',
-                border: 'none',
-                cursor: 'pointer',
-                transition: 'all 0.2s'
-              }}
-            >தமிழ்</button>
-          </div>
-        </div>
 
         {!enforcement.allowed && (
           <div className="enforcement-banner animate-pulse">
@@ -781,6 +867,7 @@ function NewLoanContent() {
                         setShowCustomerDropdown(true);
                       }}
                       onFocus={() => setShowCustomerDropdown(true)}
+                      autoFocus
                       style={{ paddingLeft: '44px' }}
                     />
                     <Search 
@@ -796,53 +883,138 @@ function NewLoanContent() {
                     />
                   </div>
 
-                  {showCustomerDropdown && customerSearch.length >= 1 && (
+                  {showCustomerDropdown && customerSearch.length >= 2 && (
                     <div style={{
                       position: 'absolute', top: '100%', left: 0, right: 0,
                       background: 'white', border: '1.5px solid var(--brand-primary)',
                       borderRadius: 'var(--radius-md)', boxShadow: '0 10px 40px rgba(0,0,0,0.15)',
                       zIndex: 1000, maxHeight: '350px', overflowY: 'auto', marginTop: '8px'
                     }}>
-                      {filteredCustomers.length > 0 ? (
-                        filteredCustomers.map((c) => (
-                          <button
-                            key={c.id}
-                            style={{ width: '100%', padding: '14px 16px', textAlign: 'left', display: 'flex', alignItems: 'center', gap: '14px', borderBottom: '1px solid var(--border-light)' }}
-                            onClick={() => { setSelectedCustomerId(c.id); setCustomerSearch(''); setShowCustomerDropdown(false); }}
-                          >
-                            <div className="customer-avatar" style={{ width: '36px', height: '36px', background: 'var(--status-active-bg)', color: 'var(--brand-deep)', fontSize: '14px', fontWeight: 800 }}>{c.name.charAt(0)}</div>
-                            <div style={{ flex: 1 }}>
-                              <div style={{ fontWeight: 700, fontSize: '14px', color: 'var(--text-primary)', marginBottom: '2px' }}>{c.name}</div>
-                              <div style={{ display: 'flex', gap: '12px', fontSize: '11px', color: 'var(--text-tertiary)' }}>
-                                <span>{c.phone}</span>
-                                <span>{c.city} • {c.primaryIdType?.toUpperCase()}</span>
-                              </div>
-                            </div>
-                            <div style={{ fontSize: '10px', color: 'var(--brand-primary)', fontWeight: 800 }}>SELECT →</div>
-                          </button>
-                        ))
-                      ) : (
-                        <div style={{ padding: '24px', textAlign: 'center' }}>
-                          <p style={{ color: 'var(--text-tertiary)', fontSize: '13px' }}>{t.appraisal.noRecords}</p>
+                      {isSearchingCustomers ? (
+                        <div style={{ padding: '24px', textAlign: 'center', color: 'var(--text-tertiary)', fontSize: '11px', fontWeight: 800, textTransform: 'uppercase' }}>
+                          <RefreshCcw size={14} className="spin" style={{ margin: '0 auto 8px' }} /> Searching...
                         </div>
+                      ) : customers.length > 0 ? (
+                        <>
+                          {customers.map((c) => (
+                            <button
+                              key={c.id}
+                              style={{ width: '100%', padding: '14px 16px', textAlign: 'left', display: 'flex', alignItems: 'center', gap: '14px', borderBottom: '1px solid var(--border-light)' }}
+                              onClick={() => handleSelectCustomer(c.id)}
+                            >
+                              <div className="customer-avatar" style={{ width: '36px', height: '36px', background: 'var(--status-active-bg)', color: 'var(--brand-deep)', fontSize: '14px', fontWeight: 800 }}>{c.name.charAt(0)}</div>
+                              <div style={{ flex: 1 }}>
+                                <div style={{ fontWeight: 700, fontSize: '14px', color: 'var(--text-primary)', marginBottom: '2px' }}>{c.name}</div>
+                                <div style={{ display: 'flex', gap: '12px', fontSize: '11px', color: 'var(--text-tertiary)' }}>
+                                  <span>{c.phone}</span>
+                                  <span>{c.primaryIdNumber}</span>
+                                </div>
+                              </div>
+                              <div style={{ fontSize: '10px', color: 'var(--brand-primary)', fontWeight: 800 }}>SELECT →</div>
+                            </button>
+                          ))}
+                          <button 
+                            className="w-full p-4 text-center bg-brand-soft! hover:bg-brand-primary! hover:text-white! transition-all font-black text-xs uppercase tracking-widest"
+                            onClick={() => router.push('/customers/new')}
+                          >
+                            + Create New Customer "{customerSearch}"
+                          </button>
+                        </>
+                      ) : (
+                        <button 
+                          className="w-full p-8 text-center hover:bg-muted transition-all"
+                          onClick={() => router.push('/customers/new')}
+                        >
+                          <div className="text-muted-foreground font-bold mb-2">No results for "{customerSearch}"</div>
+                          <div className="text-brand-primary font-black text-xs uppercase tracking-widest">+ Add New Customer</div>
+                        </button>
                       )}
                     </div>
                   )}
                 </div>
               ) : (
-                <div className="customer-profile-card" style={{ padding: '20px', background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                    <div className="customer-avatar" style={{ width: '50px', height: '50px', fontSize: '20px', background: 'var(--brand-primary)', color: 'white', fontWeight: 800, flexShrink: 0 }}>{selectedCustomer?.name.charAt(0)}</div>
+                <div className="pledger-identity-card" style={{ 
+                  background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)',
+                  border: '1px solid var(--border)',
+                  borderRadius: 'var(--radius-xl)',
+                  padding: '24px',
+                  position: 'relative',
+                  overflow: 'hidden'
+                }}>
+                  {/* Decorative Pattern */}
+                  <div style={{ position: 'absolute', top: '-20px', right: '-20px', opacity: 0.05, transform: 'rotate(15deg)' }}>
+                    <User size={120} />
+                  </div>
+
+                  <div style={{ display: 'flex', gap: '20px', alignItems: 'flex-start' }}>
+                    {/* Photo Section */}
+                    <div style={{ 
+                      width: '100px', 
+                      height: '120px', 
+                      background: 'white', 
+                      border: '4px solid white',
+                      borderRadius: 'var(--radius-lg)',
+                      boxShadow: 'var(--shadow-md)',
+                      overflow: 'hidden',
+                      flexShrink: 0,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}>
+                      {fullSelectedCustomer?.selfiePhoto ? (
+                        <img src={fullSelectedCustomer.selfiePhoto} alt="Customer" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      ) : (
+                        <div style={{ textAlign: 'center' }}>
+                          <User size={32} style={{ color: 'var(--border)', margin: '0 auto' }} />
+                          <div style={{ fontSize: '8px', color: 'var(--text-tertiary)', fontWeight: 800, marginTop: '4px' }}>NO PHOTO</div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Info Section */}
                     <div style={{ flex: 1 }}>
-                      <h4 style={{ margin: 0, fontSize: '18px', fontWeight: 800, color: 'var(--brand-deep)' }}>{selectedCustomer?.name}</h4>
-                      <div style={{ display: 'flex', gap: '12px', fontSize: '12px', color: 'var(--text-secondary)', marginTop: '4px' }}>
-                        <span>📞 {selectedCustomer?.phone}</span>
-                        <span>🆔 {selectedCustomer?.primaryIdType?.toUpperCase()}: {selectedCustomer?.primaryIdNumber}</span>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                        <div>
+                          <h4 style={{ margin: 0, fontSize: '20px', fontWeight: 900, color: 'var(--brand-deep)', letterSpacing: '-0.02em' }}>{fullSelectedCustomer?.name}</h4>
+                          <div style={{ display: 'flex', gap: '8px', marginTop: '6px' }}>
+                            <span className="badge active" style={{ fontSize: '9px', padding: '2px 8px' }}>VERIFIED PLEDGER</span>
+                            {fullSelectedCustomer?.pincode && (
+                              <span style={{ fontSize: '10px', color: 'var(--text-tertiary)', fontWeight: 700 }}>LOC: {fullSelectedCustomer.city}</span>
+                            )}
+                          </div>
+                        </div>
+                        <button 
+                          onClick={handleClearCustomer}
+                          className="pv-btn pv-btn-ghost pv-btn-icon h-8 w-8 hover:bg-destructive/10 hover:text-destructive"
+                        >
+                          <RefreshCcw size={14} />
+                        </button>
+                      </div>
+
+                      <div style={{ marginTop: '20px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                        <div style={{ padding: '10px', background: 'white', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-light)' }}>
+                          <div style={{ fontSize: '9px', fontWeight: 800, color: 'var(--text-tertiary)', textTransform: 'uppercase', marginBottom: '4px' }}>Phone</div>
+                          <div style={{ fontSize: '13px', fontWeight: 700 }}>{fullSelectedCustomer?.phone}</div>
+                        </div>
+                        <div style={{ padding: '10px', background: 'white', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-light)' }}>
+                          <div style={{ fontSize: '9px', fontWeight: 800, color: 'var(--text-tertiary)', textTransform: 'uppercase', marginBottom: '4px' }}>{fullSelectedCustomer?.primaryIdType?.toUpperCase() || 'ID'}</div>
+                          <div style={{ fontSize: '13px', fontWeight: 700 }}>{fullSelectedCustomer?.primaryIdNumber}</div>
+                        </div>
                       </div>
                     </div>
                   </div>
-                  <div style={{ padding: '12px', background: 'var(--bg-muted)', borderRadius: 'var(--radius-md)', fontSize: '12px', color: 'var(--text-secondary)' }}>
-                    <strong>{t.appraisal.address}:</strong> {selectedCustomer?.address}, {selectedCustomer?.city}
+
+                  <div style={{ 
+                    marginTop: '16px', 
+                    padding: '12px', 
+                    background: 'rgba(255,255,255,0.5)', 
+                    borderRadius: 'var(--radius-md)', 
+                    fontSize: '11px', 
+                    color: 'var(--text-secondary)',
+                    border: '1px dashed var(--border)'
+                  }}>
+                    <div style={{ fontWeight: 800, color: 'var(--text-tertiary)', textTransform: 'uppercase', fontSize: '9px', marginBottom: '4px' }}>Registered Address</div>
+                    {fullSelectedCustomer?.address}, {fullSelectedCustomer?.city}, {fullSelectedCustomer?.state} - {fullSelectedCustomer?.pincode}
                   </div>
                 </div>
               )}
@@ -947,6 +1119,45 @@ function NewLoanContent() {
                 silverRate999: rates.silver 
               });
             }} />
+          </div>
+
+          <div className="flex flex-wrap gap-6 p-4 mb-6 bg-muted/20 rounded-xl border border-border/50">
+             <div className="flex flex-col gap-1">
+                <span className="text-[10px] font-black uppercase text-muted-foreground">Gold Rate (24K)</span>
+                <div className="flex items-center gap-2">
+                   {isEditingRates ? (
+                     <input 
+                       type="number" 
+                       className="pv-input h-8 w-24 text-xs font-bold" 
+                       value={goldRate} 
+                       onChange={(e) => setGoldRate(parseFloat(e.target.value) || 0)} 
+                     />
+                   ) : (
+                     <span className="text-sm font-black">₹{goldRate.toLocaleString('en-IN')}</span>
+                   )}
+                </div>
+             </div>
+             <div className="flex flex-col gap-1">
+                <span className="text-[10px] font-black uppercase text-muted-foreground">Silver Rate</span>
+                <div className="flex items-center gap-2">
+                   {isEditingRates ? (
+                     <input 
+                       type="number" 
+                       className="pv-input h-8 w-24 text-xs font-bold" 
+                       value={silverRate} 
+                       onChange={(e) => setSilverRate(parseFloat(e.target.value) || 0)} 
+                     />
+                   ) : (
+                     <span className="text-sm font-black">₹{silverRate.toLocaleString('en-IN')}</span>
+                   )}
+                </div>
+             </div>
+             <button 
+               className="pv-btn pv-btn-ghost h-8 px-3 text-[10px] font-black uppercase ml-auto"
+               onClick={() => setIsEditingRates(!isEditingRates)}
+             >
+               {isEditingRates ? 'Save Rates' : 'Edit Price'}
+             </button>
           </div>
 
           <div style={{ overflowX: 'auto' }}>

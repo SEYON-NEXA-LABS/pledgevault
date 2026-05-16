@@ -219,3 +219,17 @@ export interface PlanLimits {
   maxBranches: number;
   maxUsers: number;
 }
+
+// ---- Market Rates ----
+export interface MarketRate {
+  id: string;
+  gold_24k: number;
+  silver: number;
+  metadata?: {
+    gold_raw: any;
+    silver_raw: any;
+    synced_at: string;
+    adjustment_applied: number;
+  };
+  created_at: string;
+}

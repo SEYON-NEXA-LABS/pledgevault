@@ -129,6 +129,18 @@ export const supabaseService = {
     };
   },
 
+  async searchCustomers(firmId: string, query: string) {
+    if (!query || query.length < 2) return [];
+    const { data, error } = await supabase
+      .from('customers')
+      .select('id, name, phone, primary_id_number')
+      .eq('firm_id', firmId)
+      .or(`name.ilike.%${query}%,phone.ilike.%${query}%`)
+      .limit(10);
+    if (error) throw error;
+    return toCamel(data || []) as any[];
+  },
+
   async getLoans(
     firmId: string, 
     branchId?: string, 
@@ -241,6 +253,37 @@ export const supabaseService = {
       .single();
     if (error) throw error;
     return toCamel(data) as Loan;
+  },
+
+  async getPublicLoanDetails(id: string) {
+    if (!isValidUUID(id)) return null;
+    const { data, error } = await supabase
+      .from('loans')
+      .select('id, loan_number, customer_name, customer_phone, start_date, due_date, status, loan_amount, interest_rate, interest_mode, tenure_months, interest_accrued, amount_paid, total_net_weight, items:loan_items(metal_type, item_type)')
+      .eq('id', id)
+      .single();
+    if (error) {
+      console.error('Error fetching public loan details:', error);
+      return null;
+    }
+
+    
+    // Privacy Masking (e.g., John Doe -> J*** D**)
+    const maskName = (name: string) => {
+      const parts = name.split(' ');
+      return parts.map(p => p.charAt(0) + '*'.repeat(Math.max(0, p.length - 1))).join(' ');
+    };
+    
+    const maskPhone = (phone: string) => {
+      return phone.substring(0, 2) + '******' + phone.substring(phone.length - 2);
+    };
+
+    return {
+      ...toCamel(data),
+      customerName: maskName(data.customer_name),
+      customerPhone: maskPhone(data.customer_phone),
+      isPublic: true
+    };
   },
 
   async createLoan(loan: Omit<Loan, 'id'>) {
@@ -633,7 +676,7 @@ export const supabaseService = {
   async getLatestMarketRates() {
     const { data, error } = await supabase
       .from('market_rates')
-      .select('gold_24k, silver, created_at')
+      .select('gold_24k, gold_22k, silver, metadata, created_at')
       .order('created_at', { ascending: false })
       .limit(1)
       .maybeSingle();
@@ -648,7 +691,7 @@ export const supabaseService = {
 
     const { data, error } = await supabase
       .from('market_rates')
-      .select('gold_24k, silver, created_at')
+      .select('gold_24k, gold_22k, silver, metadata, created_at')
       .gte('created_at', oneWeekAgo.toISOString())
       .order('created_at', { ascending: false });
       
