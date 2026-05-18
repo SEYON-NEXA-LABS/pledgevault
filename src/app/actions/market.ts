@@ -3,7 +3,9 @@
 import { createAdminClient } from '@/lib/supabase/admin';
 
 const MIN_SYNC_INTERVAL = 23 * 60 * 60 * 1000; // 23 Hours (Security margin)
-const INR_MARKET_PREMIUM = 1.21; // 15% Duty + 3% GST + 3% Market Spread
+// Indian retail market premiums over international spot rates to match Google (inclusive of customs duty, local spread and GST)
+const GOLD_INR_PREMIUM = 1.11; // ~11% premium for gold 24K and 22K
+const SILVER_INR_PREMIUM = 1.22; // ~22% premium for silver
 
 export async function syncMarketRatesAction(force = false) {
     const adminClient = createAdminClient();
@@ -58,18 +60,18 @@ export async function syncMarketRatesAction(force = false) {
         const silverData = await silverRes.json();
 
         // 2. RATE CALCULATION
-        // Using raw values directly from GoldAPI JSON response as requested.
-        const gold24k = goldData.price_gram_24k || (goldData.price / 31.1035);
-        const gold22k = goldData.price_gram_22k || (gold24k * 0.916);
-        const silver = silverData.price_gram || silverData.price_gram_24k || (silverData.price / 31.1035);
+        // Applied premiums (Customs, GST, local charges) to match local Google rates
+        const gold24kRaw = goldData.price_gram_24k || (goldData.price / 31.1035);
+        const gold22kRaw = goldData.price_gram_22k || (gold24kRaw * 0.916);
+        const silverRaw = silverData.price_gram || silverData.price_gram_24k || (silverData.price / 31.1035);
         
         const rates = {
-            gold24k: Math.round(gold24k),
-            gold22k: Math.round(gold22k),
-            silver: Math.round(silver),
+            gold24k: Math.round(gold24kRaw * GOLD_INR_PREMIUM),
+            gold22k: Math.round(gold22kRaw * GOLD_INR_PREMIUM),
+            silver: Math.round(silverRaw * SILVER_INR_PREMIUM),
         };
 
-        console.log('📊 [Server Action] Raw API Rates (No Multiplier):', rates);
+        console.log('📊 [Server Action] Synced Rates (With Indian Premiums applied to match Google):', rates);
 
         // Insert using ADMIN CLIENT to bypass RLS
         // We store the full JSON payload in a 'metadata' column for audit purposes
@@ -83,7 +85,10 @@ export async function syncMarketRatesAction(force = false) {
                     gold_raw: goldData,
                     silver_raw: silverData,
                     synced_at: new Date().toISOString(),
-                    adjustment_applied: 1.0
+                    adjustment_applied: {
+                        gold: GOLD_INR_PREMIUM,
+                        silver: SILVER_INR_PREMIUM
+                    }
                 }
             }])
             .select()
