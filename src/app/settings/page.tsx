@@ -100,7 +100,7 @@ function SettingsContent() {
       const liveSettings = await supabaseService.getSettings(auth.firmId as string);
       if (liveSettings) {
         setSettings(liveSettings);
-        settingsStore.save(liveSettings);
+        settingsStore.save(liveSettings, true);
       }
     } catch (err) {
       console.error('Error fetching firm info:', err);
@@ -133,10 +133,20 @@ function SettingsContent() {
     }));
   };
 
-  const handleSave = () => {
-    settingsStore.save(settings);
-    setSaved(true);
-    setTimeout(() => setSaved(false), 3000);
+  const handleSave = async () => {
+    try {
+      // 1. Save to local store for instant UI reactivity
+      settingsStore.save(settings, true);
+      
+      // 2. Persist to Supabase database (updates firms and shop_settings tables)
+      await supabaseService.updateSettings(settings);
+      
+      setSaved(true);
+      setTimeout(() => setSaved(false), 3000);
+    } catch (err: any) {
+      console.error('Failed to persist settings:', err);
+      alert('Failed to save settings: ' + err.message);
+    }
   };
 
   const handleSyncRates = async () => {
@@ -181,7 +191,7 @@ function SettingsContent() {
 
       setSettings(prev => {
         const updated = { ...prev, branches: [...prev.branches, newBranch] };
-        settingsStore.save(updated);
+        settingsStore.save(updated, true);
         return updated;
       });
       setSaved(true);
@@ -212,7 +222,7 @@ function SettingsContent() {
           b.id === id ? { ...b, isActive: !currentStatus } : b
         );
         const updated = { ...prev, branches: updatedBranches };
-        settingsStore.save(updated);
+        settingsStore.save(updated, true);
         return updated;
       });
       setSaved(true);

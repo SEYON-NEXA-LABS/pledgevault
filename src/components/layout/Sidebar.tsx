@@ -168,6 +168,10 @@ export default function Sidebar({ isOpen, onToggle, overdueCount = 0, totalLoans
                 <Zap size={20} />
                 <span>Subscriptions</span>
               </Link>
+              <Link href="/superadmin/payments" className={`sidebar-link ${pathname.startsWith('/superadmin/payments') ? 'active' : ''}`}>
+                <CreditCard size={20} />
+                <span>Payments</span>
+              </Link>
               <Link href="/superadmin/integrity" className={`sidebar-link ${pathname.startsWith('/superadmin/integrity') ? 'active' : ''}`}>
                 <Activity size={20} />
                 <span>Integrity</span>

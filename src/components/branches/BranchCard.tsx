@@ -23,7 +23,7 @@ export default function BranchCard({ branch, onDelete, isAdmin }: BranchCardProp
   const router = useRouter();
 
   const handleSwitchBranch = () => {
-    settingsStore.save({ activeBranchId: branch.id });
+    settingsStore.save({ activeBranchId: branch.id }, true);
     window.dispatchEvent(new Event('storage'));
     router.push('/');
   };

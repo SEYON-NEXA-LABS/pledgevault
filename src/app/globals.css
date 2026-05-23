@@ -177,6 +177,25 @@
 }
 @utility pv-btn-sm { @apply h-9 px-4 text-[13px] rounded-xl; }
 @utility pv-btn-icon { @apply w-9 h-9 p-0 flex items-center justify-center rounded-xl transition-all hover:bg-muted hover:text-foreground active:scale-90; }
+@utility pv-dropdown-item {
+  @apply flex items-center gap-2 px-3.5 py-2.5 text-[13px] text-foreground rounded-lg transition-all hover:bg-white/5 font-semibold no-underline cursor-pointer;
+}
+
+@utility modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(11, 21, 40, 0.85);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+}
+
 
 /* ---- Haptic Feedback & Mobile Polish ---- */
 @media (max-width: 768px) {

@@ -73,7 +73,7 @@ export default function StartTrial() {
             isAuthenticated: true
           });
           
-          settingsStore.save({ activeBranchId: 'firm' });
+          settingsStore.save({ activeBranchId: 'firm' }, true);
           
           // Redirect to Dashboard
           setStep(3); // Success Step

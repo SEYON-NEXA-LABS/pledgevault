@@ -49,6 +49,7 @@ export default function LoginPage() {
     greeting: translations.en.login.greeting
   });
   const [lang, setLang] = useState<Language>('en');
+  const [shopQuery, setShopQuery] = useState('');
   const t = translations[lang];
 
   useEffect(() => {
@@ -56,6 +57,7 @@ export default function LoginPage() {
       const params = new URLSearchParams(window.location.search);
       const shopSlug = params.get('shop');
       if (shopSlug) {
+        setShopQuery(`?shop=${shopSlug}`);
         const data = await supabaseService.getFirmBranding(shopSlug);
         if (data) {
           setBranding({ name: data.name, greeting: data.branding.loginGreeting || 'Welcome Back' });
@@ -109,13 +111,13 @@ export default function LoginPage() {
             setAvailableBranches(branches);
 
             if (profile.role === 'admin') {
-              settingsStore.save({ activeBranchId: 'firm' });
+              settingsStore.save({ activeBranchId: 'firm' }, true);
               router.push('/');
               return;
             }
 
             if (profile.role === 'staff' && profile.defaultBranchId) {
-              settingsStore.save({ activeBranchId: profile.defaultBranchId });
+              settingsStore.save({ activeBranchId: profile.defaultBranchId }, true);
               router.push('/');
               return;
             }
@@ -136,26 +138,6 @@ export default function LoginPage() {
     }
   };
 
-  const [resetSuccess, setResetSuccess] = useState(false);
-
-  const handleResetPassword = async () => {
-    if (!email) {
-      setError('Please enter your email address first.');
-      return;
-    }
-    setLoading(true);
-    setError(null);
-    const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/auth/callback?next=/settings/profile`,
-    });
-
-    if (resetError) {
-      setError(resetError.message);
-    } else {
-      setResetSuccess(true);
-    }
-    setLoading(false);
-  };
 
   const handleDevLogin = async (role: 'admin' | 'staff') => {
     const creds = {
@@ -174,7 +156,7 @@ export default function LoginPage() {
   };
 
   const handleBranchSelect = (branchId: string) => {
-    settingsStore.save({ activeBranchId: branchId });
+    settingsStore.save({ activeBranchId: branchId }, true);
     router.push('/');
   };
 
@@ -285,12 +267,6 @@ export default function LoginPage() {
               </div>
             )}
 
-            {resetSuccess && (
-              <div className="alert-modern success">
-                <CheckCircle2 size={14} />
-                <span>Password reset link sent to your email.</span>
-              </div>
-            )}
 
             {success && (
               <div className="alert-modern success">
@@ -331,25 +307,21 @@ export default function LoginPage() {
                />
             </div>
 
-            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '4px' }}>
-              <button
-                type="button"
-                onClick={handleResetPassword}
-                disabled={loading}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  color: 'var(--brand-primary)',
-                  fontSize: '12px',
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  padding: 0,
-                  opacity: loading ? 0.5 : 1
-                }}
-              >
-                {t.login.forgotPassword}
-              </button>
-            </div>
+             <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '4px' }}>
+               <Link
+                 href={`/forgot-password${shopQuery}`}
+                 style={{
+                   color: 'var(--brand-primary)',
+                   fontSize: '12px',
+                   fontWeight: 700,
+                   textDecoration: 'none',
+                   opacity: loading ? 0.5 : 1,
+                   pointerEvents: loading ? 'none' : 'auto'
+                 }}
+               >
+                 {t.login.forgotPassword}
+               </Link>
+             </div>
 
             <button className="pv-btn pv-btn-primary" style={{ width: '100%', height: '60px', marginTop: '32px', borderRadius: 'var(--radius-md)', fontSize: '16px' }} disabled={loading}>
               {loading ? (

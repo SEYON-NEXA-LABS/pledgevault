@@ -186,7 +186,7 @@ export const settingsStore = {
       return DEFAULT_SETTINGS;
     }
   },
-  save: (settings: Partial<ShopSettings>): ShopSettings => {
+  save: (settings: Partial<ShopSettings>, skipCloudSync = false): ShopSettings => {
     const current = settingsStore.get();
     const updated = { ...current, ...settings };
     if (typeof window !== 'undefined') {
@@ -195,7 +195,7 @@ export const settingsStore = {
     }
 
     // Cloud Sync
-    if (isCloudActive()) {
+    if (isCloudActive() && !skipCloudSync) {
       supabaseService.updateSettings(updated).catch(console.error);
     }
 

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { loanStore, settingsStore } from '@/lib/store';
 import { supabaseService } from '@/lib/supabase/service';
 import { authStore } from '@/lib/authStore';
@@ -15,6 +15,7 @@ import { translations, Language } from '@/lib/i18n/translations';
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [overdueCount, setOverdueCount] = useState(0);
   const [totalLoans, setTotalLoans] = useState(0);
@@ -23,7 +24,12 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const [showMandatorySelector, setShowMandatorySelector] = useState(false);
   const [branches, setBranches] = useState<any[]>([]);
 
-  const isPublicPage = pathname === '/login' || pathname === '/start-trial' || pathname?.startsWith('/track');
+  const isPublicPage = 
+    pathname === '/login' || 
+    pathname === '/start-trial' || 
+    pathname === '/forgot-password' || 
+    pathname === '/reset-password' || 
+    pathname?.startsWith('/track');
   const [lang, setLang] = useState<Language>('en');
 
   useEffect(() => {
@@ -57,6 +63,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       const auth = authStore.get();
       if (!auth.isAuthenticated) {
         setIsHydrating(false);
+        router.push('/login');
         return;
       }
 
@@ -84,7 +91,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           settingsStore.save({ 
             ...liveSettings, 
             activeBranchId: targetBranchId 
-          });
+          }, true);
 
           // Single Theme Logic (Always Emerald/Gold)
           document.documentElement.setAttribute('data-theme', 'emerald');
@@ -208,7 +215,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                 <button
                   key={branch.id}
                   onClick={() => {
-                    settingsStore.save({ activeBranchId: branch.id });
+                    settingsStore.save({ activeBranchId: branch.id }, true);
                     window.dispatchEvent(new Event('storage'));
                     setShowMandatorySelector(false);
                   }}

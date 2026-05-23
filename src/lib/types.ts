@@ -194,7 +194,7 @@ export interface SubscriptionPlan {
   features: PlanFeature[];
 }
 
-export type PaymentMethod = 'upi' | 'card' | 'netbanking' | 'cash' | 'trial';
+export type PaymentMethod = 'upi' | 'card' | 'netbanking' | 'cash' | 'trial' | 'razorpay';
 export type SubscriptionStatus = 'active' | 'expired' | 'canceled' | 'past_due' | 'trial' | 'incomplete';
 
 export interface Subscription {

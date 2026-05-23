@@ -1,36 +1,93 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { 
   CreditCard, 
   Users, 
   TrendingUp, 
   AlertCircle, 
   Calendar,
-  Clock,
-  ShieldAlert,
   Search,
   HandCoins,
   ChevronLeft,
-  RefreshCw,
-  Plus
+  RefreshCw
 } from 'lucide-react';
 import Link from 'next/link';
-import { supabase } from '@/lib/supabase/client';
+import { useSearchParams } from 'next/navigation';
 import { supabaseService } from '@/lib/supabase/service';
 import { formatCurrency, formatDate, SUBSCRIPTION_PLANS, GRACE_PERIOD_DAYS } from '@/lib/constants';
 import { PlanTier, SubscriptionInterval } from '@/lib/types';
 
-export default function SuperadminSubscriptions() {
-  const [data, setData] = useState<any[]>([]);
+interface FirmDetailed {
+  id: string;
+  name: string;
+  slug?: string;
+  shortCode?: string;
+  plan?: string;
+  createdAt: string;
+  profiles: { count: number }[];
+  branches: { count: number }[];
+  subscriptions?: {
+    id: string;
+    planId: string;
+    status: string;
+    startDate: string;
+    endDate: string;
+    amount: number;
+    interval: string;
+    paymentMethod?: string;
+    razorpayPaymentId?: string;
+    razorpayOrderId?: string;
+    extensionCount: number;
+  }[];
+}
+
+function SubscriptionsContent() {
+  const [data, setData] = useState<FirmDetailed[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [showManualModal, setShowManualModal] = useState(false);
-  const [selectedFirm, setSelectedFirm] = useState<any>(null);
+  const [selectedFirmId, setSelectedFirmId] = useState<string>('');
+  
+  // Plan pricing auto-fill states
+  const [selectedPlan, setSelectedPlan] = useState<string>('free');
+  const [selectedInterval, setSelectedInterval] = useState<string>('monthly');
+  const [amount, setAmount] = useState<number>(0);
+  
+  const searchParams = useSearchParams();
 
   useEffect(() => {
     fetchData();
   }, []);
+
+  const openModal = (firmId: string = '') => {
+    setSelectedFirmId(firmId);
+    setSelectedPlan('free');
+    setSelectedInterval('monthly');
+    setAmount(0);
+    setShowManualModal(true);
+  };
+
+  useEffect(() => {
+    const firmId = searchParams.get('firmId');
+    const action = searchParams.get('action');
+    if (firmId) {
+      if (action === 'subscribe') {
+        openModal(firmId);
+      } else {
+        setSelectedFirmId(firmId);
+      }
+    }
+  }, [searchParams]);
+
+  // Recalculate default price when plan or billing interval changes
+  useEffect(() => {
+    const plan = SUBSCRIPTION_PLANS.find(p => p.id === selectedPlan);
+    if (plan) {
+      const price = selectedInterval === 'yearly' ? plan.yearlyPrice : plan.monthlyPrice;
+      setAmount(price);
+    }
+  }, [selectedPlan, selectedInterval]);
 
   const fetchData = async () => {
     setLoading(true);
@@ -65,8 +122,8 @@ export default function SuperadminSubscriptions() {
     data.forEach(firm => {
       const latest = firm.subscriptions?.[0];
       if (latest && latest.status === 'active') {
-        const amount = latest.amount || 0;
-        mrr += latest.interval === 'yearly' ? amount / 12 : amount;
+        const amountVal = latest.amount || 0;
+        mrr += latest.interval === 'yearly' ? amountVal / 12 : amountVal;
       }
     });
     return mrr;
@@ -82,7 +139,7 @@ export default function SuperadminSubscriptions() {
     const firmId = formData.get('firmId') as string;
     const planId = formData.get('planId') as PlanTier;
     const interval = formData.get('interval') as SubscriptionInterval;
-    const amount = Number(formData.get('amount'));
+    const amountVal = Number(formData.get('amount'));
     const method = formData.get('method') as any;
 
     const startDate = new Date();
@@ -95,7 +152,7 @@ export default function SuperadminSubscriptions() {
         firmId: firmId,
         planId: planId,
         interval: interval,
-        amount: amount,
+        amount: amountVal,
         currency: 'INR',
         paymentMethod: method,
         status: 'active',
@@ -132,8 +189,11 @@ export default function SuperadminSubscriptions() {
           </Link>
           <h1 style={{ fontSize: '32px' }}>Subscription Management</h1>
         </div>
-        <div className="page-header-right">
-          <button className="pv-btn pv-btn-gold" onClick={() => setShowManualModal(true)}>
+        <div className="page-header-right" style={{ display: 'flex', gap: '12px' }}>
+          <Link href="/superadmin/payments" className="pv-btn pv-btn-outline">
+            <CreditCard size={18} /> All Payments
+          </Link>
+          <button className="pv-btn pv-btn-gold" onClick={() => openModal('')}>
             <HandCoins size={18} /> Record Payment
           </button>
         </div>
@@ -215,7 +275,14 @@ export default function SuperadminSubscriptions() {
                       {latestSub ? (
                         <div>
                           <div style={{ fontWeight: 600 }}>{latestSub.amount > 0 ? formatCurrency(latestSub.amount) : 'Free'}</div>
-                        <div style={{ fontSize: '11px', color: '#888' }}>{(latestSub.paymentMethod || 'N/A').toUpperCase()}</div>
+                          <div style={{ fontSize: '11px', color: '#888', display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                            <span>{(latestSub.paymentMethod || 'N/A').toUpperCase()}</span>
+                            {latestSub.razorpayPaymentId && (
+                              <span style={{ fontSize: '9px', color: 'var(--text-tertiary)', fontFamily: 'monospace' }} title={`Order: ${latestSub.razorpayOrderId}`}>
+                                ID: {latestSub.razorpayPaymentId}
+                              </span>
+                            )}
+                          </div>
                         </div>
                       ) : '—'}
                     </td>
@@ -232,7 +299,13 @@ export default function SuperadminSubscriptions() {
                         {status.label}
                       </span>
                     </td>
-                    <td>
+                    <td style={{ display: 'flex', gap: '8px' }}>
+                      <button 
+                        className="pv-btn pv-btn-gold pv-btn-sm" 
+                        onClick={() => openModal(firm.id)}
+                      >
+                        Record Payment
+                      </button>
                       <button className="pv-btn pv-btn-outline pv-btn-sm" onClick={() => handleExtend(firm.id)}>Extend 7 Days</button>
                     </td>
                   </tr>
@@ -252,7 +325,13 @@ export default function SuperadminSubscriptions() {
             <form onSubmit={handleManualSubmit}>
               <div className="pv-input-group">
                 <label>Select Firm</label>
-                <select name="firmId" required className="pv-input">
+                <select 
+                  name="firmId" 
+                  required 
+                  className="pv-input"
+                  value={selectedFirmId}
+                  onChange={(e) => setSelectedFirmId(e.target.value)}
+                >
                   <option value="">-- Choose Business --</option>
                   {data.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
                 </select>
@@ -260,13 +339,25 @@ export default function SuperadminSubscriptions() {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                 <div className="pv-input-group">
                   <label>Plan</label>
-                  <select name="planId" required className="pv-input">
+                  <select 
+                    name="planId" 
+                    required 
+                    className="pv-input"
+                    value={selectedPlan}
+                    onChange={(e) => setSelectedPlan(e.target.value)}
+                  >
                     {SUBSCRIPTION_PLANS.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                   </select>
                 </div>
                 <div className="pv-input-group">
                   <label>Interval</label>
-                  <select name="interval" required className="pv-input">
+                  <select 
+                    name="interval" 
+                    required 
+                    className="pv-input"
+                    value={selectedInterval}
+                    onChange={(e) => setSelectedInterval(e.target.value)}
+                  >
                     <option value="monthly">Monthly</option>
                     <option value="yearly">Yearly</option>
                   </select>
@@ -275,7 +366,15 @@ export default function SuperadminSubscriptions() {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                 <div className="pv-input-group">
                   <label>Amount (₹)</label>
-                  <input type="number" name="amount" required placeholder="0" className="pv-input" />
+                  <input 
+                    type="number" 
+                    name="amount" 
+                    required 
+                    value={amount}
+                    onChange={(e) => setAmount(Number(e.target.value))}
+                    placeholder="0" 
+                    className="pv-input" 
+                  />
                 </div>
                 <div className="pv-input-group">
                   <label>Payment Method</label>
@@ -297,5 +396,18 @@ export default function SuperadminSubscriptions() {
 
 
     </div>
+  );
+}
+
+export default function SuperadminSubscriptions() {
+  return (
+    <Suspense fallback={
+      <div className="flex items-center justify-center p-20 text-muted-foreground">
+        <RefreshCw className="spin mr-2" size={20} />
+        <span className="font-bold uppercase tracking-wider text-xs">Loading Subscription Console...</span>
+      </div>
+    }>
+      <SubscriptionsContent />
+    </Suspense>
   );
 }

@@ -585,11 +585,16 @@ export const supabaseService = {
     if (!firmId) return null;
 
     // 1. Fetch Firm Info (Name & branding_config for White-Labeling)
-    const { data: firm } = await supabase
+    const { data: firm, error: firmError } = await supabase
       .from('firms')
       .select('id, name, branding_config')
       .eq('id', firmId)
       .single();
+
+    if (firmError) {
+      console.error('Error fetching firm info in getSettings:', firmError);
+      return null;
+    }
 
     // 2. Fetch Shop Settings
     const { data: shopData, error: shopError } = await supabase
@@ -597,6 +602,11 @@ export const supabaseService = {
       .select('*')
       .eq('firm_id', firmId)
       .single();
+
+    if (shopError && shopError.code !== 'PGRST116') {
+      console.error('Error fetching shop settings in getSettings:', shopError);
+      return null;
+    }
     
     // 3. Fetch Branches (Sorted Alphabetically with Resilience)
     let finalBranches = [];
@@ -960,15 +970,96 @@ export const supabaseService = {
     const { data, error } = await supabase
       .from('firms')
       .select(`
-        id, name, slug, short_code, branding_config, created_at,
+        id, name, slug, short_code, branding_config, created_at, plan,
         branches(count),
         profiles(count),
-        subscriptions(id, plan_id, status, start_date, end_date, amount, interval, extension_count)
+        subscriptions(id, plan_id, status, start_date, end_date, amount, interval, payment_method, razorpay_payment_id, razorpay_order_id, extension_count)
       `)
       .order('created_at', { ascending: false });
     
     if (error) throw error;
     return toCamel(data);
+  },
+
+  async getFirmCompleteDetails(firmId: string) {
+    if (!isValidUUID(firmId)) throw new Error('Invalid Firm ID');
+
+    // 1. Fetch basic firm details
+    const { data: firm, error: firmError } = await supabase
+      .from('firms')
+      .select('id, name, slug, short_code, branding_config, plan, created_at')
+      .eq('id', firmId)
+      .single();
+    if (firmError) throw firmError;
+
+    // 2. Fetch shop settings
+    const { data: settings, error: settingsError } = await supabase
+      .from('shop_settings')
+      .select('*')
+      .eq('firm_id', firmId)
+      .maybeSingle();
+
+    // 3. Fetch branches
+    const { data: branches, error: branchError } = await supabase
+      .from('branches')
+      .select('*')
+      .eq('firm_id', firmId)
+      .order('created_at', { ascending: true });
+
+    // 4. Fetch staff profiles
+    const { data: staff, error: staffError } = await supabase
+      .from('profiles')
+      .select('id, full_name, role, default_branch_id, created_at')
+      .eq('firm_id', firmId)
+      .order('created_at', { ascending: true });
+
+    // 5. Fetch subscription history
+    const { data: subscriptions, error: subError } = await supabase
+      .from('subscriptions')
+      .select('*')
+      .eq('firm_id', firmId)
+      .order('created_at', { ascending: false });
+
+    return {
+      firm: toCamel(firm),
+      settings: toCamel(settings || {}),
+      branches: toCamel(branches || []),
+      staff: toCamel(staff || []),
+      subscriptions: toCamel(subscriptions || [])
+    };
+  },
+
+  async updateFirmDetailsBySuperadmin(firmId: string, firmUpdates: any, settingsUpdates: any) {
+    if (!isValidUUID(firmId)) throw new Error('Invalid Firm ID');
+
+    // 1. Update firms table
+    const { error: firmError } = await supabase
+      .from('firms')
+      .update(toSnake(firmUpdates))
+      .eq('id', firmId);
+    if (firmError) throw firmError;
+
+    // 2. Update shop_settings table
+    const { error: settingsError } = await supabase
+      .from('shop_settings')
+      .upsert({
+        firm_id: firmId,
+        ...toSnake(settingsUpdates),
+        updated_at: new Date().toISOString()
+      });
+    if (settingsError) throw settingsError;
+
+    return true;
+  },
+
+  async updateBranchBySuperadmin(branchId: string, branchUpdates: any) {
+    if (!isValidUUID(branchId)) throw new Error('Invalid Branch ID');
+    const { error } = await supabase
+      .from('branches')
+      .update(toSnake(branchUpdates))
+      .eq('id', branchId);
+    if (error) throw error;
+    return true;
   },
 
   async getFirmBranding(slug: string) {
@@ -1093,21 +1184,12 @@ export const supabaseService = {
 
   // ---- Global Dashboard (Superadmin) ----
   async getGlobalActivityFeed(limit = 10) {
-    // Optimized activity fetch: join with firms to show context
-    const { data, error } = await supabase
-      .from('v_system_logs' as any)
-      .select('message, time, firm_name, type')
-      .order('time', { ascending: false })
-      .limit(limit);
-    
+    const { data, error } = await supabase.rpc('get_global_activity_feed', { p_limit: limit });
     if (error) {
-      console.warn('System logs view missing. Returning dummy data for feed.');
-      return [
-        { firm_name: 'System', message: 'Platform Health Check: Operational', time: new Date().toISOString() },
-        { firm_name: 'PledgeVault', message: 'New Firm Onboarded: Mahaveer Jewelers', time: new Date().toISOString() }
-      ];
+      console.warn('⚠️ getGlobalActivityFeed RPC failed:', error.message);
+      return [];
     }
-    return data;
+    return data || [];
   },
 
   async getGlobalSystemStats() {
@@ -1141,6 +1223,45 @@ export const supabaseService = {
     return {
       customers: toCamel(customerRes.data || []),
       loans: toCamel(loanRes.data || [])
+    };
+  },
+
+  async getAllSubscriptionsPaginated(page: number, limit: number, search?: string) {
+    const from = (page - 1) * limit;
+    const to = from + limit - 1;
+
+    let firmIds: string[] = [];
+    if (search) {
+      const { data: firms } = await supabase
+        .from('firms')
+        .select('id')
+        .ilike('name', `%${search}%`);
+      if (firms) {
+        firmIds = firms.map(f => f.id);
+      }
+    }
+
+    let query = supabase
+      .from('subscriptions')
+      .select('*, firms(name)', { count: 'exact' });
+
+    if (search) {
+      let filterStr = `razorpay_payment_id.ilike.%${search}%,razorpay_order_id.ilike.%${search}%,payment_method.ilike.%${search}%,plan_id.ilike.%${search}%`;
+      if (firmIds.length > 0) {
+        filterStr += `,firm_id.in.(${firmIds.join(',')})`;
+      }
+      query = query.or(filterStr);
+    }
+
+    const { data, error, count } = await query
+      .order('created_at', { ascending: false })
+      .range(from, to);
+
+    if (error) throw error;
+
+    return {
+      subscriptions: toCamel(data) as any[],
+      totalCount: count || 0
     };
   }
 };

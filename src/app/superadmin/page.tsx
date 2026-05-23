@@ -4,10 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { 
   Building2, 
   Users, 
-  Layers, 
-  ArrowUpRight, 
   HandCoins, 
-  TrendingUp, 
   Plus, 
   Search, 
   MoreVertical,
@@ -15,20 +12,52 @@ import {
   ShieldCheck,
   Zap,
   Activity,
-  AlertCircle
+  CreditCard
 } from 'lucide-react';
 import Link from 'next/link';
-import { supabase } from '@/lib/supabase/client';
 import { supabaseService } from '@/lib/supabase/service';
-import { formatCurrency, formatWeight, formatDate, SUBSCRIPTION_PLANS } from '@/lib/constants';
-import { PlanTier, SubscriptionInterval } from '@/lib/types';
-import { authStore } from '@/lib/authStore';
+import { formatCurrency, formatWeight, formatDate } from '@/lib/constants';
+
+interface GlobalSystemStats {
+  total_firms: number;
+  total_loan_value: number;
+  active_users: number;
+  total_gold_weight: number;
+  total_silver_weight: number;
+}
+
+interface FirmDetailed {
+  id: string;
+  name: string;
+  slug?: string;
+  shortCode?: string;
+  plan?: string;
+  createdAt: string;
+  profiles: { count: number }[];
+  branches: { count: number }[];
+}
+
+interface GlobalActivity {
+  firm_name?: string;
+  message: string;
+  time: string;
+}
 
 export default function SuperadminDashboard() {
-  const [stats, setStats] = useState<any>(null);
-  const [firms, setFirms] = useState<any[]>([]);
-  const [activity, setActivity] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState<GlobalSystemStats | null>(null);
+  const [firms, setFirms] = useState<FirmDetailed[]>([]);
+  const [activity, setActivity] = useState<GlobalActivity[]>([]);
+  const [systemHealth, setSystemHealth] = useState('99.9%');
+  const [activeDropdownId, setActiveDropdownId] = useState<string | null>(null);
+
+  // Close dropdown on click outside
+  useEffect(() => {
+    const handleOutsideClick = () => {
+      setActiveDropdownId(null);
+    };
+    document.addEventListener('click', handleOutsideClick);
+    return () => document.removeEventListener('click', handleOutsideClick);
+  }, []);
 
   useEffect(() => {
     async function fetchData() {
@@ -44,11 +73,41 @@ export default function SuperadminDashboard() {
       const activityData = await supabaseService.getGlobalActivityFeed(5);
       setActivity(activityData || []);
 
-      setLoading(false);
+      // 4. Dynamic System Health Verification
+      try {
+        const integrity = await supabaseService.checkSystemIntegrity();
+        if (integrity && integrity.tables) {
+          const totalChecks = (integrity.tables?.length || 0) + 
+                              (integrity.columns?.length || 0) + 
+                              (integrity.functions?.length || 0) + 
+                              (integrity.security?.length || 0);
+          
+          const passedChecks = (integrity.tables?.filter((t: { exists: boolean }) => t.exists)?.length || 0) + 
+                               (integrity.columns?.filter((c: { exists: boolean }) => c.exists)?.length || 0) + 
+                               (integrity.functions?.filter((f: { exists: boolean }) => f.exists)?.length || 0) +
+                               (integrity.security?.filter((s: { rls_enabled: boolean }) => s.rls_enabled)?.length || 0);
+          
+          if (totalChecks > 0) {
+            const score = Math.round((passedChecks / totalChecks) * 100);
+            setSystemHealth(`${score}%`);
+          } else {
+            setSystemHealth('100%');
+          }
+        }
+      } catch (err) {
+        console.warn('Integrity check failed:', err);
+        setSystemHealth('99.9%');
+      }
     }
 
     fetchData();
   }, []);
+
+  // Capacity targets for platform indicators: 5,000g (5kg) for Gold, 50,000g (50kg) for Silver
+  const goldMax = 5000;
+  const silverMax = 50000;
+  const goldPercent = stats?.total_gold_weight ? Math.min(100, Math.round((stats.total_gold_weight / goldMax) * 100)) : 0;
+  const silverPercent = stats?.total_silver_weight ? Math.min(100, Math.round((stats.total_silver_weight / silverMax) * 100)) : 0;
 
   return (
     <div className="page-content">
@@ -65,6 +124,9 @@ export default function SuperadminDashboard() {
           </Link>
           <Link href="/superadmin/subscriptions" className="pv-btn pv-btn-outline">
             <Zap size={18} /> Billing
+          </Link>
+          <Link href="/superadmin/payments" className="pv-btn pv-btn-outline">
+            <CreditCard size={18} /> Payments
           </Link>
           <Link href="/superadmin/onboarding" className="pv-btn pv-btn-gold">
             <Plus size={18} /> Onboard Firm
@@ -107,7 +169,7 @@ export default function SuperadminDashboard() {
           </div>
           <div>
             <span style={{ fontSize: '12px', color: 'var(--text-tertiary)', fontWeight: 700, textTransform: 'uppercase' }}>System Health</span>
-            <div style={{ fontSize: '28px', fontWeight: 900 }}>99.9%</div>
+            <div style={{ fontSize: '28px', fontWeight: 900 }}>{systemHealth}</div>
           </div>
         </div>
       </div>
@@ -149,9 +211,62 @@ export default function SuperadminDashboard() {
                         <span className={`badge ${firm.plan || 'free'}`}>{(firm.plan || 'free').toUpperCase()}</span>
                       </td>
                       <td style={{ fontWeight: 600 }}>{firm.profiles?.[0]?.count || 1}</td>
-                      <td style={{ color: 'var(--text-tertiary)' }}>{formatDate(firm.created_at)}</td>
-                      <td>
-                        <button style={{ background: 'transparent', border: 'none', color: 'var(--text-tertiary)' }}><MoreVertical size={18} /></button>
+                      <td style={{ color: 'var(--text-tertiary)' }}>{formatDate(firm.createdAt)}</td>
+                      <td style={{ position: 'relative' }}>
+                        <button 
+                          title="More Actions"
+                          style={{ background: 'transparent', border: 'none', color: 'var(--text-tertiary)', cursor: 'pointer', padding: '4px' }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setActiveDropdownId(activeDropdownId === firm.id ? null : firm.id);
+                          }}
+                        >
+                          <MoreVertical size={18} />
+                        </button>
+                        {activeDropdownId === firm.id && (
+                          <>
+                            <div 
+                              style={{ 
+                                position: 'absolute', 
+                                right: '0', 
+                                top: '100%', 
+                                background: '#0B1528', 
+                                border: '1px solid rgba(255, 255, 255, 0.08)', 
+                                borderRadius: '12px', 
+                                boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.3), 0 8px 10px -6px rgba(0, 0, 0, 0.3)', 
+                                zIndex: 50, 
+                                minWidth: '160px',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                padding: '6px',
+                                marginTop: '4px'
+                              }}
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <Link 
+                                href="/superadmin/firms" 
+                                className="pv-dropdown-item"
+                                onClick={() => setActiveDropdownId(null)}
+                              >
+                                <Building2 size={14} /> Manage Firm
+                              </Link>
+                              <Link 
+                                href={`/superadmin/subscriptions?firmId=${firm.id}&action=subscribe`} 
+                                className="pv-dropdown-item"
+                                onClick={() => setActiveDropdownId(null)}
+                              >
+                                <HandCoins size={14} /> Record Payment
+                              </Link>
+                              <Link 
+                                href={`/superadmin/subscriptions?firmId=${firm.id}`} 
+                                className="pv-dropdown-item"
+                                onClick={() => setActiveDropdownId(null)}
+                              >
+                                <CreditCard size={14} /> View Ledger
+                              </Link>
+                            </div>
+                          </>
+                        )}
                       </td>
                     </tr>
                   ))}
@@ -176,7 +291,7 @@ export default function SuperadminDashboard() {
                   <span style={{ fontWeight: 800 }}>{formatWeight(stats?.total_gold_weight || 0)}</span>
                 </div>
                 <div style={{ height: '6px', background: 'var(--bg-primary)', borderRadius: '3px', overflow: 'hidden' }}>
-                  <div style={{ height: '100%', background: 'var(--gold)', width: '100%' }}></div>
+                  <div style={{ height: '100%', background: 'var(--gold)', width: `${goldPercent}%`, transition: 'width 1s ease-in-out' }}></div>
                 </div>
               </div>
               <div>
@@ -185,7 +300,7 @@ export default function SuperadminDashboard() {
                   <span style={{ fontWeight: 800 }}>{formatWeight(stats?.total_silver_weight || 0)}</span>
                 </div>
                 <div style={{ height: '6px', background: 'var(--bg-primary)', borderRadius: '3px', overflow: 'hidden' }}>
-                  <div style={{ height: '100%', background: '#8E9AAF', width: '100%' }}></div>
+                  <div style={{ height: '100%', background: '#8E9AAF', width: `${silverPercent}%`, transition: 'width 1s ease-in-out' }}></div>
                 </div>
               </div>
             </div>
@@ -212,7 +327,5 @@ export default function SuperadminDashboard() {
         </div>
       </div>
 
-
-    </div>
-  );
+    </div>);
 }

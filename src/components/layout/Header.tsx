@@ -156,25 +156,25 @@ export default function Header({ onMenuClick, settings: propSettings }: HeaderPr
                     <button
                       className={`pv-btn pv-btn-ghost w-full justify-start h-10 ${settings.activeBranchId === 'firm' ? 'active' : ''}`}
                       onClick={() => {
-                        settingsStore.save({ activeBranchId: 'firm' });
-                        window.dispatchEvent(new Event('storage'));
-                        setIsIdentityOpen(false);
-                      }}
-                    >
-                      <LayoutDashboard size={14} />
-                      <span>{t.common.all}</span>
-                    </button>
-                  )}
+                    settingsStore.save({ activeBranchId: 'firm' }, true);
+                    window.dispatchEvent(new Event('storage'));
+                    setIsIdentityOpen(false);
+                  }}
+                >
+                  <LayoutDashboard size={14} />
+                  <span>{t.common.all}</span>
+                </button>
+              )}
 
-                  {settings.branches?.map((branch: any) => (
-                    <button
-                      key={branch.id}
-                      className={`pv-btn pv-btn-ghost w-full justify-start h-auto py-3 px-4 ${settings.activeBranchId === branch.id ? 'active' : ''}`}
-                      onClick={() => {
-                        settingsStore.save({ activeBranchId: branch.id });
-                        window.dispatchEvent(new Event('storage'));
-                        setIsIdentityOpen(false);
-                      }}
+              {settings.branches?.map((branch: any) => (
+                <button
+                  key={branch.id}
+                  className={`pv-btn pv-btn-ghost w-full justify-start h-auto py-3 px-4 ${settings.activeBranchId === branch.id ? 'active' : ''}`}
+                  onClick={() => {
+                    settingsStore.save({ activeBranchId: branch.id }, true);
+                    window.dispatchEvent(new Event('storage'));
+                    setIsIdentityOpen(false);
+                  }}
                     >
                       <MapPin size={14} />
                       <div className="flex flex-col items-start">

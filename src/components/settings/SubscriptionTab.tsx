@@ -14,7 +14,7 @@ import {
 import { PLAN_LIMITS, SUBSCRIPTION_PLANS, formatDate } from '@/lib/constants';
 import { PlanTier, SubscriptionInterval, Subscription } from '@/lib/types';
 import { getPlanMovement } from '@/lib/plans';
-import { razorpayStub } from '@/lib/payments/razorpay';
+import { initializeRazorpayPayment } from '@/lib/payments/razorpay';
 import { supabase } from '@/lib/supabase/client';
 import { supabaseService } from '@/lib/supabase/service';
 import { authStore } from '@/lib/authStore';
@@ -123,27 +123,44 @@ export default function SubscriptionTab({ currentPlan, onUpgrade, firmName }: Su
     }
 
     try {
-      const result = await razorpayStub({
+      const result = await initializeRazorpayPayment({
         planId: plan.id,
         interval: interval,
         amount: amount,
+        firmId: auth.firmId ?? '',
         firmName: firmName,
+        firmEmail: auth.email ?? '',
         onSuccess: async (response) => {
           console.log('Payment Successful:', response);
-          // 1. Record the full subscription details
-          await supabaseService.createSubscription({
-            firmId: auth.firmId ?? '',
-            planId: plan.id,
-            interval: interval,
-            amount: amount,
-            currency: 'INR',
-            paymentMethod: response.paymentMethod,
-            status: 'active',
-            startDate: response.startDate,
-            endDate: response.endDate,
-            razorpayPaymentId: response.razorpayPaymentId,
-            razorpayOrderId: response.razorpayOrderId,
-          });
+          // 1. Record the full subscription details (already done on backend verification, 
+          // but we can call it here as fallback/redundancy or just directly invoke onUpgrade)
+          // Wait, verify-signature creates the subscription on the backend, but since local developers 
+          // using the stub still trigger onSuccess from the frontend, we should ensure the subscription
+          // is created once. The verify-signature backend creates it for real payments, 
+          // while local stub onSuccess callback handles it here.
+          // Let's check: does createSubscription run on both?
+          // If we use the real gateway, we don't want to insert it twice.
+          // Let's check if there is an upsert or check inside createSubscription.
+          // In supabaseService, createSubscription inserts a new row. To avoid duplication, 
+          // the frontend should only insert it if paymentMethod !== 'razorpay' or if it is a stub.
+          // Let's see: if response.paymentMethod === 'razorpay' (real), it was already created on the backend.
+          // But wait, to be safe, we can just call update current plan or run createSubscription conditionally if it doesn't exist yet!
+          // Actually, let's look:
+          if (response.paymentMethod !== 'razorpay') {
+            await supabaseService.createSubscription({
+              firmId: auth.firmId ?? '',
+              planId: plan.id,
+              interval: interval,
+              amount: amount,
+              currency: 'INR',
+              paymentMethod: response.paymentMethod,
+              status: 'active',
+              startDate: response.startDate,
+              endDate: response.endDate,
+              razorpayPaymentId: response.razorpayPaymentId,
+              razorpayOrderId: response.razorpayOrderId,
+            });
+          }
 
           // 2. Trigger parent upgrade callback
           await onUpgrade?.(plan.id);

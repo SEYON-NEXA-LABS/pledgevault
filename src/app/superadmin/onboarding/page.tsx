@@ -83,7 +83,11 @@ export default function SuperadminOnboarding() {
       email: adminData.email,
       password: adminData.password,
       fullName: adminData.fullName,
-      staffMembers: staffMembers
+      staffMembers: staffMembers,
+      location: firmData.location,
+      gstNumber: firmData.gstNumber,
+      registrationNumber: firmData.registrationNumber,
+      licenseNumber: firmData.licenseNumber
     });
 
     if (result.success) {

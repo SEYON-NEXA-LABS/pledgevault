@@ -146,3 +146,147 @@ export const razorpayStub = async (options: RazorpayStubOptions) => {
     });
   });
 };
+
+export const initializeRazorpayPayment = async (options: {
+  planId: PlanTier;
+  interval: SubscriptionInterval;
+  amount: number;
+  firmId: string;
+  firmName: string;
+  firmEmail?: string;
+  onSuccess: (response: any) => Promise<void>;
+  onModalClose?: () => void;
+}) => {
+  const keyId = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID;
+  if (!keyId || keyId.startsWith('stub_') || keyId === '') {
+    return razorpayStub({
+      planId: options.planId,
+      interval: options.interval,
+      amount: options.amount,
+      firmName: options.firmName,
+      onSuccess: options.onSuccess,
+      onModalClose: options.onModalClose
+    });
+  }
+
+  // Real checkout flow:
+  // 1. Load Razorpay script
+  const loaded = await new Promise((resolve) => {
+    if ((window as any).Razorpay) {
+      resolve(true);
+      return;
+    }
+    const script = document.createElement('script');
+    script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+    script.onload = () => resolve(true);
+    script.onerror = () => resolve(false);
+    document.body.appendChild(script);
+  });
+
+  if (!loaded) {
+    alert('Razorpay payment gateway failed to load.');
+    return null;
+  }
+
+  try {
+    // 2. Call local API endpoint to generate a secure Razorpay Order ID
+    const orderRes = await fetch('/api/payments/create-order', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        amount: options.amount,
+        planId: options.planId,
+        interval: options.interval,
+        firmId: options.firmId
+      })
+    });
+    
+    if (!orderRes.ok) {
+      const errText = await orderRes.text();
+      alert('Failed to generate secure checkout order: ' + errText);
+      return null;
+    }
+
+    const orderData = await orderRes.json();
+    if (!orderData.success) {
+      alert('Failed to generate secure checkout order: ' + orderData.error);
+      return null;
+    }
+
+    // 3. Open Razorpay Checkout Dialog
+    return new Promise((resolve) => {
+      const rzpOptions = {
+        key: keyId,
+        amount: options.amount * 100, // in paise subunits
+        currency: 'INR',
+        name: 'PledgeVault',
+        description: `Upgrade to ${options.planId.toUpperCase()} Plan`,
+        order_id: orderData.orderId,
+        handler: async (response: any) => {
+          // 4. Verify payment signature securely on the server
+          try {
+            const verifyRes = await fetch('/api/payments/verify-signature', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                razorpayOrderId: response.razorpay_order_id,
+                razorpayPaymentId: response.razorpay_payment_id,
+                razorpaySignature: response.razorpay_signature,
+                firmId: options.firmId,
+                planId: options.planId,
+                interval: options.interval,
+                amount: options.amount
+              })
+            });
+
+            if (!verifyRes.ok) {
+              const errText = await verifyRes.text();
+              alert('Payment verification failed: ' + errText);
+              resolve(null);
+              return;
+            }
+
+            const verifyData = await verifyRes.json();
+            if (verifyData.success) {
+              await options.onSuccess({
+                paymentMethod: 'razorpay',
+                startDate: new Date().toISOString(),
+                endDate: options.interval === 'monthly'
+                  ? new Date(new Date().setMonth(new Date().getMonth() + 1)).toISOString()
+                  : new Date(new Date().setFullYear(new Date().getFullYear() + 1)).toISOString(),
+                razorpayPaymentId: response.razorpay_payment_id,
+                razorpayOrderId: response.razorpay_order_id
+              });
+              resolve(response);
+            } else {
+              alert('Payment verification failed: ' + verifyData.error);
+              resolve(null);
+            }
+          } catch (err: any) {
+            alert('Verification failed: ' + err.message);
+            resolve(null);
+          }
+        },
+        prefill: {
+          name: options.firmName,
+          email: options.firmEmail || ''
+        },
+        theme: {
+          color: '#0B1528' // Matches the brand aesthetics
+        },
+        modal: {
+          ondismiss: () => {
+            if (options.onModalClose) options.onModalClose();
+            resolve(null);
+          }
+        }
+      };
+
+      const rzp = new (window as any).Razorpay(rzpOptions);
+      rzp.open();
+    });
+  } catch (err: any) {
+    alert('Checkout initialization failed: ' + err.message);
+    return null;
+  }
+};
