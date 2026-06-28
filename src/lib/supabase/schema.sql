@@ -206,6 +206,7 @@ ALTER TABLE loan_items ENABLE ROW LEVEL SECURITY;
 ALTER TABLE payments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE shop_settings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE subscriptions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE audit_logs ENABLE ROW LEVEL SECURITY;
 
 -- Dynamic Policy: Users can only interact with rows belonging to their firm
 -- Admin & Superadmin role-based access integrated through get_auth_role()
@@ -236,6 +237,9 @@ CREATE POLICY "Settings Isolation" ON shop_settings FOR ALL USING (firm_id = get
 
 DROP POLICY IF EXISTS "Subscription Isolation" ON subscriptions;
 CREATE POLICY "Subscription Isolation" ON subscriptions FOR ALL USING (firm_id = get_auth_firm() OR get_auth_role() = 'superadmin');
+
+DROP POLICY IF EXISTS "Audit Logs Isolation" ON audit_logs;
+CREATE POLICY "Audit Logs Isolation" ON audit_logs FOR ALL USING (firm_id = get_auth_firm() OR get_auth_role() = 'superadmin');
 
 -- Role based access (example): Only admins can delete loans
 -- CREATE POLICY "Admin Delete" ON loans FOR DELETE USING (get_my_firm() = firm_id AND (SELECT role FROM profiles WHERE id = auth.uid()) = 'admin');
@@ -482,7 +486,7 @@ CREATE TABLE audit_logs (
 
 -- 13. Optimized Views for Egress Reduction
 -- This view allows us to fetch customer names AND their active loan counts in ONE query.
-CREATE OR REPLACE VIEW v_customer_summaries AS
+CREATE OR REPLACE VIEW v_customer_summaries WITH (security_invoker = true) AS
 SELECT 
   c.id,
   c.firm_id,

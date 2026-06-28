@@ -346,8 +346,10 @@ export default function LoginPage() {
           </div>
 
           <footer style={{ marginTop: '20px', paddingTop: '16px', borderTop: '1px solid var(--border)' }}>
-             <div style={{ display: 'flex', gap: '8px', fontSize: '11px', color: 'var(--text-tertiary)', fontWeight: '700' }}>
+             <div style={{ display: 'flex', gap: '8px', fontSize: '11px', color: 'var(--text-tertiary)', fontWeight: '700', flexWrap: 'wrap' }}>
                 <span>© 2026 {t.common.pledgevault}</span>
+                <span>•</span>
+                <span>A Product of <a href="https://nvisionsystems.in" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--primary)', textDecoration: 'underline' }}>nVision Systems</a></span>
                 <span>•</span>
                 <span className="font-mono lowercase opacity-60">
                    {process.env.NEXT_PUBLIC_APP_VERSION || (process.env.NODE_ENV === 'development' ? 'dev' : '')}

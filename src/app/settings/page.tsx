@@ -513,8 +513,11 @@ function SettingsContent() {
         <TeamTab />
       )}
 
-      <div className="mt-10 py-10 text-center text-[12px] text-muted-foreground font-bold uppercase tracking-widest border-t border-border">
-        PledgeVault Enterprise • Secure Cloud Infrastructure
+      <div className="mt-10 py-10 text-center text-[12px] text-muted-foreground font-bold uppercase tracking-widest border-t border-border flex flex-col items-center gap-2 justify-center">
+        <div>PledgeVault Enterprise • Secure Cloud Infrastructure</div>
+        <div className="text-[10px] opacity-75 font-black normal-case tracking-normal">
+          A Product of <a href="https://nvisionsystems.in" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">nVision Systems</a>
+        </div>
       </div>
     </>
   );
