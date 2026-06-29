@@ -186,10 +186,10 @@ export default function LoginPage() {
             
             <div className="space-y-10 max-w-md">
                {[
-                 { icon: <ShieldCheck size={26} />, title: "Audit-Ready Compliance", desc: "Enterprise-grade security with immutable audit trails for every transaction and pledge." },
-                 { icon: <Zap size={26} />, title: "Precision Appraisal", desc: "Real-time Gold & Silver rate synchronization ensuring accurate valuations and minimized risk." },
-                 { icon: <Building2 size={26} />, title: "Multi-Branch Command", desc: "Centralized management for multiple branches with unified reporting and inter-branch transfers." },
-                 { icon: <HandCoins size={26} />, title: "Lifecycle Loan Management", desc: "End-to-end tracking from instant payout to automated interest accrual and overdue notifications." }
+                 { icon: <ShieldCheck size={26} />, title: "Audit-Ready Isolation", desc: "State-of-the-art Row-Level Security (RLS) ensuring strict data separation and compliance." },
+                 { icon: <Zap size={26} />, title: "Live Rates & Scale Automation", desc: "Direct Web Serial/USB weighing machine integration and real-time MCX metal rate sync." },
+                 { icon: <Building2 size={26} />, title: "Multi-Branch Command", desc: "Centralized controls for multiple locations with consolidated firm-wide dashboard analytics." },
+                 { icon: <HandCoins size={26} />, title: "Lifecycle Loan Management", desc: "Automated interest engine, payment tracking, WhatsApp alerts, and professional receipt printing." }
                ].map((feature, i) => (
                  <div key={i} className="flex items-start gap-5 text-white group cursor-default">
                    <div className="w-12 h-12 rounded-2xl bg-white/10 flex items-center justify-center shrink-0 border border-white/10 shadow-2xl transition-all group-hover:bg-white/20 group-hover:scale-110">
@@ -347,9 +347,7 @@ export default function LoginPage() {
 
           <footer style={{ marginTop: '20px', paddingTop: '16px', borderTop: '1px solid var(--border)' }}>
              <div style={{ display: 'flex', gap: '8px', fontSize: '11px', color: 'var(--text-tertiary)', fontWeight: '700', flexWrap: 'wrap' }}>
-                <span>© 2026 {t.common.pledgevault}</span>
-                <span>•</span>
-                <span>A Product of <a href="https://nvisionsystems.in" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--primary)', textDecoration: 'underline' }}>nVision Systems</a></span>
+                <span>© 2026 <a href="https://nvisionsystems.in" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--text-secondary)', textDecoration: 'underline' }}>NVision Systems Pvt Ltd.</a></span>
                 <span>•</span>
                 <span className="font-mono lowercase opacity-60">
                    {process.env.NEXT_PUBLIC_APP_VERSION || (process.env.NODE_ENV === 'development' ? 'dev' : '')}
