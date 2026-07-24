@@ -28,6 +28,8 @@ export default function TrialExpiredGate({ children }: { children: React.ReactNo
   
   // Exemptions
   const isExemptRoute = 
+    pathname === '/' ||
+    pathname === '/home' ||
     pathname === '/login' || 
     pathname === '/start-trial' ||
     pathname.startsWith('/settings') ||

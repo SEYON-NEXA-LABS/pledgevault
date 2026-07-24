@@ -25,7 +25,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const [branches, setBranches] = useState<any[]>([]);
 
   const isPublicPage = 
+    pathname === '/' || 
     pathname === '/login' || 
+    pathname === '/home' || 
     pathname === '/start-trial' || 
     pathname === '/forgot-password' || 
     pathname === '/reset-password' || 
@@ -39,12 +41,13 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     const s = settingsStore.get();
     if (s.language) setLang(s.language as Language);
 
-    // Sync Lang
-    const syncLang = () => {
+    // Sync Lang & Auth
+    const syncState = () => {
       const updated = settingsStore.get();
       if (updated.language) setLang(updated.language as Language);
     };
-    window.addEventListener('pv_settings_updated', syncLang);
+    window.addEventListener('pv_settings_updated', syncState);
+    window.addEventListener('pv_auth_updated', syncState);
     
     // Check for persisted sidebar state
     const savedSidebarState = localStorage.getItem('pv_sidebar_open');
@@ -134,7 +137,10 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       setSidebarOpen(false);
     }
 
-    return () => window.removeEventListener('pv_settings_updated', syncLang);
+    return () => {
+      window.removeEventListener('pv_settings_updated', syncState);
+      window.removeEventListener('pv_auth_updated', syncState);
+    };
   }, [pathname, isPublicPage]);
 
   if (!mounted) return null;

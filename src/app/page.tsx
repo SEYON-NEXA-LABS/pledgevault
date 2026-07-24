@@ -39,6 +39,8 @@ import { formatCurrency, formatWeight, getDaysOverdue } from '@/lib/constants';
 import { Loan } from '@/lib/types';
 import { translations, Language } from '@/lib/i18n/translations';
 
+import LandingPage from './home/page';
+
 // Color palette for charts using theme-aware variables
 const CHART_COLORS = [
   'oklch(0.7 0.15 80)',    // Gold
@@ -70,7 +72,11 @@ export default function DashboardPage() {
   useEffect(() => {
     const handleUpdate = () => setSettings(settingsStore.get());
     window.addEventListener('pv_settings_updated', handleUpdate);
-    return () => window.removeEventListener('pv_settings_updated', handleUpdate);
+    window.addEventListener('pv_auth_updated', handleUpdate);
+    return () => {
+      window.removeEventListener('pv_settings_updated', handleUpdate);
+      window.removeEventListener('pv_auth_updated', handleUpdate);
+    };
   }, []);
 
   const activeBranchId = settings.activeBranchId;
@@ -126,6 +132,10 @@ export default function DashboardPage() {
         Loading...
       </div>
     );
+  }
+
+  if (!auth.isAuthenticated) {
+    return <LandingPage />;
   }
 
   const isBranchView = activeBranchId !== 'firm';

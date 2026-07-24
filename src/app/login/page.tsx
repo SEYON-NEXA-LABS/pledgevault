@@ -55,6 +55,12 @@ export default function LoginPage() {
   useEffect(() => {
     const fetchBranding = async () => {
       const params = new URLSearchParams(window.location.search);
+      const demoRole = params.get('demo');
+      if (demoRole === 'admin' || demoRole === 'staff') {
+        setEmail(demoRole === 'admin' ? 'admin@yourfirm.com' : 'staff@yourfirm.com');
+        setPassword('password123');
+      }
+
       const shopSlug = params.get('shop');
       if (shopSlug) {
         setShopQuery(`?shop=${shopSlug}`);
@@ -184,25 +190,19 @@ export default function LoginPage() {
                </div>
             </div>
             
-            <div className="space-y-10 max-w-md">
-               {[
-                 { icon: <ShieldCheck size={26} />, title: "Audit-Ready Isolation", desc: "State-of-the-art Row-Level Security (RLS) ensuring strict data separation and compliance." },
-                 { icon: <Zap size={26} />, title: "Live Rates & Scale Automation", desc: "Direct Web Serial/USB weighing machine integration and real-time MCX metal rate sync." },
-                 { icon: <Building2 size={26} />, title: "Multi-Branch Command", desc: "Centralized controls for multiple locations with consolidated firm-wide dashboard analytics." },
-                 { icon: <HandCoins size={26} />, title: "Lifecycle Loan Management", desc: "Automated interest engine, payment tracking, WhatsApp alerts, and professional receipt printing." }
-               ].map((feature, i) => (
-                 <div key={i} className="flex items-start gap-5 text-white group cursor-default">
-                   <div className="w-12 h-12 rounded-2xl bg-white/10 flex items-center justify-center shrink-0 border border-white/10 shadow-2xl transition-all group-hover:bg-white/20 group-hover:scale-110">
-                     <span className="text-gold">{feature.icon}</span>
-                   </div>
-                   <div className="flex flex-col gap-1.5">
-                     <h3 className="text-base font-bold text-white tracking-tight">{feature.title}</h3>
-                     <p className="text-[13px] text-white/60 leading-relaxed font-medium">
-                       {feature.desc}
-                     </p>
-                   </div>
-                 </div>
-               ))}
+            <div className="space-y-6 max-w-md my-auto">
+               <div className="p-6 rounded-2xl bg-white/10 backdrop-blur-md border border-white/15 shadow-xl">
+                 <h2 className="text-2xl font-black text-white mb-2 leading-tight">Digital Gold & Silver Pawn Management</h2>
+                 <p className="text-white/80 text-sm font-medium leading-relaxed mb-6">
+                   Modernize your shop with offline-first pledge tracking, automated interest engines, thermal receipt printing, and live MCX market rate sync.
+                 </p>
+                 <Link 
+                   href="/home" 
+                   className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gold text-slate-950 font-black text-xs uppercase tracking-wider hover:bg-amber-400 transition-all shadow-md shadow-gold/20"
+                 >
+                   Explore Full Project Overview <ArrowRight size={14} />
+                 </Link>
+               </div>
             </div>
 
           </div>
