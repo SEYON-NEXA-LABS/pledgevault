@@ -66,11 +66,14 @@ export default function DashboardPage() {
   const [mounted, setMounted] = useState(false);
 
   const [settings, setSettings] = useState(settingsStore.get());
-  const auth = authStore.get();
+  const [auth, setAuth] = useState(authStore.get());
   const t = translations[(settings.language || 'en') as Language];
 
   useEffect(() => {
-    const handleUpdate = () => setSettings(settingsStore.get());
+    const handleUpdate = () => {
+      setSettings(settingsStore.get());
+      setAuth(authStore.get());
+    };
     window.addEventListener('pv_settings_updated', handleUpdate);
     window.addEventListener('pv_auth_updated', handleUpdate);
     return () => {

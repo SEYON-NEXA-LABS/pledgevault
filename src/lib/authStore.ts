@@ -38,6 +38,8 @@ export const authStore = {
     const updated = { ...current, ...state };
     if (typeof window !== 'undefined') {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+      window.dispatchEvent(new Event('pv_auth_updated'));
+      window.dispatchEvent(new Event('storage'));
     }
     return updated;
   },
@@ -45,6 +47,8 @@ export const authStore = {
   clear: () => {
     if (typeof window !== 'undefined') {
       localStorage.removeItem(STORAGE_KEY);
+      window.dispatchEvent(new Event('pv_auth_updated'));
+      window.dispatchEvent(new Event('storage'));
     }
   },
 

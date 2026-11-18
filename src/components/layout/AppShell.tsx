@@ -24,8 +24,10 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const [showMandatorySelector, setShowMandatorySelector] = useState(false);
   const [branches, setBranches] = useState<any[]>([]);
 
+  const [auth, setAuth] = useState(authStore.get());
+
   const isPublicPage = 
-    pathname === '/' || 
+    (pathname === '/' && !auth.isAuthenticated) || 
     pathname === '/login' || 
     pathname === '/home' || 
     pathname === '/start-trial' || 
@@ -45,6 +47,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     const syncState = () => {
       const updated = settingsStore.get();
       if (updated.language) setLang(updated.language as Language);
+      setAuth(authStore.get());
     };
     window.addEventListener('pv_settings_updated', syncState);
     window.addEventListener('pv_auth_updated', syncState);
@@ -174,7 +177,6 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     );
   }
 
-  const auth = authStore.get();
   const currentSettings = settingsStore.get();
 
   return (
