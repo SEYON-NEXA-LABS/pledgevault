@@ -23,8 +23,11 @@ import {
   Layers,
   Award,
   Clock,
-  ChevronDown
+  ChevronDown,
+  Calendar,
+  Gem
 } from 'lucide-react';
+import PanchangamCard from '@/components/dashboard/PanchangamCard';
 
 export default function AboutLandingPage() {
   // Demo Loan Calculator State
@@ -70,7 +73,7 @@ export default function AboutLandingPage() {
               <img src="/android-chrome-192x192.png" alt="PledgeVault Logo" className="w-full h-full object-contain" />
             </div>
             <div className="flex flex-col">
-              <span className="text-xl font-black tracking-tight text-slate-900">PledgeVault</span>
+              <span className="text-xl font-black tracking-wider text-slate-900" style={{ fontFamily: 'var(--font-brand)' }}>PledgeVault</span>
               <span className="text-[9px] font-extrabold uppercase tracking-[0.25em] text-emerald-600">Gold & Silver Ledger</span>
             </div>
           </Link>
@@ -79,9 +82,9 @@ export default function AboutLandingPage() {
             <a href="#overview" className="hover:text-emerald-600 transition-colors">Overview</a>
             <a href="#features" className="hover:text-emerald-600 transition-colors">Features</a>
             <a href="#calculator" className="hover:text-emerald-600 transition-colors">Live Calculator</a>
+            <a href="#panchangam" className="hover:text-emerald-600 transition-colors">Panchangam & Muhurtham</a>
             <a href="#pricing" className="hover:text-emerald-600 transition-colors">Pricing</a>
             <a href="#security" className="hover:text-emerald-600 transition-colors">Security</a>
-            <a href="#localization" className="hover:text-emerald-600 transition-colors">Coimbatore / Tamil UI</a>
           </nav>
 
           <div className="flex items-center gap-3">
@@ -556,8 +559,117 @@ export default function AboutLandingPage() {
         </div>
       </section>
 
-      {/* 8. Tamil UI & Localized for Coimbatore */}
-      <section id="localization" className="py-24 bg-slate-900 text-white">
+      {/* 8. Tamil Panchangam & Gold Muhurtham Engine */}
+      <section id="panchangam" className="py-24 bg-slate-900 text-white relative overflow-hidden">
+        {/* Subtle Decorative Background Glow */}
+        <div className="absolute -top-40 -right-40 w-96 h-96 bg-amber-500/10 rounded-full blur-[140px] pointer-events-none" />
+        <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-emerald-500/10 rounded-full blur-[140px] pointer-events-none" />
+
+        <div className="max-w-7xl mx-auto px-6 relative z-10">
+          <div className="text-center max-w-3xl mx-auto mb-16">
+            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-amber-500/15 text-amber-400 text-xs font-black tracking-widest uppercase mb-6 border border-amber-500/30">
+              <Sparkles size={14} /> Tamil Panchangam & Gold Muhurtham Engine
+            </div>
+            <h2 className="text-3xl sm:text-5xl font-black tracking-tight mb-6">
+              Tailored for Tamil Nadu Pawn Brokers & Jewellers
+            </h2>
+            <p className="text-slate-300 text-base sm:text-lg font-medium leading-relaxed">
+              Gold loans and pawn transactions in South India move with the cosmic calendar. PledgeVault comes built-in with an accurate astronomical Tamil Panchangam engine—tracking <strong className="text-amber-400">Akshaya Tritiya</strong>, <strong className="text-amber-400">Dhanteras</strong>, <strong className="text-amber-400">Subha Muhurthams</strong>, and daily <strong className="text-amber-400">Rahu/Yamagandam</strong> windows.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+            {/* Left 7 Cols: Feature Explanation */}
+            <div className="lg:col-span-7 flex flex-col gap-6">
+              <div className="p-6 rounded-2xl bg-slate-800/80 border border-slate-700/80 hover:border-amber-500/40 transition-colors">
+                <div className="flex items-start gap-4">
+                  <div className="w-12 h-12 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center shrink-0">
+                    <Gem size={24} />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-black text-white mb-1.5 flex items-center gap-2">
+                      Akshaya Tritiya & Dhanteras Turnaround Planning
+                    </h3>
+                    <p className="text-slate-300 text-sm leading-relaxed">
+                      Automatically counts down and flags major high-volume gold buying and pledging milestones (சித்திரை அக்ஷய திருதியை & ஐப்பசி தனத்திரயோதசி). Anticipate cash reserves and staffing for seasonal gold surges.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-6 rounded-2xl bg-slate-800/80 border border-slate-700/80 hover:border-emerald-500/40 transition-colors">
+                <div className="flex items-start gap-4">
+                  <div className="w-12 h-12 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">
+                    <ShieldCheck size={24} />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-black text-white mb-1.5 flex items-center gap-2">
+                      சுப முகூர்த்தம் (Subha Muhurtham) & Tithi Tracking
+                    </h3>
+                    <p className="text-slate-300 text-sm leading-relaxed">
+                      Tracks Sukla/Krishna Paksha, Tithi (Prathama to Pournami / Amavasya), and auspicious wedding jewelry pledge days. Helps operators communicate auspicious timings to traditional borrowers.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-6 rounded-2xl bg-slate-800/80 border border-slate-700/80 hover:border-rose-500/40 transition-colors">
+                <div className="flex items-start gap-4">
+                  <div className="w-12 h-12 rounded-xl bg-rose-500/20 text-rose-400 flex items-center justify-center shrink-0">
+                    <Clock size={24} />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-black text-white mb-1.5 flex items-center gap-2">
+                      Real-time Rahu Kalam, Yamagandam & Kuligai
+                    </h3>
+                    <p className="text-slate-300 text-sm leading-relaxed">
+                      Live planetary hour intervals recalculated automatically each day. Respect traditional pawn counter customs when disbursing loans and executing safe custody releases.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* 4 Quick Badge Highlights */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-2">
+                <div className="p-4 rounded-xl bg-slate-800/40 border border-slate-700/50 text-center">
+                  <div className="text-amber-400 font-black text-sm">தமிழ் மாதம்</div>
+                  <div className="text-[11px] text-slate-400 font-bold mt-1">Chithirai to Panguni</div>
+                </div>
+                <div className="p-4 rounded-xl bg-slate-800/40 border border-slate-700/50 text-center">
+                  <div className="text-emerald-400 font-black text-sm">பௌர்ணமி & அமாவாசை</div>
+                  <div className="text-[11px] text-slate-400 font-bold mt-1">Full / New Moon alerts</div>
+                </div>
+                <div className="p-4 rounded-xl bg-slate-800/40 border border-slate-700/50 text-center">
+                  <div className="text-teal-400 font-black text-sm">ஆடி / தை பொங்கல்</div>
+                  <div className="text-[11px] text-slate-400 font-bold mt-1">Tamil festive cycles</div>
+                </div>
+                <div className="p-4 rounded-xl bg-slate-800/40 border border-slate-700/50 text-center">
+                  <div className="text-indigo-400 font-black text-sm">100% Offline</div>
+                  <div className="text-[11px] text-slate-400 font-bold mt-1">Astronomical math</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Right 5 Cols: Live Interactive Component Preview */}
+            <div className="lg:col-span-5">
+              <div className="bg-slate-950 p-3 sm:p-5 rounded-3xl border border-slate-800 shadow-2xl relative">
+                <div className="flex items-center justify-between pb-3 mb-3 border-b border-slate-800">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+                    <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Live Interactive Preview</span>
+                  </div>
+                  <span className="text-[10px] font-mono text-slate-400 bg-slate-900 px-2.5 py-0.5 rounded-md border border-slate-800">TamilCalendar Engine v2.0</span>
+                </div>
+                {/* Embed the interactive Panchangam component directly */}
+                <PanchangamCard />
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 9. Tamil UI & Localized for Coimbatore */}
+      <section id="localization" className="py-24 bg-slate-950 text-white border-t border-slate-800">
         <div className="max-w-7xl mx-auto px-6 text-center">
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-emerald-500/10 text-emerald-400 text-xs font-extrabold tracking-widest uppercase mb-6 border border-emerald-500/20">
             <Globe2 size={14} /> Tamil Localization
@@ -570,19 +682,19 @@ export default function AboutLandingPage() {
           </p>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 max-w-5xl mx-auto text-left">
-            <div className="p-6 rounded-2xl bg-slate-800/60 border border-slate-700/60">
+            <div className="p-6 rounded-2xl bg-slate-900 border border-slate-800">
               <div className="text-amber-400 font-black text-lg mb-2">தமிழ் இடைமுகம்</div>
               <div className="text-slate-300 text-sm font-medium">Full UI support in Tamil for shop staff and operators.</div>
             </div>
-            <div className="p-6 rounded-2xl bg-slate-800/60 border border-slate-700/60">
+            <div className="p-6 rounded-2xl bg-slate-900 border border-slate-800">
               <div className="text-emerald-400 font-black text-lg mb-2">இருமொழி ரசீதுகள்</div>
               <div className="text-slate-300 text-sm font-medium">Print bilingual A5 receipts in Tamil and English for transparency.</div>
             </div>
-            <div className="p-6 rounded-2xl bg-slate-800/60 border border-slate-700/60">
+            <div className="p-6 rounded-2xl bg-slate-900 border border-slate-800">
               <div className="text-teal-400 font-black text-lg mb-2">WhatsApp நினைவூட்டல்</div>
               <div className="text-slate-300 text-sm font-medium">Send Tamil WhatsApp reminder alerts for overdue gold pledges.</div>
             </div>
-            <div className="p-6 rounded-2xl bg-slate-800/60 border border-slate-700/60">
+            <div className="p-6 rounded-2xl bg-slate-900 border border-slate-800">
               <div className="text-sky-400 font-black text-lg mb-2">கோயம்புத்தூர் ஸ்பெஷல்</div>
               <div className="text-slate-300 text-sm font-medium">Tailored for local Coimbatore hallmark presets and interest conventions.</div>
             </div>
@@ -622,10 +734,10 @@ export default function AboutLandingPage() {
           <div className="flex flex-col sm:flex-row items-center gap-4 text-center sm:text-left">
             <div className="flex items-center gap-2">
               <img src="/android-chrome-192x192.png" alt="PledgeVault Logo" className="w-6 h-6 object-contain" />
-              <span className="font-extrabold text-white">PledgeVault</span>
+              <span className="font-extrabold text-white tracking-wide" style={{ fontFamily: 'var(--font-brand)' }}>PledgeVault</span>
             </div>
             <p className="text-[11px] font-bold text-slate-400 tracking-wide">
-              &copy; {new Date().getFullYear()} <span translate="no" className="font-extrabold text-white">PledgeVault</span>. Developed by <span translate="no">SEYON NEXA LABS</span> (A subsidiary of <Link href="https://nvisionsystems.in" target="_blank" rel="noopener noreferrer" className="hover:text-emerald-400 underline decoration-dotted text-slate-300" translate="no">NVISION SYSTEMS</Link>).
+              &copy; {new Date().getFullYear()} <span translate="no" className="font-extrabold text-white tracking-wide" style={{ fontFamily: 'var(--font-brand)' }}>PledgeVault</span>. Developed by <span translate="no">SEYON NEXA LABS</span> (A subsidiary of <Link href="https://nvisionsystems.in" target="_blank" rel="noopener noreferrer" className="hover:text-emerald-400 underline decoration-dotted text-slate-300" translate="no">NVISION SYSTEMS</Link>).
             </p>
           </div>
 

@@ -1,4 +1,4 @@
-import { Outfit, Hind_Madurai } from 'next/font/google';
+import { Outfit, Hind_Madurai, Audiowide } from 'next/font/google';
 import type { Metadata } from "next";
 import "./globals.css";
 import AppShell from "@/components/layout/AppShell";
@@ -16,6 +16,12 @@ const hindMadurai = Hind_Madurai({
   weight: ['300', '400', '500', '600', '700'], 
   subsets: ['tamil'], 
   variable: '--font-hind-madurai' 
+});
+
+const audiowide = Audiowide({
+  weight: ['400'],
+  subsets: ['latin'],
+  variable: '--font-audiowide'
 });
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -58,7 +64,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${outfit.variable} ${hindMadurai.variable}`} data-scroll-behavior="smooth">
+    <html lang="en" className={`${outfit.variable} ${hindMadurai.variable} ${audiowide.variable}`} data-scroll-behavior="smooth">
+      <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link href="https://fonts.googleapis.com/css2?family=Audiowide&display=swap" rel="stylesheet" />
+      </head>
       <body className="antialiased">
         <PWARegistration />
         <OfflineModal />

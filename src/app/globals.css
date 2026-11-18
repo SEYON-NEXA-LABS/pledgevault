@@ -6,6 +6,7 @@
 @theme inline {
     --font-heading: var(--font-heading);
     --font-sans: var(--font-sans);
+    --font-brand: var(--font-brand);
     --color-sidebar-ring: var(--sidebar-ring);
     --color-sidebar-border: var(--sidebar-border);
     --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -51,6 +52,7 @@
 :root {
     --font-sans: var(--font-outfit), var(--font-hind-madurai), ui-sans-serif, system-ui, sans-serif;
     --font-heading: var(--font-outfit), var(--font-hind-madurai), ui-sans-serif, system-ui, sans-serif;
+    --font-brand: var(--font-audiowide), 'Audiowide', cursive, sans-serif;
     --background: oklch(1 0 0);
     --foreground: oklch(0.153 0.006 107.1);
     --card: oklch(1 0 0);
@@ -966,6 +968,8 @@
 }
 
 .logo-name-large {
+  font-family: var(--font-brand);
+  letter-spacing: 0.04em;
   @apply text-5xl font-black text-white tracking-tight leading-none;
 }
 
@@ -1044,6 +1048,8 @@
 }
 
 .mobile-brand-name {
+  font-family: var(--font-brand);
+  letter-spacing: 0.03em;
   @apply text-xl font-bold tracking-tight text-foreground;
 }
 

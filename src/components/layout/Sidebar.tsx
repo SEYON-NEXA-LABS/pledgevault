@@ -115,9 +115,17 @@ export default function Sidebar({ isOpen, onToggle, overdueCount = 0, totalLoans
 
       <aside className={`sidebar ${isOpen ? 'open' : ''} glass-card`}>
         {/* Logo Section */}
-        <div className="h-24 flex items-center justify-center px-8 border-b border-sidebar-border/50">
-          <div className="w-14 h-14 rounded-2xl flex items-center justify-center bg-white/10 backdrop-blur-md border border-white/10 shadow-lg overflow-hidden">
-            <img src="/android-chrome-192x192.png" alt="Logo" className="w-10 h-10 object-contain" />
+        <div className="h-24 flex items-center justify-start gap-3 px-6 border-b border-sidebar-border/50">
+          <div className="w-12 h-12 rounded-2xl flex items-center justify-center bg-white/10 backdrop-blur-md border border-white/10 shadow-lg overflow-hidden shrink-0">
+            <img src="/android-chrome-192x192.png" alt="Logo" className="w-9 h-9 object-contain" />
+          </div>
+          <div className="flex flex-col min-w-0">
+            <span className="text-lg font-black tracking-wider text-sidebar-foreground truncate" style={{ fontFamily: 'var(--font-brand)' }}>
+              PledgeVault
+            </span>
+            <span className="text-[9px] font-extrabold uppercase tracking-[0.2em] text-primary truncate">
+              Gold & Silver
+            </span>
           </div>
         </div>
 

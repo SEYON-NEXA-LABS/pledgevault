@@ -363,7 +363,7 @@ export default function LoginPage() {
           <footer style={{ marginTop: '20px', paddingTop: '16px', borderTop: '1px solid var(--border)' }}>
              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '11px', color: 'var(--text-tertiary)', fontWeight: '700' }}>
                 <p className="text-[11px] font-bold text-slate-500 tracking-wide leading-relaxed m-0">
-                   &copy; {new Date().getFullYear()} <span translate="no" className="font-extrabold text-slate-800 dark:text-slate-200">PledgeVault</span>. Developed by <span translate="no">SEYON NEXA LABS</span> (A subsidiary of <Link href="https://nvisionsystems.in" target="_blank" rel="noopener noreferrer" className="hover:text-primary underline decoration-dotted text-slate-700 dark:text-slate-300" translate="no">NVISION SYSTEMS</Link>).
+                   &copy; {new Date().getFullYear()} <span translate="no" className="font-extrabold text-slate-800 dark:text-slate-200 tracking-wide" style={{ fontFamily: 'var(--font-brand)' }}>PledgeVault</span>. Developed by <span translate="no">SEYON NEXA LABS</span> (A subsidiary of <Link href="https://nvisionsystems.in" target="_blank" rel="noopener noreferrer" className="hover:text-primary underline decoration-dotted text-slate-700 dark:text-slate-300" translate="no">NVISION SYSTEMS</Link>).
                 </p>
                 <div className="flex items-center gap-2">
                    <span className="font-mono text-[10px] lowercase opacity-60">

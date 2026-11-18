@@ -13,6 +13,11 @@ import {
   Phone,
   MessageCircle,
   ExternalLink,
+  ShieldCheck,
+  CheckCircle2,
+  PieChart as PieIcon,
+  BarChart3,
+  Inbox
 } from 'lucide-react';
 import {
   BarChart,
@@ -31,6 +36,7 @@ import {
 } from 'recharts';
 import StatCard from '@/components/layout/StatCard';
 import QuickAppraisal from '@/components/dashboard/QuickAppraisal';
+import PanchangamCard from '@/components/dashboard/PanchangamCard';
 import { settingsStore } from '@/lib/store';
 import { supabaseService } from '@/lib/supabase/service';
 import { metalRateService } from '@/lib/supabase/metalRateService';
@@ -63,6 +69,7 @@ export default function DashboardPage() {
   const [cloudStats, setCloudStats] = useState<any>(null);
   const [marketTrends, setMarketTrends] = useState<any>(null);
   const [latestRates, setLatestRates] = useState<{ gold22k: number; silver: number } | null>(null);
+  const [loadingStats, setLoadingStats] = useState(true);
   const [mounted, setMounted] = useState(false);
 
   const [settings, setSettings] = useState(settingsStore.get());
@@ -93,6 +100,7 @@ export default function DashboardPage() {
 
   const fetchDashboardData = async () => {
     try {
+      setLoadingStats(true);
       const isValidUUID = (id: string | null) => {
         if (!id) return false;
         return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id);
@@ -111,6 +119,8 @@ export default function DashboardPage() {
       }
     } catch (err) {
       console.error('FAILED: fetchDashboardData caught error:', err);
+    } finally {
+      setLoadingStats(false);
     }
   };
 
@@ -237,7 +247,8 @@ export default function DashboardPage() {
            </div>
         </div>
 
-        <div className="xl:col-span-1">
+        <div className="xl:col-span-1 flex flex-col gap-5">
+          <PanchangamCard />
           <QuickAppraisal />
         </div>
       </div>
@@ -250,7 +261,22 @@ export default function DashboardPage() {
               <h3 className="text-xs font-black uppercase tracking-widest">Immediate Collection</h3>
            </div>
            <div className="flex flex-col gap-3 h-[380px] overflow-y-auto pr-2 custom-scrollbar">
-              {overdueLoans.length > 0 ? (
+              {loadingStats ? (
+                <div className="flex flex-col gap-3">
+                  {[1, 2, 3].map((i) => (
+                    <div key={i} className="pv-card p-4 flex flex-col gap-3 animate-pulse bg-muted/20 border-border/60">
+                      <div className="flex justify-between items-center">
+                        <div className="h-3 w-20 bg-muted rounded-md" />
+                        <div className="h-4 w-12 bg-muted rounded-md" />
+                      </div>
+                      <div className="flex justify-between items-end mt-2">
+                        <div className="h-6 w-24 bg-muted rounded-md" />
+                        <div className="h-7 w-16 bg-muted rounded-md" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : overdueLoans.length > 0 ? (
                 overdueLoans.map((loan) => (
                   <div key={loan.id} className="pv-card flex flex-col gap-3 p-4 hover:border-destructive/30 transition-all bg-destructive/2">
                     <div className="flex justify-between items-start">
@@ -278,8 +304,14 @@ export default function DashboardPage() {
                   </div>
                 ))
               ) : (
-                <div className="h-full flex flex-center border-2 border-dashed border-border rounded-2xl opacity-40">
-                  <span className="text-[10px] font-black uppercase tracking-widest">No Overdue Loans</span>
+                <div className="h-full flex flex-col items-center justify-center p-6 border-2 border-dashed border-border rounded-2xl bg-muted/10 text-center">
+                  <div className="w-12 h-12 rounded-full bg-emerald-500/10 text-emerald-600 flex items-center justify-center mb-3">
+                    <CheckCircle2 size={24} />
+                  </div>
+                  <span className="text-xs font-black uppercase tracking-wider text-foreground">Zero Overdue Loans</span>
+                  <p className="text-[11px] text-muted-foreground mt-1 max-w-[200px] leading-relaxed">
+                    All customer pledges are healthy with no immediate collection risks!
+                  </p>
                 </div>
               )}
            </div>
@@ -293,6 +325,26 @@ export default function DashboardPage() {
                 <h3 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{t.dashboard.loanVolume}</h3>
               </div>
               <div style={{ padding: '16px', height: '320px', minWidth: 0, overflow: 'hidden', position: 'relative' }}>
+                {loadingStats ? (
+                  <div className="h-full flex items-end justify-between gap-3 px-4 pb-4 animate-pulse">
+                    {[40, 65, 30, 85, 55, 90].map((h, i) => (
+                      <div key={i} className="flex-1 bg-muted/40 rounded-t-lg" style={{ height: `${h}%` }} />
+                    ))}
+                  </div>
+                ) : loans.length === 0 ? (
+                  <div className="h-full flex flex-col items-center justify-center p-6 text-center">
+                    <div className="w-12 h-12 rounded-full bg-primary/10 text-primary flex items-center justify-center mb-3">
+                      <BarChart3 size={24} />
+                    </div>
+                    <span className="text-xs font-black uppercase tracking-wider text-foreground">No Pledges Booked Yet</span>
+                    <p className="text-[11px] text-muted-foreground mt-1 max-w-[220px]">
+                      Create your first gold or silver loan to view real-time monthly disbursement analytics!
+                    </p>
+                    <Link href="/loans/new" className="pv-btn pv-btn-gold pv-btn-sm mt-3 text-xs">
+                      <Plus size={14} /> Create First Loan
+                    </Link>
+                  </div>
+                ) : (
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={monthlyData} barCategoryGap="20%">
                       <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
@@ -303,6 +355,7 @@ export default function DashboardPage() {
                       <Bar dataKey="silver" fill="oklch(0.8 0.05 200)" radius={[4, 4, 0, 0]} name="Silver" stackId="a" />
                     </BarChart>
                   </ResponsiveContainer>
+                )}
               </div>
             </div>
 
@@ -311,7 +364,11 @@ export default function DashboardPage() {
                 <h3 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{t.dashboard.assetComposition}</h3>
               </div>
               <div style={{ padding: '16px', height: '320px', minWidth: 0, overflow: 'hidden', position: 'relative' }}>
-                {metalData.length > 0 ? (
+                {loadingStats ? (
+                  <div className="h-full flex items-center justify-center animate-pulse">
+                    <div className="w-36 h-36 rounded-full border-8 border-muted/50 border-t-primary/30" />
+                  </div>
+                ) : metalData.length > 0 ? (
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
                       <Pie
@@ -328,7 +385,15 @@ export default function DashboardPage() {
                     </PieChart>
                   </ResponsiveContainer>
                 ) : (
-                  <div className="flex items-center justify-center h-full text-[10px] font-black uppercase opacity-30 italic">No Data</div>
+                  <div className="h-full flex flex-col items-center justify-center p-6 text-center">
+                    <div className="w-12 h-12 rounded-full bg-muted/30 text-muted-foreground flex items-center justify-center mb-3">
+                      <PieIcon size={24} />
+                    </div>
+                    <span className="text-xs font-black uppercase tracking-wider text-foreground">Zero Collateral Vaulted</span>
+                    <p className="text-[11px] text-muted-foreground mt-1 max-w-[200px]">
+                      Gold and silver collateral split will automatically appear as you appraise pledge items.
+                    </p>
+                  </div>
                 )}
               </div>
             </div>
@@ -356,33 +421,49 @@ export default function DashboardPage() {
                 </tr>
               </thead>
               <tbody>
-                {recentLoans.map((loan) => (
-                  <tr key={loan.id}>
-                    <td className="font-extrabold text-sm">{loan.loanNumber}</td>
-                    <td>
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center text-xs font-black shadow-inner">
-                          {(loan.customerName || '?').charAt(0)}
+                {recentLoans.length > 0 ? (
+                  recentLoans.map((loan) => (
+                    <tr key={loan.id}>
+                      <td className="font-extrabold text-sm">{loan.loanNumber}</td>
+                      <td>
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center text-xs font-black shadow-inner">
+                            {(loan.customerName || '?').charAt(0)}
+                          </div>
+                          <div className="flex flex-col">
+                            <span className="font-bold text-sm">{loan.customerName}</span>
+                            <span className="text-[11px] opacity-40 font-black uppercase tracking-tight">{loan.customerPhone}</span>
+                          </div>
                         </div>
-                        <div className="flex flex-col">
-                          <span className="font-bold text-sm">{loan.customerName}</span>
-                          <span className="text-[11px] opacity-40 font-black uppercase tracking-tight">{loan.customerPhone}</span>
+                      </td>
+                      <td className="font-black">{formatCurrency(loan.loanAmount)}</td>
+                      <td>
+                        <span className={`badge ${loan.status}`}>
+                          {loan.status}
+                        </span>
+                      </td>
+                      <td className="text-right">
+                         <Link href={`/loans/${loan.id}`} className="text-[10px] font-black text-primary uppercase tracking-widest hover:underline">
+                            View
+                         </Link>
+                       </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={5} className="py-12 text-center">
+                      <div className="flex flex-col items-center justify-center gap-2">
+                        <div className="w-10 h-10 rounded-full bg-muted/40 text-muted-foreground flex items-center justify-center">
+                          <Inbox size={20} />
                         </div>
+                        <div className="text-xs font-black uppercase tracking-wider text-foreground">No Pledges Registered Yet</div>
+                        <p className="text-[11px] text-muted-foreground max-w-sm">
+                          New loans, thermal receipts, and interest schedules will populate here in real-time.
+                        </p>
                       </div>
                     </td>
-                    <td className="font-black">{formatCurrency(loan.loanAmount)}</td>
-                    <td>
-                      <span className={`badge ${loan.status}`}>
-                        {loan.status}
-                      </span>
-                    </td>
-                    <td className="text-right">
-                       <Link href={`/loans/${loan.id}`} className="text-[10px] font-black text-primary uppercase tracking-widest hover:underline">
-                          View
-                       </Link>
-                     </td>
                   </tr>
-                ))}
+                )}
               </tbody>
             </table>
           </div>

@@ -1033,8 +1033,34 @@ function NewLoanContent() {
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', marginBottom: '24px' }}>
                 <div className="pv-input-group">
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>{t.appraisal.ltvRatio} {!canOverrideLtv && <Lock size={12} />}</label>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '6px', margin: 0 }}>{t.appraisal.ltvRatio} {!canOverrideLtv && <Lock size={12} />}</label>
+                    {/* RBI Tiered Regulatory Indicator */}
+                    {(() => {
+                      const numLtv = parseFloat(ltvPercent) || 0;
+                      const maxRbiLtv = finalLoanAmount > 500000 ? 75 : (finalLoanAmount > 250000 ? 80 : 85);
+                      const isOverRbi = numLtv > maxRbiLtv;
+                      return (
+                        <span style={{ 
+                          fontSize: '10px', 
+                          fontWeight: 800, 
+                          padding: '2px 8px', 
+                          borderRadius: '6px',
+                          background: isOverRbi ? 'rgba(239, 68, 68, 0.12)' : 'rgba(16, 185, 129, 0.12)',
+                          color: isOverRbi ? '#ef4444' : '#059669',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '4px'
+                        }}>
+                          {isOverRbi ? '⚠️ Exceeds RBI Cap' : `✓ RBI Safe (Max ${maxRbiLtv}%)`}
+                        </span>
+                      );
+                    })()}
+                  </div>
                   <input type="number" className="pv-input" value={ltvPercent} onChange={(e) => setLtvPercent(e.target.value)} disabled={!canOverrideLtv} />
+                  <span style={{ fontSize: '10px', color: 'var(--text-tertiary)', marginTop: '4px', display: 'block' }}>
+                    Tiered guideline: ≤₹2.5L: 85% • ₹2.5L-₹5L: 80% • &gt;₹5L: 75%
+                  </span>
                 </div>
                 <div className="pv-input-group">
                   <label>{t.appraisal.manualOverride}</label>
