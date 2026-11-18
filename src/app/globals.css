@@ -811,50 +811,50 @@
 
 /* Live Rate Ticker */
 .live-rate-ticker {
-  @apply flex items-center gap-4 bg-muted/30 border border-border/50 rounded-full pl-1.5 pr-3 py-1 animate-in fade-in slide-in-from-right-4 duration-500;
+  @apply flex items-center gap-3 bg-muted/40 border border-border/70 rounded-full pl-2 pr-4 py-1.5 shadow-xs animate-in fade-in slide-in-from-right-4 duration-500;
 }
 
 .ticker-label-badge {
-  @apply flex items-center gap-2 bg-card border border-border/50 rounded-full px-3 py-1 shadow-sm;
+  @apply flex items-center gap-2 bg-card border border-border/70 rounded-full px-3.5 py-1.5 shadow-sm;
 }
 
 .ticker-status-dot {
-  @apply w-1.5 h-1.5 rounded-full animate-pulse bg-gold shadow-[0_0_8px_var(--gold)];
+  @apply w-2 h-2 rounded-full animate-pulse bg-gold shadow-[0_0_10px_var(--gold)];
 }
 
 .ticker-label-txt {
-  @apply text-[9px] font-bold uppercase tracking-widest text-muted-foreground opacity-70;
+  @apply text-[11px] font-extrabold uppercase tracking-wider text-muted-foreground opacity-90;
 }
 
 .ticker-values {
-  @apply flex items-center gap-4;
+  @apply flex items-center gap-3;
 }
 
 .rate-val {
-  @apply flex items-center gap-2;
+  @apply flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-card/80 border border-border/40 shadow-xs transition-all hover:bg-card;
 }
 
 .metal-symbol {
-  @apply text-[10px] font-bold uppercase tracking-tighter text-muted-foreground opacity-50;
+  @apply text-[11px] font-black uppercase tracking-tight text-muted-foreground/80;
 }
 
 .price-txt {
-  @apply text-[13px] font-bold tracking-tight;
+  @apply text-[15px] font-black tracking-tight font-mono;
 }
 
-.price-txt.gold { @apply text-primary; }
-.price-txt.silver { @apply text-foreground/70; }
+.price-txt.gold { @apply text-amber-500 dark:text-amber-400; }
+.price-txt.silver { @apply text-slate-700 dark:text-slate-200; }
 
 .ticker-divider {
-  @apply w-px h-3 bg-border/50;
+  @apply w-px h-4 bg-border/60;
 }
 
 .ticker-meta {
-  @apply flex items-center gap-3 ml-2 border-l border-border/50 pl-3 py-1;
+  @apply flex items-center gap-2 ml-1 border-l border-border/50 pl-3 py-0.5;
 }
 
 .sync-info {
-  @apply flex items-center gap-1.5 text-[9px] font-bold uppercase tracking-wider text-muted-foreground opacity-40;
+  @apply flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground opacity-60;
 }
 
 .refresh-btn {

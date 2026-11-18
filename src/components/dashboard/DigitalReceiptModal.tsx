@@ -4,6 +4,8 @@ import React, { useRef, useState } from 'react';
 import { X, Download, Share2, MessageCircle, Check, Copy, RefreshCw } from 'lucide-react';
 import { Loan, Customer, ShopSettings } from '@/lib/types';
 import { formatCurrency, formatWeight, formatDate } from '@/lib/constants';
+import { openWhatsAppChat } from '@/lib/whatsapp';
+import { settingsStore } from '@/lib/store';
 
 interface DigitalReceiptModalProps {
   loan: Loan;
@@ -191,7 +193,6 @@ export default function DigitalReceiptModal({ loan, customer, settings, onClose 
     // WhatsApp doesn't allow direct image sending via URL, 
     // but we can prompt the user to download then open WhatsApp
     const message = `*Digital Receipt Generated!* \nDownload the receipt image and share it with the customer. \n\nLoan No: ${loan.loanNumber}\nCustomer: ${loan.customerName}\nAmount: ${formatCurrency(loan.loanAmount)}`;
-    const url = `https://wa.me/${loan.customerPhone.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`;
     
     const link = document.createElement('a');
     link.href = generatedImage;
@@ -199,8 +200,12 @@ export default function DigitalReceiptModal({ loan, customer, settings, onClose 
     link.click();
     
     setTimeout(() => {
-      window.open(url, '_blank');
-    }, 1000);
+      openWhatsAppChat({
+        phone: loan.customerPhone,
+        message,
+        preferDesktopApp: settingsStore.get().whatsappPreferDesktopApp ?? true
+      });
+    }, 600);
   };
 
   React.useEffect(() => {

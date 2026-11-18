@@ -60,6 +60,14 @@ export const DEFAULT_SETTINGS: ShopSettings = {
   goldRateMarket: 0,
   silverRateMarket: 0,
   ratesUpdatedAt: '',
+  whatsappProvider: 'manual',
+  whatsappPreferDesktopApp: true,
+  whatsappCloudPhoneNumberId: '',
+  whatsappCloudAccessToken: '',
+  whatsappCloudWabaId: '',
+  whatsappOpenwaUrl: 'http://localhost:2785',
+  whatsappOpenwaApiKey: '',
+  whatsappOpenwaSessionId: 'main',
 };
 
 // ---- Interest Mode Labels ----

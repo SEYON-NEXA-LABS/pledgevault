@@ -28,6 +28,9 @@ import {
   ChevronRight,
   Database,
   ArrowRight,
+  MessageSquare,
+  Smartphone,
+  Cpu,
   User,
   Info,
   ExternalLink
@@ -37,6 +40,7 @@ import { settingsStore } from '@/lib/store';
 import { supabase } from '@/lib/supabase/client';
 import { ShopSettings, PlanTier } from '@/lib/types';
 import { DEFAULT_SETTINGS } from '@/lib/constants';
+import { metalRateService } from '@/lib/supabase/metalRateService';
 import SubscriptionTab from '@/components/settings/SubscriptionTab';
 import TeamTab from '@/components/settings/TeamTab';
 import ProfileTab from '@/components/settings/ProfileTab';
@@ -99,6 +103,15 @@ function SettingsContent() {
       // Sync local settings with DB
       const liveSettings = await supabaseService.getSettings(auth.firmId as string);
       if (liveSettings) {
+        // If rates are 0 in DB (new shop), fallback to live market rates
+        if (!liveSettings.goldRate24K || liveSettings.goldRate24K === 0) {
+          const live = await metalRateService.getLiveRates();
+          if (live) {
+            liveSettings.goldRate24K = live.gold24k;
+            liveSettings.goldRate22K = live.gold22k;
+            liveSettings.silverRate999 = live.silver;
+          }
+        }
         setSettings(liveSettings);
         settingsStore.save(liveSettings, true);
       }
@@ -151,20 +164,32 @@ function SettingsContent() {
 
   const handleSyncRates = async () => {
     setSyncing(true);
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-    
-    const mockGoldRate = 7200 + Math.floor(Math.random() * 200 - 100);
-    const mockSilverRate = 90 + Math.floor(Math.random() * 10 - 5);
+    try {
+      const live = await metalRateService.getLiveRates();
+      if (live && live.gold24k) {
+        const newGold24K = live.gold24k;
+        const newSilver999 = live.silver;
+        const newGold22K = live.gold22k || Math.round(newGold24K * (22 / 24));
 
-    setSettings(prev => ({
-      ...prev,
-      goldRate24K: mockGoldRate,
-      silverRate999: mockSilverRate
-    }));
-    
-    setSyncing(false);
-    setSaved(true);
-    setTimeout(() => setSaved(false), 3000);
+        const updated = {
+          ...settings,
+          goldRate24K: newGold24K,
+          goldRate22K: newGold22K,
+          silverRate999: newSilver999,
+        };
+
+        setSettings(updated);
+        settingsStore.save(updated, true);
+        await supabaseService.updateSettings(updated);
+        window.dispatchEvent(new Event('pv_settings_updated'));
+      }
+    } catch (err) {
+      console.error('Failed to sync live rates:', err);
+    } finally {
+      setSyncing(false);
+      setSaved(true);
+      setTimeout(() => setSaved(false), 3000);
+    }
   };
 
   const handleAddBranch = async () => {
@@ -425,6 +450,137 @@ function SettingsContent() {
                   </label>
                 </div>
               </div>
+            </div>
+          </div>
+
+          {/* WhatsApp & Customer Messaging Gateway */}
+          <div className="pv-card">
+            <div className="card-header" style={{ borderBottom: '1px solid var(--border)', paddingBottom: '20px', marginBottom: '20px' }}>
+              <h3 style={{ display: 'flex', alignItems: 'center', gap: '12px', fontSize: '18px', fontWeight: 800 }}>
+                <MessageSquare size={20} style={{ color: 'var(--primary)' }} />
+                WhatsApp & Customer Messaging
+              </h3>
+            </div>
+            <div className="flex flex-col gap-5">
+              <div className="pv-input-group">
+                <label>Messaging Engine Mode</label>
+                <select 
+                  name="whatsappProvider" 
+                  className="pv-input font-bold" 
+                  value={settings.whatsappProvider || 'manual'} 
+                  onChange={handleChange}
+                >
+                  <option value="manual">Manual Direct Link (Free — Desktop App & WhatsApp Web)</option>
+                  <option value="cloud_api">Meta Cloud API (Official — 1,000 Free Messages/Month)</option>
+                  <option value="openwa">Self-Hosted OpenWA (Docker on Local PC / VPS — Unlimited)</option>
+                </select>
+              </div>
+
+              {/* Mode: Manual Direct / Desktop app */}
+              {(settings.whatsappProvider === 'manual' || !settings.whatsappProvider) && (
+                <div style={{ padding: '16px', background: 'var(--muted)', borderRadius: '16px', border: '1px solid var(--border)' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer', fontSize: '14px', fontWeight: 600 }}>
+                    <input 
+                      type="checkbox" 
+                      name="whatsappPreferDesktopApp" 
+                      checked={settings.whatsappPreferDesktopApp ?? true} 
+                      onChange={handleChange} 
+                    />
+                    Prefer Opening Native WhatsApp Desktop App directly (<code style={{ fontSize: '12px', background: 'var(--card)', padding: '2px 6px', borderRadius: '4px' }}>whatsapp://</code>)
+                  </label>
+                  <p style={{ margin: '8px 0 0 28px', fontSize: '12px', color: 'var(--text-tertiary)' }}>
+                    When enabled, clicking &quot;WhatsApp&quot; on customer receipts or due loans opens the installed WhatsApp Desktop application immediately on Windows/Mac without an intermediate browser tab.
+                  </p>
+                </div>
+              )}
+
+              {/* Mode: Meta Cloud API */}
+              {settings.whatsappProvider === 'cloud_api' && (
+                <div className="flex flex-col gap-4 p-5 rounded-2xl bg-primary/5 border border-primary/20">
+                  <div className="flex items-center gap-2 text-primary font-black text-sm">
+                    <Smartphone size={16} /> Meta Cloud API Setup (1,000 Free Utility Conversations/Month)
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                    <div className="pv-input-group">
+                      <label>Phone Number ID</label>
+                      <input 
+                        type="text" 
+                        name="whatsappCloudPhoneNumberId" 
+                        placeholder="e.g. 10982348234" 
+                        className="pv-input" 
+                        value={settings.whatsappCloudPhoneNumberId || ''} 
+                        onChange={handleChange} 
+                      />
+                    </div>
+                    <div className="pv-input-group">
+                      <label>WhatsApp Business Account ID (WABA)</label>
+                      <input 
+                        type="text" 
+                        name="whatsappCloudWabaId" 
+                        placeholder="e.g. 98234729384" 
+                        className="pv-input" 
+                        value={settings.whatsappCloudWabaId || ''} 
+                        onChange={handleChange} 
+                      />
+                    </div>
+                  </div>
+                  <div className="pv-input-group">
+                    <label>Permanent Access Token</label>
+                    <input 
+                      type="password" 
+                      name="whatsappCloudAccessToken" 
+                      placeholder="EAAG..." 
+                      className="pv-input" 
+                      value={settings.whatsappCloudAccessToken || ''} 
+                      onChange={handleChange} 
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Mode: OpenWA Docker Gateway */}
+              {settings.whatsappProvider === 'openwa' && (
+                <div className="flex flex-col gap-4 p-5 rounded-2xl bg-amber-500/5 border border-amber-500/20">
+                  <div className="flex items-center gap-2 text-amber-600 dark:text-amber-400 font-black text-sm">
+                    <Cpu size={16} /> OpenWA Docker Gateway (Self-Hosted on Shop PC / Cloudflare Tunnel)
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '16px' }}>
+                    <div className="pv-input-group">
+                      <label>OpenWA Gateway URL</label>
+                      <input 
+                        type="text" 
+                        name="whatsappOpenwaUrl" 
+                        placeholder="http://localhost:2785 or https://wa.yourshop.com" 
+                        className="pv-input" 
+                        value={settings.whatsappOpenwaUrl || ''} 
+                        onChange={handleChange} 
+                      />
+                    </div>
+                    <div className="pv-input-group">
+                      <label>Session ID</label>
+                      <input 
+                        type="text" 
+                        name="whatsappOpenwaSessionId" 
+                        placeholder="main" 
+                        className="pv-input" 
+                        value={settings.whatsappOpenwaSessionId || ''} 
+                        onChange={handleChange} 
+                      />
+                    </div>
+                  </div>
+                  <div className="pv-input-group">
+                    <label>API Key (Optional)</label>
+                    <input 
+                      type="password" 
+                      name="whatsappOpenwaApiKey" 
+                      placeholder="Leave blank if no auth key set in Docker" 
+                      className="pv-input" 
+                      value={settings.whatsappOpenwaApiKey || ''} 
+                      onChange={handleChange} 
+                    />
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 

@@ -661,6 +661,14 @@ export const supabaseService = {
       branches: toCamel(finalBranches),
       language: shopData.language || 'en',
       brandingConfig: toCamel(firm?.branding_config || {}),
+      whatsappProvider: shopData.whatsapp_provider || 'manual',
+      whatsappPreferDesktopApp: shopData.whatsapp_prefer_desktop_app ?? true,
+      whatsappCloudPhoneNumberId: shopData.whatsapp_cloud_phone_number_id,
+      whatsappCloudAccessToken: shopData.whatsapp_cloud_access_token,
+      whatsappCloudWabaId: shopData.whatsapp_cloud_waba_id,
+      whatsappOpenwaUrl: shopData.whatsapp_openwa_url || 'http://localhost:2785',
+      whatsappOpenwaApiKey: shopData.whatsapp_openwa_api_key,
+      whatsappOpenwaSessionId: shopData.whatsapp_openwa_session_id || 'main',
     } as ShopSettings;
   },
 
@@ -756,6 +764,14 @@ export const supabaseService = {
     if (settings.loanNumberPrefix !== undefined) mapped.loan_number_prefix = settings.loanNumberPrefix;
     if (settings.loanNumberCounter !== undefined) mapped.loan_number_counter = settings.loanNumberCounter;
     if (settings.activeBranchId !== undefined) mapped.active_branch_id = settings.activeBranchId;
+    if (settings.whatsappProvider !== undefined) mapped.whatsapp_provider = settings.whatsappProvider;
+    if (settings.whatsappPreferDesktopApp !== undefined) mapped.whatsapp_prefer_desktop_app = settings.whatsappPreferDesktopApp;
+    if (settings.whatsappCloudPhoneNumberId !== undefined) mapped.whatsapp_cloud_phone_number_id = settings.whatsappCloudPhoneNumberId;
+    if (settings.whatsappCloudAccessToken !== undefined) mapped.whatsapp_cloud_access_token = settings.whatsappCloudAccessToken;
+    if (settings.whatsappCloudWabaId !== undefined) mapped.whatsapp_cloud_waba_id = settings.whatsappCloudWabaId;
+    if (settings.whatsappOpenwaUrl !== undefined) mapped.whatsapp_openwa_url = settings.whatsappOpenwaUrl;
+    if (settings.whatsappOpenwaApiKey !== undefined) mapped.whatsapp_openwa_api_key = settings.whatsappOpenwaApiKey;
+    if (settings.whatsappOpenwaSessionId !== undefined) mapped.whatsapp_openwa_session_id = settings.whatsappOpenwaSessionId;
     
     // Final Sanitization: "firm", "", or null/undefined must all be NULL for the UUID column
     if (!mapped.active_branch_id || mapped.active_branch_id === 'firm' || mapped.active_branch_id === '') {

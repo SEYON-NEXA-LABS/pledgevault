@@ -40,6 +40,7 @@ import { Loan, Payment, Customer, ShopSettings } from '@/lib/types';
 import Link from 'next/link';
 import ReceiptContent from '@/components/printing/ReceiptContent';
 import DigitalReceiptModal from '@/components/dashboard/DigitalReceiptModal';
+import { openWhatsAppChat } from '@/lib/whatsapp';
 
 export default function LoanDetailsPage() {
   const { id } = useParams();
@@ -174,8 +175,11 @@ export default function LoanDetailsPage() {
 ---------------------------
 Thank you for your business!`;
 
-    const url = `https://wa.me/${loan.customerPhone.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`;
-    window.open(url, '_blank');
+    openWhatsAppChat({
+      phone: loan.customerPhone,
+      message,
+      preferDesktopApp: settingsStore.get().whatsappPreferDesktopApp ?? true
+    });
   };
 
   const goldItems = loan.items.filter(i => i.metalType === 'gold');

@@ -160,6 +160,15 @@ export interface ShopSettings {
   language?: 'en' | 'ta';
   theme?: 'emerald' | 'zinc' | 'blue' | 'rose' | 'gold';
   brandingConfig?: BrandingConfig;
+  // WhatsApp Gateway Configuration
+  whatsappProvider?: 'manual' | 'cloud_api' | 'openwa';
+  whatsappPreferDesktopApp?: boolean; // Whether to launch WhatsApp desktop app (whatsapp://)
+  whatsappCloudPhoneNumberId?: string;
+  whatsappCloudAccessToken?: string;
+  whatsappCloudWabaId?: string;
+  whatsappOpenwaUrl?: string; // e.g. http://localhost:2785 or https://wa.shop.com
+  whatsappOpenwaApiKey?: string;
+  whatsappOpenwaSessionId?: string;
 }
 
 // ---- Dashboard Stats ----

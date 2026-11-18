@@ -39,6 +39,7 @@ import { supabaseService } from '@/lib/supabase/service';
 import { authStore } from '@/lib/authStore';
 import Link from 'next/link';
 import RealTimeRateSync from '@/components/common/RealTimeRateSync';
+import { openWhatsAppChat } from '@/lib/whatsapp';
 
 interface ItemRow {
   id: string;
@@ -725,16 +726,20 @@ function NewLoanContent() {
             </div>
 
             <div className="grid grid-cols-2 gap-4">
-              <a 
-                href={waLink} 
-                target="_blank" 
-                className="flex flex-col items-center gap-3 p-6 bg-green-50 rounded-2xl border border-green-100 hover:bg-green-100 transition-all group"
+              <button 
+                type="button"
+                onClick={() => openWhatsAppChat({
+                  phone: createdLoan.customerPhone,
+                  message: shareMessage,
+                  preferDesktopApp: settingsStore.get().whatsappPreferDesktopApp ?? true
+                })}
+                className="flex flex-col items-center gap-3 p-6 bg-green-50 rounded-2xl border border-green-100 hover:bg-green-100 transition-all group cursor-pointer"
               >
                 <div className="w-12 h-12 bg-green-500 text-white rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
                   <Plus size={24} className="rotate-45" /> {/* Using Plus rotated as placeholder for WA or use Lucide MessageCircle */}
                 </div>
                 <span className="text-[11px] font-black uppercase tracking-widest text-green-700">WhatsApp</span>
-              </a>
+              </button>
 
               <a 
                 href={smsLink} 

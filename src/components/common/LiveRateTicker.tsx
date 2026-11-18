@@ -8,7 +8,7 @@ import { settingsStore } from '@/lib/store';
 import { translations, Language } from '@/lib/i18n/translations';
 
 export default function LiveRateTicker() {
-  const [rates, setRates] = useState<{ gold22k: number; silver: number; updatedAt?: string; isFromDb?: boolean; isWeekend?: boolean } | null>(null);
+  const [rates, setRates] = useState<{ gold24k?: number; gold22k: number; silver: number; updatedAt?: string; isFromDb?: boolean; isWeekend?: boolean } | null>(null);
   const [loading, setLoading] = useState(true);
   const [lang, setLang] = useState<Language>(settingsStore.get().language || 'en');
   const t = translations[lang];
@@ -59,15 +59,28 @@ export default function LiveRateTicker() {
 
       {/* Values */}
       <div className="ticker-values">
-        <div className="rate-val" title={`${t.common.gold} 22K (Per Gram)`}>
-          <span className={`metal-symbol ${lang === 'ta' ? 'lang-ta' : ''}`}>{t.common.gold}</span>
+        <div className="rate-val" title={`${t.common.gold} 24CT (Per Gram)`}>
+          <span className={`metal-symbol ${lang === 'ta' ? 'lang-ta' : ''}`}>
+            {lang === 'ta' ? 'தங்கம் 24CT' : '24CT'}
+          </span>
+          <span className="price-txt gold">₹{rates?.gold24k?.toLocaleString('en-IN') || '---'}</span>
+        </div>
+
+        <div className="ticker-divider" />
+
+        <div className="rate-val" title={`${t.common.gold} 22CT (Per Gram)`}>
+          <span className={`metal-symbol ${lang === 'ta' ? 'lang-ta' : ''}`}>
+            {lang === 'ta' ? 'தங்கம் 22CT' : '22CT'}
+          </span>
           <span className="price-txt gold">₹{rates?.gold22k?.toLocaleString('en-IN') || '---'}</span>
         </div>
 
         <div className="ticker-divider" />
 
         <div className="rate-val" title={`${t.common.silver} (Per Gram)`}>
-          <span className={`metal-symbol ${lang === 'ta' ? 'lang-ta' : ''}`}>{t.common.silver}</span>
+          <span className={`metal-symbol ${lang === 'ta' ? 'lang-ta' : ''}`}>
+            {lang === 'ta' ? 'வெள்ளி' : 'SILVER'}
+          </span>
           <span className="price-txt silver">₹{rates?.silver?.toLocaleString('en-IN') || '---'}</span>
         </div>
       </div>
