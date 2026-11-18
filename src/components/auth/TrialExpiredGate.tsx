@@ -42,8 +42,13 @@ export default function TrialExpiredGate({ children }: { children: React.ReactNo
   }
 
   const handleSignOut = async () => {
-    await supabase.auth.signOut();
-    router.push('/login');
+    try {
+      await supabase.auth.signOut();
+    } catch (err) {
+      console.error('Supabase signOut error:', err);
+    }
+    authStore.clear();
+    window.location.href = '/login';
   };
 
   return (

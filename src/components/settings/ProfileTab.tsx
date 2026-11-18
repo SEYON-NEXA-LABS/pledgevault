@@ -90,9 +90,13 @@ export default function ProfileTab() {
   };
   
   const handleSignOut = async () => {
-    await supabase.auth.signOut();
-    router.push('/login');
-    router.refresh();
+    try {
+      await supabase.auth.signOut();
+    } catch (err) {
+      console.error('Supabase signOut error:', err);
+    }
+    authStore.clear();
+    window.location.href = '/login';
   };
 
   if (loading) {

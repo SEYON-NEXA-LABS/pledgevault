@@ -81,9 +81,13 @@ export default function Sidebar({ isOpen, onToggle, overdueCount = 0, totalLoans
   }, [pathname]);
 
   const handleSignOut = async () => {
-    await supabase.auth.signOut();
-    router.push('/login');
-    router.refresh();
+    try {
+      await supabase.auth.signOut();
+    } catch (err) {
+      console.error('Supabase signOut error:', err);
+    }
+    authStore.clear();
+    window.location.href = '/login';
   };
 
   const isActive = (href: string) => {
