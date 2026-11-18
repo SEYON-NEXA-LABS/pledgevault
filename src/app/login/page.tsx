@@ -22,7 +22,9 @@ import {
   Zap,
   Building2,
   HandCoins,
-  Shield
+  Shield,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 import InstallButton from '@/components/pwa/InstallButton';
 import { useRouter } from 'next/navigation';
@@ -39,6 +41,7 @@ export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -296,15 +299,27 @@ export default function LoginPage() {
                   <LockKeyhole size={16} />
                   <label>{t.login.passwordLabel}</label>
                </div>
-               <input 
-                className="pv-input input-modern-underline"
-                type="password" 
-                placeholder={t.login.passwordPlaceholder} 
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                disabled={loading}
-               />
+               <div className="relative flex items-center">
+                 <input 
+                  className="pv-input input-modern-underline w-full pr-10"
+                  type={showPassword ? "text" : "password"} 
+                  placeholder={t.login.passwordPlaceholder} 
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  disabled={loading}
+                 />
+                 <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  disabled={loading}
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                  className="absolute right-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors focus:outline-hidden p-1 rounded-md"
+                  tabIndex={-1}
+                 >
+                   {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                 </button>
+               </div>
             </div>
 
              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '4px' }}>
