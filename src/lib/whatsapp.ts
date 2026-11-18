@@ -26,6 +26,62 @@ export function cleanPhoneNumber(phone: string, defaultCountryCode = '91'): stri
 }
 
 /**
+ * Validates whether a given phone string has a valid number of digits (10 digits for Indian numbers, or 10-15 digits international)
+ */
+export function isValidPhoneNumber(phone: string): { valid: boolean; error?: string } {
+  if (!phone || !phone.trim()) {
+    return { valid: false, error: 'Phone number is required' };
+  }
+  const digits = phone.replace(/\D/g, '');
+  
+  // If starts with 91 and has 12 digits total
+  if (digits.startsWith('91') && digits.length === 12) {
+    return { valid: true };
+  }
+  
+  // Standard Indian 10-digit mobile number check
+  if (digits.length === 10) {
+    if (!/^[6-9]\d{9}$/.test(digits)) {
+      return { valid: false, error: 'Indian mobile numbers must start with 6, 7, 8, or 9' };
+    }
+    return { valid: true };
+  }
+
+  // Catch too short or too long
+  if (digits.length < 10) {
+    return { valid: false, error: `Phone number is too short (${digits.length}/10 digits)` };
+  }
+  if (digits.length > 15) {
+    return { valid: false, error: `Phone number is too long (${digits.length} digits)` };
+  }
+
+  return { valid: true };
+}
+
+/**
+ * Normalizes and formats a phone number for saving in the database with +country code
+ * e.g., "9876543210" -> "+91 98765 43210" or "+919876543210"
+ */
+export function formatPhoneWithCountryCode(phone: string, countryCode = '+91'): string {
+  if (!phone) return '';
+  const digits = phone.replace(/\D/g, '');
+  if (!digits) return phone;
+
+  // If already prefixed with 91 and 12 digits total
+  if (digits.length === 12 && digits.startsWith('91')) {
+    return `+91 ${digits.slice(2, 7)} ${digits.slice(7)}`;
+  }
+
+  // Standard 10 digit Indian number
+  if (digits.length === 10) {
+    return `${countryCode} ${digits.slice(0, 5)} ${digits.slice(5)}`;
+  }
+
+  // Any other international number
+  return phone.startsWith('+') ? phone : `+${phone}`;
+}
+
+/**
  * Generates direct native WhatsApp Desktop app URL
  * e.g., whatsapp://send?phone=919876543210&text=...
  */

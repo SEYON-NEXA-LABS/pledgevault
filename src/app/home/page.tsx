@@ -618,15 +618,21 @@ export default function AboutLandingPage() {
 
       {/* 9. Footer */}
       <footer className="bg-slate-950 text-slate-400 py-12 border-t border-slate-900 text-sm">
-        <div className="max-w-7xl mx-auto px-6 flex flex-col sm:flex-row items-center justify-between gap-6">
-          <div className="flex items-center gap-3">
-            <img src="/android-chrome-192x192.png" alt="PledgeVault Logo" className="w-7 h-7 object-contain" />
-            <span className="font-extrabold text-white">PledgeVault</span>
-            <span className="text-xs text-slate-500">© 2026 NVision Systems Pvt Ltd.</span>
+        <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-6">
+          <div className="flex flex-col sm:flex-row items-center gap-4 text-center sm:text-left">
+            <div className="flex items-center gap-2">
+              <img src="/android-chrome-192x192.png" alt="PledgeVault Logo" className="w-6 h-6 object-contain" />
+              <span className="font-extrabold text-white">PledgeVault</span>
+            </div>
+            <p className="text-[11px] font-bold text-slate-400 tracking-wide">
+              &copy; {new Date().getFullYear()} <span translate="no" className="font-extrabold text-white">PledgeVault</span>. Developed by <span translate="no">SEYON NEXA LABS</span> (A subsidiary of <Link href="https://nvisionsystems.in" target="_blank" rel="noopener noreferrer" className="hover:text-emerald-400 underline decoration-dotted text-slate-300" translate="no">NVISION SYSTEMS</Link>).
+            </p>
           </div>
 
-          <div className="flex items-center gap-6 font-semibold">
+          <div className="flex items-center gap-6 font-semibold text-xs">
             <Link href="/home" className="hover:text-white transition-colors">Home</Link>
+            <Link href="/terms" className="hover:text-white transition-colors">Terms of Service</Link>
+            <Link href="/privacy" className="hover:text-white transition-colors">Privacy Policy</Link>
             <Link href="/login" className="hover:text-white transition-colors">Login</Link>
             <Link href="/start-trial" className="hover:text-white transition-colors">Start Trial</Link>
           </div>

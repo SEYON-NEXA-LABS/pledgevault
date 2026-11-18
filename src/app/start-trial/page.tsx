@@ -16,9 +16,11 @@ import {
   Lock,
   Mail,
   Globe,
-  Phone
+  Phone,
+  ExternalLink
 } from 'lucide-react';
 import { registerTrialAction } from './actions';
+import { isValidPhoneNumber, formatPhoneWithCountryCode } from '@/lib/whatsapp';
 import { supabase } from '@/lib/supabase/client';
 import { authStore } from '@/lib/authStore';
 import { supabaseService } from '@/lib/supabase/service';
@@ -29,6 +31,7 @@ export default function StartTrial() {
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -45,10 +48,26 @@ export default function StartTrial() {
       return;
     }
 
+    if (!acceptedTerms) {
+      setError('Please agree to the Terms of Service & Privacy Policy to start your trial.');
+      return;
+    }
+
+    if (formData.phone) {
+      const phoneCheck = isValidPhoneNumber(formData.phone);
+      if (!phoneCheck.valid) {
+        setError(`Phone error: ${phoneCheck.error}`);
+        return;
+      }
+    }
+
     setLoading(true);
     setError(null);
 
-    const res: any = await registerTrialAction(formData);
+    const res: any = await registerTrialAction({
+      ...formData,
+      phone: formatPhoneWithCountryCode(formData.phone)
+    });
 
     if (res.success) {
       // AUTO LOGIN LOGIC
@@ -166,9 +185,12 @@ export default function StartTrial() {
               <div className="input-box">
                 <Phone size={18} className="emerald-icon" />
                 <input 
-                  placeholder="e.g., +91 98765 43210" 
+                  type="tel"
+                  placeholder="e.g. 98765 43210" 
                   value={formData.phone}
                   onChange={e => setFormData({...formData, phone: e.target.value})}
+                  maxLength={15}
+                  pattern="[0-9+\s-]{10,15}"
                 />
               </div>
             </div>
@@ -219,9 +241,39 @@ export default function StartTrial() {
               </div>
             </div>
 
+            {/* Terms & Privacy Agreement */}
+            <div style={{ margin: '18px 0 6px', padding: '14px 16px', background: 'var(--muted)', borderRadius: '14px', border: '1px solid var(--border)' }}>
+              <label style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', fontSize: '12px', fontWeight: 600, color: 'var(--foreground)', cursor: 'pointer', lineHeight: '1.5' }}>
+                <input 
+                  type="checkbox" 
+                  checked={acceptedTerms} 
+                  onChange={e => setAcceptedTerms(e.target.checked)}
+                  style={{ width: '16px', height: '16px', marginTop: '2px', accentColor: 'var(--primary)' }}
+                />
+                <span>
+                  I have read and agree to the{' '}
+                  <Link 
+                    href="/terms" 
+                    target="_blank"
+                    className="inline-flex items-center gap-1 text-primary font-black underline hover:opacity-80"
+                  >
+                    Terms of Service <ExternalLink size={11} />
+                  </Link>
+                  {' '}and{' '}
+                  <Link 
+                    href="/privacy" 
+                    target="_blank"
+                    className="inline-flex items-center gap-1 text-primary font-black underline hover:opacity-80"
+                  >
+                    Privacy Policy <ExternalLink size={11} />
+                  </Link>.
+                </span>
+              </label>
+            </div>
+
             <div className="trial-actions">
               <button className="pv-btn pv-btn-ghost" onClick={() => setStep(1)}>Back</button>
-              <button className="pv-btn btn-gold" onClick={handleRegister} disabled={loading}>
+              <button className="pv-btn btn-gold" onClick={handleRegister} disabled={loading || !acceptedTerms}>
                 {loading ? <><Loader2 className="spin" size={18} /> Setting up...</> : <>Start My Free Trial <ArrowRight size={18} /></>}
               </button>
             </div>
@@ -246,7 +298,7 @@ export default function StartTrial() {
             Already have an account? <Link href="/login">Login here</Link>
           </div>
           <div className="trial-version">
-            Build ID: {process.env.NEXT_PUBLIC_APP_VERSION || 'dev'}
+            v{process.env.NEXT_PUBLIC_APP_VERSION || '0.2.0'} • Build: {process.env.NEXT_PUBLIC_APP_BUILD || 'dev'}
           </div>
         </div>
       </div>

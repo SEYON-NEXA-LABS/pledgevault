@@ -193,7 +193,9 @@ export default function Sidebar({ isOpen, onToggle, overdueCount = 0, totalLoans
               <div className="text-[10px] font-black text-primary uppercase tracking-wider flex items-center gap-2">
                 {authStore.isSuperadmin() ? t.sidebar.superadmin : (authStore.isAdmin() ? t.sidebar.admin : t.sidebar.staff)}
                 <span className="opacity-30 select-none">•</span>
-                <span className="opacity-30 font-mono lower-case">v.{process.env.NEXT_PUBLIC_APP_VERSION || 'dev'}</span>
+                <span className="opacity-40 font-mono text-[9px]">
+                  v{process.env.NEXT_PUBLIC_APP_VERSION || '0.2.0'} ({process.env.NEXT_PUBLIC_APP_BUILD || 'dev'})
+                </span>
               </div>
             </div>
             <button className="pv-btn pv-btn-ghost w-9 h-9 p-0 text-muted-foreground hover:text-destructive shrink-0" onClick={handleSignOut} title={t.common.signOut}>

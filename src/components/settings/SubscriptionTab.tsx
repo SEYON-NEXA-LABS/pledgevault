@@ -99,17 +99,19 @@ export default function SubscriptionTab({ currentPlan, onUpgrade, firmName }: Su
   const limits = PLAN_LIMITS[currentPlan] || PLAN_LIMITS.free;
 
   const handleUpgrade = async (plan: any) => {
-    if (plan.id === currentPlan) return;
+    const isRenew = plan.id === currentPlan;
     
-    const movement = getPlanMovement(currentPlan, plan.id);
-    if (movement === 'downgrade') {
-      const confirmed = confirm(
-        "WARNING: You are downgrading your plan. \n\n" +
-        "1. Payments are non-refundable. \n" +
-        "2. Higher-tier features (like unlimited branches) will be restricted immediately if you exceed your new plan limits. \n\n" +
-        "Are you sure you want to proceed?"
-      );
-      if (!confirmed) return;
+    if (!isRenew) {
+      const movement = getPlanMovement(currentPlan, plan.id);
+      if (movement === 'downgrade') {
+        const confirmed = confirm(
+          "WARNING: You are downgrading your plan. \n\n" +
+          "1. Payments are non-refundable. \n" +
+          "2. Higher-tier features (like unlimited branches) will be restricted immediately if you exceed your new plan limits. \n\n" +
+          "Are you sure you want to proceed?"
+        );
+        if (!confirmed) return;
+      }
     }
 
     setLoading(plan.id);
@@ -253,13 +255,13 @@ export default function SubscriptionTab({ currentPlan, onUpgrade, firmName }: Su
               </div>
 
               <button 
-                className={`pv-btn pv-btn-sm ${plan.id === currentPlan ? 'pv-btn-outline' : (plan.id === 'pro' ? 'pv-btn-gold' : 'pv-btn-primary')}`}
+                className={`pv-btn pv-btn-sm ${plan.id === currentPlan ? 'pv-btn-gold' : (plan.id === 'pro' ? 'pv-btn-gold' : 'pv-btn-primary')}`}
                 style={{ width: '100%', marginBottom: '20px' }}
-                disabled={plan.id === currentPlan || !!loading}
+                disabled={!!loading}
                 onClick={() => handleUpgrade(plan)}
               >
-                {plan.id === currentPlan ? 'Current Plan' : (loading === plan.id ? '...' : 'Upgrade')}
-                {plan.id !== currentPlan && !loading && <ChevronRight size={14} />}
+                {plan.id === currentPlan ? (loading === plan.id ? 'Processing...' : 'Extend / Renew Plan') : (loading === plan.id ? '...' : 'Upgrade')}
+                {!loading && <ChevronRight size={14} />}
               </button>
 
               <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '10px' }}>
@@ -421,7 +423,7 @@ export default function SubscriptionTab({ currentPlan, onUpgrade, firmName }: Su
       <div style={{ marginTop: '60px', padding: '32px', background: 'var(--bg-primary)', borderRadius: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', border: '1px solid var(--border)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', fontSize: '14px', color: 'var(--text-secondary)', fontWeight: 600 }}>
           <CreditCard size={18} />
-          <span>Secure checkout powered by <strong>Razorpay Stub</strong></span>
+          <span>Secure checkout powered by <strong>Razorpay</strong> (Cards, UPI, NetBanking)</span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: 'var(--status-overdue)', fontWeight: 800, background: 'var(--status-overdue-bg)', padding: '6px 14px', borderRadius: '10px' }}>
           <AlertCircle size={14} />

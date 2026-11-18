@@ -41,6 +41,7 @@ import { supabase } from '@/lib/supabase/client';
 import { ShopSettings, PlanTier } from '@/lib/types';
 import { DEFAULT_SETTINGS } from '@/lib/constants';
 import { metalRateService } from '@/lib/supabase/metalRateService';
+import { isValidPhoneNumber, formatPhoneWithCountryCode } from '@/lib/whatsapp';
 import SubscriptionTab from '@/components/settings/SubscriptionTab';
 import TeamTab from '@/components/settings/TeamTab';
 import ProfileTab from '@/components/settings/ProfileTab';
@@ -147,12 +148,27 @@ function SettingsContent() {
   };
 
   const handleSave = async () => {
+    // Validate Shop Phone if provided
+    if (settings.shopPhone && settings.shopPhone.trim()) {
+      const phoneCheck = isValidPhoneNumber(settings.shopPhone);
+      if (!phoneCheck.valid) {
+        alert(`Support Contact Error: ${phoneCheck.error}`);
+        return;
+      }
+    }
+
     try {
+      const formattedSettings = {
+        ...settings,
+        shopPhone: settings.shopPhone ? formatPhoneWithCountryCode(settings.shopPhone) : settings.shopPhone
+      };
+
       // 1. Save to local store for instant UI reactivity
-      settingsStore.save(settings, true);
+      settingsStore.save(formattedSettings, true);
       
       // 2. Persist to Supabase database (updates firms and shop_settings tables)
-      await supabaseService.updateSettings(settings);
+      await supabaseService.updateSettings(formattedSettings);
+      setSettings(formattedSettings);
       
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
@@ -198,8 +214,13 @@ function SettingsContent() {
     const branchCode = prompt('Enter Branch Code (e.g. SLM01):');
     if (!branchCode) return;
     const location = prompt('Enter Location/City:');
-    const phone = prompt('Enter Branch Phone Number (Mandatory):');
+    const phone = prompt('Enter Branch Phone Number (Mandatory 10 digits):');
     if (!phone) return;
+    const phoneCheck = isValidPhoneNumber(phone);
+    if (!phoneCheck.valid) {
+      alert(`Invalid Branch Phone: ${phoneCheck.error}`);
+      return;
+    }
     const license = prompt('Enter Branch License Number (Optional):');
 
     try {
@@ -210,7 +231,7 @@ function SettingsContent() {
         name: branchName,
         code: branchCode.toUpperCase(),
         location: location || '',
-        phone: phone,
+        phone: formatPhoneWithCountryCode(phone),
         licenseNumber: license || ''
       } as any);
 
@@ -357,7 +378,19 @@ function SettingsContent() {
               </div>
               <div className="pv-input-group">
                 <label>Support Contact <span className="text-destructive">*</span></label>
-                <input type="text" name="shopPhone" className="pv-input" value={settings.shopPhone} onChange={handleChange} required />
+                <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                  <input 
+                    type="tel" 
+                    name="shopPhone" 
+                    className="pv-input font-bold" 
+                    value={settings.shopPhone || ''} 
+                    onChange={handleChange} 
+                    placeholder="+91 98765 43210"
+                    maxLength={16}
+                    pattern="[0-9+\s-]{10,16}"
+                    required 
+                  />
+                </div>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                 <div className="pv-input-group">
@@ -646,7 +679,9 @@ function SettingsContent() {
               <div className="flex items-center gap-3">
                  <div className="flex flex-col items-end">
                     <span className="text-[10px] font-black uppercase opacity-40 tracking-tight">Active Deployment</span>
-                    <span className="font-mono text-sm font-black text-primary uppercase">v.{process.env.NEXT_PUBLIC_APP_VERSION || 'dev'}</span>
+                    <span className="font-mono text-sm font-black text-primary">
+                      v{process.env.NEXT_PUBLIC_APP_VERSION || '0.2.0'} <span className="text-xs text-muted-foreground font-semibold">({process.env.NEXT_PUBLIC_APP_BUILD || 'dev'})</span>
+                    </span>
                  </div>
                  <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center shadow-inner">
                     <Database size={18} />

@@ -38,9 +38,16 @@ export async function POST(request: Request) {
       );
     }
 
-    // 2. Compute date boundaries
-    const startDate = new Date();
-    const endDate = new Date();
+    // 2. Compute date boundaries (Gracefully extend if user is already on an active plan)
+    const activeSub = await supabaseService.getActiveSubscription(firmId);
+    let startDate = new Date();
+    
+    // If the firm currently has active days remaining, extend from the existing end date!
+    if (activeSub && activeSub.endDate && new Date(activeSub.endDate).getTime() > Date.now()) {
+      startDate = new Date(activeSub.endDate);
+    }
+
+    const endDate = new Date(startDate);
     if (interval === 'monthly') {
       endDate.setMonth(endDate.getMonth() + 1);
     } else {

@@ -361,12 +361,15 @@ export default function LoginPage() {
           </div>
 
           <footer style={{ marginTop: '20px', paddingTop: '16px', borderTop: '1px solid var(--border)' }}>
-             <div style={{ display: 'flex', gap: '8px', fontSize: '11px', color: 'var(--text-tertiary)', fontWeight: '700', flexWrap: 'wrap' }}>
-                <span>© 2026 <a href="https://nvisionsystems.in" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--text-secondary)', textDecoration: 'underline' }}>NVision Systems Pvt Ltd.</a></span>
-                <span>•</span>
-                <span className="font-mono lowercase opacity-60">
-                   {process.env.NEXT_PUBLIC_APP_VERSION || (process.env.NODE_ENV === 'development' ? 'dev' : '')}
-                </span>
+             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '11px', color: 'var(--text-tertiary)', fontWeight: '700' }}>
+                <p className="text-[11px] font-bold text-slate-500 tracking-wide leading-relaxed m-0">
+                   &copy; {new Date().getFullYear()} <span translate="no" className="font-extrabold text-slate-800 dark:text-slate-200">PledgeVault</span>. Developed by <span translate="no">SEYON NEXA LABS</span> (A subsidiary of <Link href="https://nvisionsystems.in" target="_blank" rel="noopener noreferrer" className="hover:text-primary underline decoration-dotted text-slate-700 dark:text-slate-300" translate="no">NVISION SYSTEMS</Link>).
+                </p>
+                <div className="flex items-center gap-2">
+                   <span className="font-mono text-[10px] lowercase opacity-60">
+                      v{process.env.NEXT_PUBLIC_APP_VERSION || '0.2.0'} ({process.env.NEXT_PUBLIC_APP_BUILD || 'dev'})
+                   </span>
+                </div>
              </div>
           </footer>
 

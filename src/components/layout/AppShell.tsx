@@ -26,11 +26,14 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
   const [auth, setAuth] = useState(authStore.get());
 
-  const isPublicPage = 
-    (pathname === '/' && !auth.isAuthenticated) || 
+  const isUnauthenticatedRoot = pathname === '/' && !auth.isAuthenticated;
+  const isPublicStandalone = 
+    isUnauthenticatedRoot ||
     pathname === '/login' || 
     pathname === '/home' || 
     pathname === '/start-trial' || 
+    pathname === '/terms' || 
+    pathname === '/privacy' || 
     pathname === '/forgot-password' || 
     pathname === '/reset-password' || 
     pathname?.startsWith('/track');
@@ -61,13 +64,14 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     }
     
     async function initializeLiveState() {
-      if (isPublicPage) {
+      // If we are on public pages or unauthenticated home, don't redirect to login!
+      if (isPublicStandalone || pathname === '/') {
         setIsHydrating(false);
         return;
       }
 
-      const auth = authStore.get();
-      if (!auth.isAuthenticated) {
+      const currentAuth = authStore.get();
+      if (!currentAuth.isAuthenticated) {
         setIsHydrating(false);
         router.push('/login');
         return;
@@ -144,14 +148,14 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       window.removeEventListener('pv_settings_updated', syncState);
       window.removeEventListener('pv_auth_updated', syncState);
     };
-  }, [pathname, isPublicPage]);
+  }, [pathname, isPublicStandalone]);
 
   if (!mounted) return null;
 
   const t = translations[lang] || translations.en;
 
   // Hydration / Loading Splash Screen
-  if (isHydrating && !isPublicPage) {
+  if (isHydrating && !isPublicStandalone) {
     return (
       <div className="flex flex-col items-center justify-center h-screen w-screen bg-background gap-8 animate-in fade-in duration-700">
         <div className="relative">
@@ -181,7 +185,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="app-layout">
-      {!isPublicPage && (
+      {!isPublicStandalone && (
         <Sidebar
           isOpen={sidebarOpen}
           onToggle={() => setSidebarOpen(!sidebarOpen)}
@@ -189,8 +193,8 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           totalLoans={totalLoans}
         />
       )}
-      <main className={`main-content ${isPublicPage ? 'full-width' : (sidebarOpen ? 'expanded' : 'collapsed')}`}>
-        {!isPublicPage && (
+      <main className={`main-content ${isPublicStandalone ? 'full-width' : (sidebarOpen ? 'expanded' : 'collapsed')}`}>
+        {!isPublicStandalone && (
           <Header 
             settings={currentSettings} 
             onMenuClick={() => {
@@ -200,14 +204,14 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             }} 
           />
         )}
-        <div className={isPublicPage ? '' : 'page-content'}>
+        <div className={isPublicStandalone ? '' : 'page-content'}>
           {children}
         </div>
       </main>
-      {!isPublicPage && <MobileBottomNav />}
+      {!isPublicStandalone && <MobileBottomNav />}
 
       {/* Mandatory Branch Selector for Staff */}
-      {showMandatorySelector && !isPublicPage && (
+      {showMandatorySelector && !isPublicStandalone && (
         <div className="fixed inset-0 z-100 bg-background flex items-center justify-center p-6 animate-in fade-in duration-500">
           <div className="pv-card sm:max-w-[440px] w-full text-center p-12 shadow-2xl border-primary/20">
             <div className="w-20 h-20 bg-primary/10 text-primary rounded-3xl flex items-center justify-center text-4xl mx-auto mb-8 shadow-inner">

@@ -1,5 +1,6 @@
 import type { NextConfig } from "next";
 import { execSync } from 'child_process';
+import pkg from './package.json';
 
 let commitHash = 'dev';
 try {
@@ -10,7 +11,8 @@ try {
 
 const nextConfig: NextConfig = {
   env: {
-    NEXT_PUBLIC_APP_VERSION: commitHash,
+    NEXT_PUBLIC_APP_VERSION: pkg.version,
+    NEXT_PUBLIC_APP_BUILD: commitHash,
   },
 };
 

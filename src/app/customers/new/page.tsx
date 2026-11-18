@@ -16,6 +16,7 @@ import {
 import { customerStore } from '@/lib/store';
 import { supabaseService } from '@/lib/supabase/service';
 import { compressImage } from '@/lib/image';
+import { formatPhoneWithCountryCode, isValidPhoneNumber } from '@/lib/whatsapp';
 import Link from 'next/link';
 
 export default function NewCustomerPage() {
@@ -38,10 +39,28 @@ export default function NewCustomerPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    // Validate Primary Phone
+    const primaryPhoneCheck = isValidPhoneNumber(formData.phone);
+    if (!primaryPhoneCheck.valid) {
+      alert(`Primary Phone Error: ${primaryPhoneCheck.error}`);
+      return;
+    }
+
+    // Validate Alt Phone if provided
+    if (formData.altPhone && formData.altPhone.trim()) {
+      const altPhoneCheck = isValidPhoneNumber(formData.altPhone);
+      if (!altPhoneCheck.valid) {
+        alert(`Alt Contact Error: ${altPhoneCheck.error}`);
+        return;
+      }
+    }
+
     try {
       const now = new Date().toISOString();
       const newCustomer = await supabaseService.createCustomer({
         ...formData,
+        phone: formatPhoneWithCountryCode(formData.phone),
+        altPhone: formData.altPhone ? formatPhoneWithCountryCode(formData.altPhone) : '',
         createdAt: now,
         updatedAt: now,
       } as any);
@@ -158,29 +177,58 @@ export default function NewCustomerPage() {
               </div>
               <div className="pv-input-group">
                 <label>Primary Phone *</label>
-                <div style={{ position: 'relative' }}>
-                  <Phone size={18} style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-tertiary)' }} />
+                <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                  <div style={{ 
+                    position: 'absolute', 
+                    left: '12px', 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: '6px', 
+                    color: 'var(--text-tertiary)',
+                    fontSize: '13px',
+                    fontWeight: 700,
+                    pointerEvents: 'none'
+                  }}>
+                    <Phone size={16} />
+                    <span>+91</span>
+                  </div>
                   <input 
                     type="tel" 
                     name="phone"
                     className="pv-input" 
-                    style={{ paddingLeft: '44px' }}
-                    placeholder="e.g. 9876543210"
+                    style={{ paddingLeft: '68px' }}
+                    placeholder="98765 43210"
                     value={formData.phone}
                     onChange={handleChange}
+                    maxLength={14}
+                    pattern="[0-9\s-]{10,14}"
+                    title="Please enter a valid 10-digit mobile number"
                     required 
                   />
                 </div>
               </div>
               <div className="pv-input-group">
                 <label>Alt Contact</label>
-                <div style={{ position: 'relative' }}>
-                  <Phone size={18} style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-tertiary)' }} />
+                <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                  <div style={{ 
+                    position: 'absolute', 
+                    left: '12px', 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: '6px', 
+                    color: 'var(--text-tertiary)',
+                    fontSize: '13px',
+                    fontWeight: 700,
+                    pointerEvents: 'none'
+                  }}>
+                    <Phone size={16} />
+                    <span>+91</span>
+                  </div>
                   <input 
                     type="tel" 
                     name="altPhone"
                     className="pv-input" 
-                    style={{ paddingLeft: '44px' }}
+                    style={{ paddingLeft: '68px' }}
                     placeholder="Optional phone"
                     value={formData.altPhone}
                     onChange={handleChange}
